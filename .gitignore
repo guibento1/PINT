@@ -1,0 +1,48 @@
+# Env files
+envVars/*
+
+# Node.js (Backend)
+backend/node_modules/
+backend/package-lock.json
+backend/package.json
+backend/db/data
+
+# Node.js (Frontend - BackOffice)
+frontend/backOffice/node_modules/
+frontend/backOffice/package-lock.json
+frontend/backOffice/package.json
+
+
+# Node.js (Frontend - FrontOffice)
+frontend/frontOffice/node_modules/
+frontend/frontOffice/package-lock.json
+frontend/frontOffice/package.json
+
+# Flutter (Frontend - Mobile)
+# mobile/.dart_tool/
+# mobile/.idea/
+# mobile/android/
+# mobile/ios/
+# mobile/linux/
+# mobile/macos/
+# mobile/test/
+# mobile/web/
+# mobile/windows/
+# mobile/.metadata
+# mobile/pubspec.lock
+
+
+# IDE files (Optional, depending on the IDE you use)
+.idea/
+.vscode/
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# Flutter build files
+mobile/build/
+
+# Logs
+*.log
+
