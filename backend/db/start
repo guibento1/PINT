@@ -1,0 +1,2 @@
+podman pull postgres
+podman run -d --env-file ../.env -v /data:/var/lib/postgresql/data -v ./init.sql:/docker-entrypoint-initdb.d/init.sql --name PINTDB -p 5432:5432 postgres 
