@@ -1,0 +1,22 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "description": "Backend",
+  "license": "GPL-3.0-or-later",
+  "type": "commonjs",
+  "main": "./src/app.js",
+  "scripts": {
+    "start": "node ./src/app.js",
+    "importModels": "npx sequelize-auto -o './src/models' --useDefine -c ./config/sequelizeAuto.config.js -e postgres"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^5.1.0",
+    "pg": "^8.14.1",
+    "sequelize": "^6.37.7"
+  },
+  "devDependencies": {
+    "sequelize-auto": "^0.8.8"
+  }
+}
