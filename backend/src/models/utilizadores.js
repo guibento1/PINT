@@ -21,7 +21,7 @@ module.exports = function(sequelize, DataTypes) {
       allowNull: false
     },
     passwordhash: {
-      type: DataTypes.CHAR(64),
+      type: DataTypes.CHAR(128),
       allowNull: false
     },
     dataregisto: {

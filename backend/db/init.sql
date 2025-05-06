@@ -1,3 +1,6 @@
+/* CREATE TABLES */
+
+
 -- UTILIZADORES
 
 
@@ -7,7 +10,7 @@ CREATE TABLE Utilizadores (
     nome VARCHAR(60) NOT NULL,
     email VARCHAR(60) NOT NULL,
     salt CHAR(16) NOT NULL,
-    passwordhash CHAR(64) NOT NULL, -- pbkdf2Sync(password, salt, 1000, 64, 'sha512')    
+    passwordhash CHAR(128) NOT NULL, -- pbkdf2Sync(password, salt, 1000, 64, 'sha512')    
     dataRegisto DATE NOT NULL,
     morada VARCHAR(100),
     telefone CHAR(9),
@@ -293,7 +296,7 @@ CREATE TABLE Comentario (
 );
 CREATE TABLE RespostaPost (
 
-    idComentario BIGINT GENERATED ALWAYS AS IDENTITY,
+    idComentario BIGINT,
     post BIGINT NOT NULL,
 
 
@@ -306,7 +309,7 @@ CREATE TABLE RespostaPost (
 
 CREATE TABLE RespostaComentario (
 
-    idComentario BIGINT GENERATED ALWAYS AS IDENTITY,
+    idComentario BIGINT,
     comentario BIGINT NOT NULL,
 
 
