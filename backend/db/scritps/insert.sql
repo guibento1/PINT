@@ -282,7 +282,9 @@ INSERT INTO Material (titulo, link, tipo, criador) VALUES
 ('HTML e CSS Básico', 'https://example.com/materiais/html_css_slides.pdf', 2, 7),
 ('Flexbox e Grid', 'https://example.com/materiais/flexbox_guide.pdf', 2, 7),
 ('SEO e Google Ads', 'https://example.com/materiais/seo_googleads.pdf', 2, 3),
-('Estratégias de Marketing nas Redes Sociais', 'https://example.com/materiais/social_marketing.mp4', 3, 3);
+('Estratégias de Marketing nas Redes Sociais', 'https://example.com/materiais/social_marketing.mp4', 3, 3),
+('Quiz: Redes Neurais Artificiais', 'https://example.com/materiais/quiz_neural_networks.pdf', 2, 7),
+('Exame: Inteligência Artificial', 'https://example.com/materiais/ia_midterm_exam.pdf', 2, 7);
 
 
 
@@ -333,3 +335,84 @@ VALUES
 
 INSERT INTO DenunciaComentario (denuncia, comentario)
 VALUES (2, 1);
+
+INSERT INTO LicaoMaterial (material, licao, curso) VALUES
+(1, 2, 2),  -- 'Introdução à IA' for 'Introdução à Inteligência Artificial' (Curso 2)
+(2, 4, 2),  -- 'Algoritmos de Machine Learning' for 'Fundamentos de Machine Learning' (Curso 2)
+(3, 5, 2),  -- 'Leitura Recomendada: Deep Learning Book' for 'Redes Neurais e Deep Learning' (Curso 2)
+(4, 1, 3),  -- 'HTML e CSS Básico' for 'Fundamentos do Design Visual' (Curso 3)
+(5, 6, 3),  -- 'Flexbox e Grid' for 'Fundamentos do Design Visual' (Curso 3)
+(6, 3, 5),  -- 'SEO e Google Ads' for 'Modelos de Negócio Inovadores' (Curso 5)
+(7, 3, 5);  -- 'Estratégias de Marketing nas Redes Sociais' for 'Modelos de Negócio Inovadores' (Curso 5)
+
+
+
+
+INSERT INTO CursoTopico (curso, topico) VALUES
+(1, 1),  
+(1, 2),  
+(1, 3), 
+(2, 4),  
+(2, 5),  
+(2, 6),  
+(3, 15), 
+(3, 16), 
+(3, 17), 
+(3, 19), 
+(3, 20), 
+(3, 21), 
+(3, 22), 
+(3, 23), 
+(4, 24), 
+(4, 25), 
+(4, 26), 
+(5, 13), 
+(5, 14), 
+(5, 15); 
+
+
+
+INSERT INTO AvaliacaoContinua (idAvaliacaoContinua, cursoSincrono, enunciado, inicioDisponibilidade, fimDisponibilidade, limiteSubmissoes) VALUES
+(1, 2, 8, '2025-06-25 10:00:00', '2025-07-05 23:59:59', 2),  -- 'Midterm Exam: Inteligência Artificial'
+(2, 2, 9, '2025-06-30 10:00:00', '2025-07-10 23:59:59', 3);  -- 'Quiz: Redes Neurais Artificiais'
+
+
+INSERT INTO Inscricao (curso, formando, registo) VALUES
+(1, 2, '2025-06-01'),  
+(2, 2, '2025-06-10'),  
+(3, 2, '2025-07-01'),  
+(2, 3, '2025-06-15'),  
+(4, 3, '2025-08-01'),  
+(1, 4, '2025-06-01'),  
+(3, 4, '2025-07-15'),  
+(5, 4, '2025-07-20'),  
+(1, 5, '2025-06-05'),  
+(4, 5, '2025-08-01'),  
+(5, 5, '2025-07-25'),  
+(2, 6, '2025-06-12'),  
+(5, 6, '2025-07-15');
+
+
+INSERT INTO CanaisUtilizadores ( canal, utilizador )
+VALUES
+(6,2),
+(6,4),
+(6,5),
+(3,2),
+(3,3),
+(3,6),
+(4,4),
+(4,6),
+(5,5),
+(5,3),
+(7,2),
+(7,4),
+(1,2),
+(1,3),
+(1,4),
+(1,5),
+(1,6),
+(2,8),
+(2,3);
+
+
