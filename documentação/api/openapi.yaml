@@ -21,13 +21,34 @@ paths:
             type: integer
       responses:
         '200':
-          description: Um utilizador geral
+          description: Um utilizador
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Utilizador'
         '400':
           description: Email is required
+        '404':
+          description: User not found
+          
+    post:
+      tags:
+        - Utilizadores
+      summary: Criar utilizador
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UtilizadorInsert'
+      responses :
+        '200':
+          description: Um utilizador
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Utilizador'
+        '400':
+          description: Email is required or Something bad happened
         '404':
           description: User not found
           
@@ -45,13 +66,13 @@ paths:
             type: integer
       responses :
         '200':
-          description: Um utilizador geral
+          description: Um utilizador
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Utilizador'
         '400':
-          description: Email is required
+          description: Something bad happened
         '404':
           description: User not found
           
@@ -73,15 +94,14 @@ paths:
               $ref: '#/components/schemas/UtilizadorUpdate'
       responses :
         '200':
-          description: Um utilizador geral
+          description: Um utilizador
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Utilizador'
-        '400':
-          description: Email is required
-        '404':
-          description: User not found
+        '500':
+          description: 'Error updating User'
+
     
       
 
@@ -129,11 +149,7 @@ components:
         foto:
           type: string
           example: 'http://randomobjectstorage/bc9d7e181a996ea.jpg'
-          
-      required:
-        - id
-        - username
-        - email
+  
         
     roleTag:
     
@@ -167,6 +183,34 @@ components:
             items:
               type: string
               example: 'admin'
+              
+    UtilizadorInsert:
+    
+        type: object
+        properties:
+          nome:
+            type: string
+          email:
+            type: string
+          salt:
+            type: string
+          passwordhash:
+            type: string
+          morada:
+            type: string
+          foto:
+            type: string
+          roles:
+            type: array
+            items:
+              type: string
+              example: 'admin'
+                
+        required:
+          - nome
+          - email
+          - salt
+          - passwordhash
  
           
 

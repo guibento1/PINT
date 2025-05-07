@@ -28,6 +28,66 @@ async function findRoles(id) {
     return roles;
 }
 
+
+async function updateRoles(id,roles) {
+
+  try {
+
+    const existingRoles = await findRoles(id);
+
+    for (const role of ['admin','formando','formador']) {
+
+      if (roles.includes(role) && !existingRoles.includes(role)){
+
+        models[role].create({ utilizador : id });
+
+      } else if (!roles.includes(role) && existingRoles.includes(role)) {
+
+        models[role].destroy({ where: { utilizador : id }, force: true });
+
+      }
+    
+    }
+
+    // if (roles.includes('admin') && !existingRoles.includes('admin')){
+    //
+    //   models.admin.create({ utilizador : id });
+    //
+    // } else if (!roles.includes('admin') && existingRoles.includes('admin')) {
+    //
+    //   models.admin.destroy({ where: { utilizador : id }, force: true });
+    //
+    // }
+    //
+    //
+    // if (roles.includes('formando') && !existingRoles.includes('formando')){
+    //
+    //   models.formando.create({ utilizador : id });
+    //
+    // } else if (!roles.includes('formando') && existingRoles.includes('formando')) {
+    //
+    //   models.formando.destroy({ where: { utilizador : id }, force: true });
+    //
+    // }
+    //
+    //
+    // if (roles.includes('formador') && !existingRoles.includes('formador')){
+    //
+    //   models.formador.create({ utilizador : id });
+    //
+    // } else if (!roles.includes('formador') && existingRoles.includes('formador')) {
+    //
+    //   models.formador.destroy({ where: { utilizador : id }, force: true });
+    //
+    // }
+
+
+  } catch (error) {
+    throw error;
+  }
+
+}
+
 // Controllers
 
 const controllers = {}
@@ -91,7 +151,7 @@ controllers.update = async (req,res) => {
 
 
   const { id } = req.params;
-  const { nome, email, passwordhash, morada, telefone, foto } = req.body;
+  const { nome, email, passwordhash, morada, telefone, foto, roles } = req.body;
 
   const updatedData = {};
   
@@ -102,7 +162,7 @@ controllers.update = async (req,res) => {
 
   // Como pode ser null falso apenas quando undefined
   if (morada !== undefined) updatedData.morada = morada;
-  if (telefone !== undefined) updatedData.foto = foto;
+  if (telefone !== undefined) updatedData.telefone = telefone;
   if (foto !== undefined) updatedData.foto = foto;
 
   try {
@@ -112,15 +172,58 @@ controllers.update = async (req,res) => {
         returning: true,
       });
 
-      if (updatedRowCount === 0) {
-        return res.status(404).json({ message: 'User not found' });
+      if (roles != undefined){
+        await updateRoles(id,roles);
       }
 
-      res.status(200).json(updatedRows[0]);
+      var result = await models.utilizadores.findOne({ where: { idutilizador: id } })
+      result.dataValues.roles = await findRoles(id);
+
+      res.status(200).json(result);
     } catch (error) {
 
         console.error('Error updating User:', error);
         res.status(500).json({ message: 'Error updating User' });
+  }
+
+};
+
+
+controllers.create = async (req,res) => {
+
+
+  const { nome, email, salt, passwordhash, morada, telefone, foto, roles } = req.body;
+
+  const insertData = {};
+
+  insertData.nome = nome;
+  insertData.email = email;
+  insertData.salt = salt;
+  insertData.passwordhash = passwordhash;
+  insertData.dataregisto = new Date();
+
+  if (morada !== undefined) insertData.morada = morada;
+  if (telefone !== undefined) insertData.telefone = telefone;
+  if (foto !== undefined) insertData.foto = foto;
+
+
+  try {
+
+      const createdRow = await models.utilizadores.create(insertData, {
+        returning: true,
+      });
+
+      if (roles != undefined){
+        await updateRoles(createdRow.idutilizador,roles);
+      }
+
+      createdRow.dataValues.roles = await findRoles(createdRow.idutilizador);
+
+      res.status(200).json(createdRow);
+    } catch (error) {
+
+        console.error('Error creating User:', error);
+        res.status(500).json({ message: 'Error creating User' });
   }
 
 };
