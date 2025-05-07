@@ -98,12 +98,8 @@ function initModels(sequelize) {
   categoria.hasMany(area, { as: "areas", foreignKey: "categoria"});
   denunciacomentario.belongsTo(comentario, { as: "comentario_comentario", foreignKey: "comentario"});
   comentario.hasMany(denunciacomentario, { as: "denunciacomentarios", foreignKey: "comentario"});
-  respostacomentario.belongsTo(comentario, { as: "idcomentario_comentario", foreignKey: "idcomentario"});
-  comentario.hasOne(respostacomentario, { as: "respostacomentario", foreignKey: "idcomentario"});
   respostacomentario.belongsTo(comentario, { as: "comentario_comentario", foreignKey: "comentario"});
-  comentario.hasMany(respostacomentario, { as: "comentario_respostacomentarios", foreignKey: "comentario"});
-  respostapost.belongsTo(comentario, { as: "idcomentario_comentario", foreignKey: "idcomentario"});
-  comentario.hasOne(respostapost, { as: "respostapost", foreignKey: "idcomentario"});
+  comentario.hasMany(respostacomentario, { as: "respostacomentarios", foreignKey: "comentario"});
   cursoassincrono.belongsTo(curso, { as: "curso_curso", foreignKey: "curso"});
   curso.hasMany(cursoassincrono, { as: "cursoassincronos", foreignKey: "curso"});
   cursosincrono.belongsTo(curso, { as: "curso_curso", foreignKey: "curso"});

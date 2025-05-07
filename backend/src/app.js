@@ -13,6 +13,7 @@ app.listen(port, () => {
 })
 
 const index = require('./routes/indexRoute.js');
+const utilizador = require('./routes/utilizadorRoute.js');
 
 // Route Defenition
 app.use('/',(req, res, next) => {
@@ -23,4 +24,5 @@ app.use('/',(req, res, next) => {
 
 
 app.use('/',index);
+app.use('/utilizador',utilizador);
 

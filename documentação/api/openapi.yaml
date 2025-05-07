@@ -1,0 +1,173 @@
+openapi: 3.0.0
+info:
+  title: The SoftSkills
+  version: 1.0.0
+
+tags:
+  - name: Utilizadores
+
+paths:
+
+  /utilizador:
+    get:
+      tags:
+        - Utilizadores
+      summary: Obter utilizador por email
+      parameters:
+        - name: email
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Um utilizador geral
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Utilizador'
+        '400':
+          description: Email is required
+        '404':
+          description: User not found
+          
+  /utilizador/id/{id}:
+    get:
+      tags:
+        - Utilizadores
+      summary: Obter utilizador por id
+      parameters:
+        - name: id
+          in: path
+          description: 'Id do utilizador'
+          required: True
+          schema:
+            type: integer
+      responses :
+        '200':
+          description: Um utilizador geral
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Utilizador'
+        '400':
+          description: Email is required
+        '404':
+          description: User not found
+          
+    post:
+      tags:
+        - Utilizadores
+      summary: Atualizar utilizador
+      parameters:
+        - name: id
+          in: path
+          description: 'Id do utilizador'
+          required: True
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UtilizadorUpdate'
+      responses :
+        '200':
+          description: Um utilizador geral
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Utilizador'
+        '400':
+          description: Email is required
+        '404':
+          description: User not found
+    
+      
+
+components:
+  schemas:
+  
+    Utilizador:
+    
+      type: object
+      properties:
+      
+        idUtilizador:
+          type: integer
+          example: 3
+          
+        roles:
+          type: array
+          items: 
+            $ref : '#/components/schemas/roleTag'
+            
+        nome:
+          type: string
+          example: 'Carlos Santos'
+          
+        email:
+          type: string
+          example: 'carlos.santos@email.com'
+          
+        salt:
+          type: string
+          example: 'c4e83f5caf2680e1'
+          
+        passwordhash:
+          type: string
+          example: '86304abeed0c35aa7e ...'
+          
+        dataregisto:
+          type: string
+          example: '2024-03-20'
+          
+        morada:
+          type: string
+          example: 'Travessa do Norte, 78'
+          
+        foto:
+          type: string
+          example: 'http://randomobjectstorage/bc9d7e181a996ea.jpg'
+          
+      required:
+        - id
+        - username
+        - email
+        
+    roleTag:
+    
+      type: object
+      properties:
+        role:
+          type: string
+          example: 'admin'
+        id:
+          type: integer
+          example: '4'
+      required:
+        - role
+        
+    UtilizadorUpdate:
+    
+        type: object
+        properties:
+          nome:
+            type: string
+          email:
+            type: string
+          passwordhash:
+            type: string
+          morada:
+            type: string
+          foto:
+            type: string
+          roles:
+            type: array
+            items:
+              type: string
+              example: 'admin'
+ 
+          
+
+    

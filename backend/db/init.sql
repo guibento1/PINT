@@ -8,7 +8,7 @@ CREATE TABLE Utilizadores (
 
     idUtilizador BIGINT GENERATED ALWAYS AS IDENTITY,
     nome VARCHAR(60) NOT NULL,
-    email VARCHAR(60) NOT NULL,
+    email VARCHAR(60) UNIQUE NOT NULL,
     salt CHAR(16) NOT NULL,
     passwordhash CHAR(128) NOT NULL, -- pbkdf2Sync(password, salt, 1000, 64, 'sha512')    
     dataRegisto DATE NOT NULL,
