@@ -5,6 +5,7 @@ info:
 
 tags:
   - name: Utilizadores
+  - name: Categorização
 
 paths:
 
@@ -39,7 +40,31 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/UtilizadorInsert'
+              type: object
+              properties:
+                nome:
+                  type: string
+                email:
+                  type: string
+                salt:
+                  type: string
+                passwordhash:
+                  type: string
+                morada:
+                  type: string
+                foto:
+                  type: string
+                roles:
+                  type: array
+                  items:
+                    type: string
+                    example: 'admin'
+                      
+              required:
+                - nome
+                - email
+                - salt
+                - passwordhash
       responses :
         '200':
           description: Um utilizador
@@ -91,7 +116,24 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/UtilizadorUpdate'
+              type: object
+              properties:
+                nome:
+                  type: string
+                email:
+                  type: string
+                passwordhash:
+                  type: string
+                morada:
+                  type: string
+                foto:
+                  type: string
+                roles:
+                  type: array
+                  items:
+                    type: string
+                    example: 'admin'
+
       responses :
         '200':
           description: Um utilizador
@@ -101,9 +143,97 @@ paths:
                 $ref: '#/components/schemas/Utilizador'
         '500':
           description: 'Error updating User'
+  
+  /categoria:
+    post:
+      tags:
+        - Categorização
+      summary: Criar categoria
+      requestBody:
+        content:
+          application/json:
+            schema:
+                type: object
+                properties:
+                  designacao:
+                    type: string
+                    example: Tecnologia
 
-    
-      
+      responses :
+        '200':
+          description: Uma Categoria
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Categoria'
+        '400':
+          description: Something bad happened
+          
+
+  /categoria/list :
+    get:
+      tags:
+        - Categorização
+      summary: Obter todas as categorias
+      responses :
+        '200':
+          description: Array de categorias
+          content:
+            application/json:
+              schema:
+                type: array
+                items :
+                  $ref: '#/components/schemas/Categoria'
+        '400':
+          description: Something bad happened
+          
+  /categoria/id/{id} :
+    get:
+      tags:
+        - Categorização
+      summary: Obter uma categoria
+      parameters:
+        - name: id
+          in: path
+          description: 'Id da categoria'
+          required: True
+          schema:
+            type: integer
+      responses :
+        '200':
+          description: Array de categorias
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Categoria'
+        '400':
+          description: Something bad happened
+
+  /categoria/delete/{id} :
+    get:
+      tags:
+        - Categorização
+      summary: Eliminar uma categoria
+      parameters:
+        - name: id
+          in: path
+          description: 'Id da categoria'
+          required: True
+          schema:
+            type: integer
+      responses :
+        '200':
+          description: Mensagem
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Category deleted
+        '400':
+          description: Something bad happened
 
 components:
   schemas:
@@ -120,7 +250,14 @@ components:
         roles:
           type: array
           items: 
-            $ref : '#/components/schemas/roleTag'
+            type: object
+            properties:
+              idRole:
+                type: integer
+                example: 1
+              role:
+                type: string
+                example: 'admin'
             
         nome:
           type: string
@@ -151,67 +288,17 @@ components:
           example: 'http://randomobjectstorage/bc9d7e181a996ea.jpg'
   
         
-    roleTag:
-    
-      type: object
-      properties:
-        role:
-          type: string
-          example: 'admin'
-        id:
-          type: integer
-          example: '4'
-      required:
-        - role
-        
-    UtilizadorUpdate:
-    
-        type: object
-        properties:
-          nome:
-            type: string
-          email:
-            type: string
-          passwordhash:
-            type: string
-          morada:
-            type: string
-          foto:
-            type: string
-          roles:
-            type: array
-            items:
-              type: string
-              example: 'admin'
-              
-    UtilizadorInsert:
-    
-        type: object
-        properties:
-          nome:
-            type: string
-          email:
-            type: string
-          salt:
-            type: string
-          passwordhash:
-            type: string
-          morada:
-            type: string
-          foto:
-            type: string
-          roles:
-            type: array
-            items:
-              type: string
-              example: 'admin'
-                
-        required:
-          - nome
-          - email
-          - salt
-          - passwordhash
- 
-          
 
     
+
+ 
+    Categoria :
+      type: object
+      properties :
+        idCategoria :
+          type : number
+          example: 1
+        designacao :
+          type: string
+          example : "Tecnologia"
+          

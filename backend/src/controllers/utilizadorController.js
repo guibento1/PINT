@@ -49,38 +49,6 @@ async function updateRoles(id,roles) {
     
     }
 
-    // if (roles.includes('admin') && !existingRoles.includes('admin')){
-    //
-    //   models.admin.create({ utilizador : id });
-    //
-    // } else if (!roles.includes('admin') && existingRoles.includes('admin')) {
-    //
-    //   models.admin.destroy({ where: { utilizador : id }, force: true });
-    //
-    // }
-    //
-    //
-    // if (roles.includes('formando') && !existingRoles.includes('formando')){
-    //
-    //   models.formando.create({ utilizador : id });
-    //
-    // } else if (!roles.includes('formando') && existingRoles.includes('formando')) {
-    //
-    //   models.formando.destroy({ where: { utilizador : id }, force: true });
-    //
-    // }
-    //
-    //
-    // if (roles.includes('formador') && !existingRoles.includes('formador')){
-    //
-    //   models.formador.create({ utilizador : id });
-    //
-    // } else if (!roles.includes('formador') && existingRoles.includes('formador')) {
-    //
-    //   models.formador.destroy({ where: { utilizador : id }, force: true });
-    //
-    // }
-
 
   } catch (error) {
     throw error;
@@ -115,7 +83,6 @@ controllers.byEmail = async (req,res) => {
     
   } catch (error) {
 
-    console.log(error);
     return res.status(400).json({ error: 'Something bad happened' });
 
   }
