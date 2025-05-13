@@ -15,6 +15,7 @@ CREATE TABLE Utilizadores (
     morada VARCHAR(100),
     telefone CHAR(9),
     foto VARCHAR(300),
+    activo BOOLEAN DEFAULT TRUE,
 
     CONSTRAINT CHK_EMAIL CHECK (email ~ '^[a-zA-Z0-9_]+(\.[a-zA-Z0-9_]+)*@[a-z]+(\.[a-z]+)+$'),
     CONSTRAINT CHK_PHONE CHECK (telefone ~ '^9[1-6][0-9]{7}$'),
@@ -27,6 +28,7 @@ CREATE TABLE Admin (
 
     idAdmin BIGINT UNIQUE GENERATED ALWAYS AS IDENTITY,
     utilizador BIGINT,
+    activo BOOLEAN DEFAULT TRUE,
 
     CONSTRAINT ADMIN_PK PRIMARY KEY(idAdmin,utilizador),
     CONSTRAINT ADMIN_UTILIZADOR_FK FOREIGN KEY (utilizador) REFERENCES Utilizadores(idUtilizador)
@@ -39,6 +41,7 @@ CREATE TABLE Formando (
 
     idFormando BIGINT UNIQUE GENERATED ALWAYS AS IDENTITY,
     utilizador BIGINT,
+    activo BOOLEAN DEFAULT TRUE,
 
     CONSTRAINT FORMANDO_PK PRIMARY KEY(idFormando,utilizador),
     CONSTRAINT FORMANDO_UTILIZADOR_FK FOREIGN KEY (utilizador) REFERENCES Utilizadores(idUtilizador)
@@ -50,6 +53,7 @@ CREATE TABLE Formador (
 
     idFormador BIGINT UNIQUE GENERATED ALWAYS AS IDENTITY,
     utilizador BIGINT,
+    activo BOOLEAN DEFAULT TRUE,
 
     CONSTRAINT FORMADOR_PK PRIMARY KEY(idFormador,utilizador),
     CONSTRAINT FORMADOR_UTILIZADOR_FK FOREIGN KEY (utilizador) REFERENCES Utilizadores(idUtilizador)
