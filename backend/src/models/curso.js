@@ -47,15 +47,6 @@ module.exports = function(sequelize, DataTypes) {
   }, {
     tableName: 'curso',
     schema: 'public',
-    timestamps: false,
-    indexes: [
-      {
-        name: "curso_pk",
-        unique: true,
-        fields: [
-          { name: "idcurso" },
-        ]
-      },
-    ]
+    timestamps: false
   });
 };

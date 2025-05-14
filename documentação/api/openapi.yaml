@@ -143,6 +143,57 @@ paths:
                 $ref: '#/components/schemas/Utilizador'
         '500':
           description: 'Error updating User'
+          
+  /utilizador/delete/{id}:
+    post:
+      tags:
+        - Utilizadores
+      summary: Desativar utilizador
+      parameters:
+        - name: id
+          in: path
+          description: 'Id do utilizador'
+          required: True
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                passwordhash:
+                  type: string
+                  example: '5a4364dceb1416d1117e0085b0f5af12a30fe3a4f7a503f8f40309324972ecb3309b690141837b1c3d9db8d5de8a172a3c05fe979ded9e90c30a8d70587b9c'
+      responses :
+        '200':
+          description: 'User deactivated'
+        '500':
+          description: 'Missing passwordhash'
+        '501':
+          description: 'Password mismatch'
+        '404':
+          description: 'User not found'
+          
+  /utilizador/activate/{id}:
+    post:
+      tags:
+        - Utilizadores
+      summary: Ativar utilizador
+      parameters:
+        - name: id
+          in: path
+          description: 'Id do utilizador'
+          required: True
+          schema:
+            type: integer
+      responses :
+        '200':
+          description: 'User Activate'
+        '500':
+          description: 'Something bad happened'
+      
+    
   
   /categoria:
     post:

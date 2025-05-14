@@ -8,9 +8,9 @@ async function findRoles(id) {
 
     var roles = [];
 
-    const admin = await models.admin.findOne({ where: { utilizador: id } })
-    const formando = await models.formando.findOne({ where: { utilizador: id } })
-    const formador = await models.formador.findOne({ where: { utilizador: id } })
+    const admin = await models.admin.findOne({ where: { utilizador: id, ativo: true } })
+    const formando = await models.formando.findOne({ where: { utilizador: id, ativo: true } })
+    const formador = await models.formador.findOne({ where: { utilizador: id, ativo: true } })
 
     if (admin != null){
         roles.push({"role":"admin","id":admin.idadmin});
@@ -75,7 +75,11 @@ controllers.byEmail = async (req,res) => {
 
     if (data == null) {
         return res.status(404).json({ error: 'User not found' });
-    } 
+    }
+
+    if(!data.ativo){
+        return res.status(405).json({ error: 'User disabled' });
+    }
 
     data.dataValues.roles = await findRoles(data.idutilizador);
 
@@ -101,6 +105,10 @@ controllers.byID = async (req,res) => {
     if (data == null) {
         return res.status(404).json({ error: 'User not found' });
     } 
+
+    if(!data.ativo){
+        return res.status(405).json({ error: 'User disabled' });
+    }
 
     data.dataValues.roles = await findRoles(id);
      
@@ -134,10 +142,14 @@ controllers.update = async (req,res) => {
 
   try {
 
-      const [updatedRowCount, updatedRows] = await models.utilizadores.update(updatedData, {
-        where: { idutilizador: id },
-        returning: true,
-      });
+      const [updatedRowCount, updatedRows] = await models.utilizadores.update(updatedData, { where: { idutilizador: id, ativo: true }, returning: true, });
+
+      if(updatedRowCount  != 1){
+
+        res.status(400).json({ message: 'Error updating User or User inactive' });
+        return;
+
+      }
 
       if (roles != undefined){
         await updateRoles(id,roles);
@@ -149,7 +161,6 @@ controllers.update = async (req,res) => {
       res.status(200).json(result);
     } catch (error) {
 
-        console.error('Error updating User:', error);
         res.status(500).json({ message: 'Error updating User' });
   }
 
@@ -191,6 +202,61 @@ controllers.create = async (req,res) => {
 
         console.error('Error creating User:', error);
         res.status(500).json({ message: 'Error creating User' });
+  }
+
+};
+
+
+controllers.delete = async (req,res) => {
+
+
+  const id = req.params.id;
+
+  try {
+
+    await models.utilizadores.destroy({ where: { idutilizador: id } }) ;
+     
+    res.status(200).json({ message: 'User deactivated'});
+
+  } catch (error) {
+    console.log(error);
+    return res.status(400).json({ error: 'Something bad happened' });
+  }
+
+};
+
+controllers.activate = async (req,res) => {
+
+
+  const id = req.params.id;
+  const updatedData = {};
+
+  const { passwordhash } = req.body;
+
+  if(passwordhash == null || passwordhash == undefined){
+    return res.status(500).json({ error: 'Missing passwordhash' });
+  }
+
+  updatedData.ativo = true;
+
+  try {
+
+
+    const data = await models.utilizadores.findOne({ where: { idutilizador: id } }) ;
+
+    if (data.passwordhash == passwordhash){
+
+      await models.utilizadores.update(updatedData,{ where: { idutilizador: id } }) ;
+      return res.status(200).json({ message: 'User activated'});
+
+    }
+
+    return res.status(501).json({ error: 'Password mismatch' });
+
+
+  } catch (error) {
+    console.log(error);
+    return res.status(400).json({ error: 'Something bad happened' });
   }
 
 };

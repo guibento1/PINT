@@ -1,9 +1,13 @@
 CREATE OR REPLACE FUNCTION desativar_utilizador()
 RETURNS TRIGGER AS $$
 BEGIN
+    IF OLD.ativo THEN
+
     UPDATE utilizadores
         SET ativo = false
         WHERE idutilizador = OLD.idutilizador;
+
+    END IF;
 
     UPDATE admin
         SET ativo = false
@@ -21,46 +25,29 @@ END;
 $$ LANGUAGE plpgsql;
 
 
-
-CREATE OR REPLACE FUNCTION adicionar_role()
+CREATE OR REPLACE FUNCTION inserir_utilizador()
 RETURNS TRIGGER AS $$
 DECLARE
-    userActive BOOLEAN;
-    inRole BOOLEAN;
+    utilizador BIGINT;
+    state BOOLEAN;
 BEGIN
+    SELECT idUtilizador, ativo 
+    INTO utilizador, state
+    FROM utilizadores 
+    WHERE email = NEW.email;
 
-    EXECUTE 'SELECT ativo FROM utilizadores WHERE idutilizador = $1'
-    INTO userActive
-    USING NEW.utilizador;
-    
-    IF NOT userActive THEN
-        RAISE EXCEPTION 'Utilizador não está ativo';
-        RETURN NULL;
+    IF utilizador IS NOT NULL THEN
+        IF NOT state THEN
+            RAISE EXCEPTION 'Utilizador inativo existente com o email fornecido';
+        END IF;
+        RAISE EXCEPTION 'Utilizador existente com o email fornecido';
     END IF;
-
-
-    EXECUTE format(
-        'SELECT EXISTS (SELECT 1 FROM %I WHERE utilizador = $1)', 
-        TG_TABLE_NAME -- Nome da tabela em que o trigger foi chamado
-    )
-    INTO inRole
-    USING NEW.utilizador;
-
-
-    IF inRole THEN
-        EXECUTE format(
-            'UPDATE %I SET ativo = true WHERE utilizador = $1',
-            TG_TABLE_NAME -- Nome da tabela em que o trigger foi chamado
-        )
-        USING NEW.utilizador;
-        
-
-        RETURN NULL;
-    END IF;
-
 
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
+
+
+
 
 

@@ -3,19 +3,9 @@ BEFORE DELETE ON utilizadores
 FOR EACH ROW
 EXECUTE FUNCTION desativar_utilizador();
 
-CREATE TRIGGER adicionar_admin
-BEFORE INSERT ON admin
+CREATE OR REPLACE TRIGGER inserir_utilizador_trigger
+BEFORE INSERT ON utilizadores
 FOR EACH ROW
-EXECUTE FUNCTION adicionar_role();
+EXECUTE FUNCTION inserir_utilizador();
 
 
-CREATE TRIGGER adicionar_formador
-BEFORE INSERT ON formador
-FOR EACH ROW
-EXECUTE FUNCTION adicionar_role();
-
-
-CREATE TRIGGER adicionar_formador
-BEFORE INSERT ON formando
-FOR EACH ROW
-EXECUTE FUNCTION adicionar_role();

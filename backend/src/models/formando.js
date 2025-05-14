@@ -17,10 +17,16 @@ module.exports = function(sequelize, DataTypes) {
         model: 'utilizadores',
         key: 'idutilizador'
       }
+    },
+    ativo: {
+      type: DataTypes.BOOLEAN,
+      allowNull: true,
+      defaultValue: true
     }
   }, {
     tableName: 'formando',
     schema: 'public',
+    hasTrigger: true,
     timestamps: false,
     indexes: [
       {

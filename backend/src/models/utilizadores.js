@@ -40,26 +40,15 @@ module.exports = function(sequelize, DataTypes) {
     foto: {
       type: DataTypes.STRING(300),
       allowNull: true
+    },
+    ativo: {
+      type: DataTypes.BOOLEAN,
+      allowNull: true,
+      defaultValue: true
     }
   }, {
     tableName: 'utilizadores',
     schema: 'public',
-    timestamps: false,
-    indexes: [
-      {
-        name: "unique_email",
-        unique: true,
-        fields: [
-          { name: "email" },
-        ]
-      },
-      {
-        name: "utilizador_pk",
-        unique: true,
-        fields: [
-          { name: "idutilizador" },
-        ]
-      },
-    ]
+    timestamps: false
   });
 };

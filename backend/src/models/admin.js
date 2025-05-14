@@ -17,27 +17,15 @@ module.exports = function(sequelize, DataTypes) {
         model: 'utilizadores',
         key: 'idutilizador'
       }
+    },
+    ativo: {
+      type: DataTypes.BOOLEAN,
+      allowNull: true,
+      defaultValue: true
     }
   }, {
     tableName: 'admin',
     schema: 'public',
-    timestamps: false,
-    indexes: [
-      {
-        name: "admin_idadmin_key",
-        unique: true,
-        fields: [
-          { name: "idadmin" },
-        ]
-      },
-      {
-        name: "admin_pk",
-        unique: true,
-        fields: [
-          { name: "idadmin" },
-          { name: "utilizador" },
-        ]
-      },
-    ]
+    timestamps: false
   });
 };
