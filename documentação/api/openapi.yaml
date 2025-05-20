@@ -73,7 +73,9 @@ paths:
               schema:
                 $ref: '#/components/schemas/Utilizador'
         '400':
-          description: Email is required or Something bad happened
+          description: Something bad happened
+        '409':
+          description: User with that email already exists, activate it instead
         '404':
           description: User not found
           
@@ -101,7 +103,30 @@ paths:
         '404':
           description: User not found
           
-    post:
+    delete:
+      tags:
+        - Utilizadores
+      summary: Desativar utilizador
+      parameters:
+        - name: id
+          in: path
+          description: 'Id do utilizador'
+          required: True
+          schema:
+            type: integer
+      responses :
+        '200':
+          description: Um utilizador
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Utilizador'
+        '400':
+          description: Something bad happened
+        '404':
+          description: User not found
+          
+    put:
       tags:
         - Utilizadores
       summary: Atualizar utilizador
@@ -144,11 +169,11 @@ paths:
         '500':
           description: 'Error updating User'
           
-  /utilizador/delete/{id}:
-    post:
+  /utilizador/activate/{id}:
+    patch:
       tags:
         - Utilizadores
-      summary: Desativar utilizador
+      summary: Ativar utilizador
       parameters:
         - name: id
           in: path
@@ -174,24 +199,6 @@ paths:
           description: 'Password mismatch'
         '404':
           description: 'User not found'
-          
-  /utilizador/activate/{id}:
-    post:
-      tags:
-        - Utilizadores
-      summary: Ativar utilizador
-      parameters:
-        - name: id
-          in: path
-          description: 'Id do utilizador'
-          required: True
-          schema:
-            type: integer
-      responses :
-        '200':
-          description: 'User Activate'
-        '500':
-          description: 'Something bad happened'
       
     
   
@@ -259,9 +266,8 @@ paths:
                 $ref: '#/components/schemas/Categoria'
         '400':
           description: Something bad happened
-
-  /categoria/delete/{id} :
-    get:
+          
+    delete:
       tags:
         - Categorização
       summary: Eliminar uma categoria
@@ -285,6 +291,35 @@ paths:
                     example: Category deleted
         '400':
           description: Something bad happened
+          
+    put:
+      tags:
+        - Categorização
+      summary: Atualizar Categoria
+      parameters:
+        - name: id
+          in: path
+          description: 'Id da Categoria'
+          required: True
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                designacao:
+                  type: string
+                  example: 'desporto'
+      responses :
+        '200':
+          description: 'Categoria updated'
+        '404':
+          description: 'Categoria not found'
+    
+
+
 
 components:
   schemas:

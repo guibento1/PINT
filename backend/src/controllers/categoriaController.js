@@ -78,4 +78,30 @@ controllers.delete = async (req,res) => {
 };
 
 
+controllers.update = async (req, res) => {
+    const { id } = req.params;
+    const { designacao } = req.body;
+
+    const updatedData = {};
+    if (designacao) updatedData.designacao = designacao;
+
+    try {
+        const [affectedCount, updatedRows] = await models.categoria.update(updatedData, {
+            where: { idcategoria: id },
+            returning: true,
+        });
+
+        if (affectedCount === 0 || updatedRows.length === 0) {
+            return res.status(404).json({ message: 'Category not found or no change made' });
+        }
+
+        const result = await models.categoria.findOne({ where: { idcategoria: id } });
+        res.status(200).json(result);
+
+    } catch (error) {
+        res.status(500).json({ message: 'Error updating Category' });
+    }
+};
+
+
 module.exports = controllers;

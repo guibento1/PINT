@@ -17,19 +17,19 @@ EXECUTE FUNCTION adicionar_role();
 
 
 CREATE TRIGGER remover_admin
-BEFORE INSERT ON admin
+BEFORE DELETE ON admin
 FOR EACH ROW
 EXECUTE FUNCTION remover_role();
 
 
 CREATE TRIGGER remover_formador
-BEFORE INSERT ON formador
+BEFORE DELETE ON formador
 FOR EACH ROW
 EXECUTE FUNCTION remover_role();
 
 
-CREATE TRIGGER remover_formador
-BEFORE INSERT ON formando
+CREATE TRIGGER remover_formando
+BEFORE DELETE ON formando
 FOR EACH ROW
 EXECUTE FUNCTION remover_role();
 
