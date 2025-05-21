@@ -2,18 +2,18 @@
 envVars/*
 
 # Node.js (Backend)
-backend/node_modules/
-backend/package-lock.json
-backend/db/data
+web/backend/node_modules/
+web/backend/package-lock.json
+web/backend/db/data
 
 # Node.js (Frontend - BackOffice)
-frontend/backOffice/node_modules/
-frontend/backOffice/package-lock.json
+web/frontend/backOffice/node_modules/
+web/frontend/backOffice/package-lock.json
 
 
 # Node.js (Frontend - FrontOffice)
-frontend/frontOffice/node_modules/
-frontend/frontOffice/package-lock.json
+web/frontend/frontOffice/node_modules/
+web/frontend/frontOffice/package-lock.json
 
 # Flutter (Frontend - Mobile)
 # mobile/.dart_tool/
