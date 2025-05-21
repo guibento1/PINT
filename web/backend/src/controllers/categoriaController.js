@@ -9,7 +9,6 @@ controllers.list = async (req,res) => {
     try {
         const data = await models.categoria.findAll();
         res.json(data);
-            
     } catch (error) {
         return res.status(400).json({ error: 'Something bad happened' });
     }
@@ -67,12 +66,21 @@ controllers.delete = async (req,res) => {
 
   try {
 
+
+    const data = await models.area.findAll({ where: { categoria: id } });
+    console.log(Array.isArray(data));
+    console.log(data.length);
+
+    if( data.length > 0){
+        return res.status(400).json({message:"Cannot delete Category : dependencies existence",dependencies : data });
+    }
+
     await models.categoria.destroy({ where: { idcategoria: id } }) ;
     res.status(200).json({message:"Categoria deleted"});
 
   } catch (error) {
-
-    return res.status(400).json({ error: 'Something bad happened' });
+    //console.log(error);
+    return res.status(401).json({ error: 'Something bad happened' });
   }
 
 };

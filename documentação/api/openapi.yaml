@@ -79,6 +79,21 @@ paths:
         '404':
           description: User not found
           
+  /utilizador/list:
+    get:
+      tags:
+        - Utilizadores
+      summary: Obter utilizadores
+      responses :
+        '200':
+          description: Todos os utilizadores
+          content:
+            application/json:
+              schema:
+                type: array
+                items :
+                  $ref: '#/components/schemas/Utilizador'
+                  
   /utilizador/id/{id}:
     get:
       tags:
@@ -280,7 +295,7 @@ paths:
             type: integer
       responses :
         '200':
-          description: Mensagem
+          description: Mensage
           content:
             application/json:
               schema:
@@ -290,6 +305,21 @@ paths:
                     type: string
                     example: Category deleted
         '400':
+          description: Existance of dependencies
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: 'Cannot delete Category : dependencies existence'
+                  dependencies:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Area'
+          
+        '401':
           description: Something bad happened
           
     put:
@@ -372,12 +402,7 @@ components:
         foto:
           type: string
           example: 'http://randomobjectstorage/bc9d7e181a996ea.jpg'
-  
-        
-
-    
-
- 
+          
     Categoria :
       type: object
       properties :
@@ -388,3 +413,17 @@ components:
           type: string
           example : "Tecnologia"
           
+    Area :
+      type: object
+      properties:
+        idarea :
+          type: number
+          example: 3
+        designacao: 
+          type: string
+          example: 'Desenvolvimento Web'
+        categoria:
+          type: number
+          example: 1
+          
+            

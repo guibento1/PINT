@@ -125,6 +125,18 @@ controllers.update = async (req, res) => {
     }
 };
 
+
+controllers.list = async (req,res) => {
+
+    try {
+        const data = await models.utilizadores.findAll();
+        res.status(200).json(data);
+            
+    } catch (error) {
+        return res.status(400).json({ error: 'Something bad happened' });
+    }
+};
+
 controllers.create = async (req, res) => {
     const { nome, email, salt, passwordhash, morada, telefone, foto, roles } = req.body;
 
