@@ -5,7 +5,8 @@ info:
 
 tags:
   - name: Utilizadores
-  - name: Categorização
+  - name: Categoria
+  - name: Area
 
 paths:
 
@@ -220,7 +221,7 @@ paths:
   /categoria:
     post:
       tags:
-        - Categorização
+        - Categoria
       summary: Criar categoria
       requestBody:
         content:
@@ -246,7 +247,7 @@ paths:
   /categoria/list :
     get:
       tags:
-        - Categorização
+        - Categoria
       summary: Obter todas as categorias
       responses :
         '200':
@@ -260,10 +261,34 @@ paths:
         '400':
           description: Something bad happened
           
+  /categoria/id/{id}/list :
+    get:
+      tags:
+        - Categoria
+      summary: Obter todas as areas de uma categoria
+      parameters:
+        - name: id
+          in: path
+          description: 'Id da categoria'
+          required: True
+          schema:
+            type: integer
+      responses :
+        '200':
+          description: Array de Areas
+          content:
+            application/json:
+              schema:
+                type: array
+                items :
+                  $ref: '#/components/schemas/Area'
+        '400':
+          description: Something bad happened
+          
   /categoria/id/{id} :
     get:
       tags:
-        - Categorização
+        - Categoria
       summary: Obter uma categoria
       parameters:
         - name: id
@@ -284,7 +309,7 @@ paths:
           
     delete:
       tags:
-        - Categorização
+        - Categoria
       summary: Eliminar uma categoria
       parameters:
         - name: id
@@ -324,7 +349,7 @@ paths:
           
     put:
       tags:
-        - Categorização
+        - Categoria
       summary: Atualizar Categoria
       parameters:
         - name: id
@@ -347,6 +372,162 @@ paths:
           description: 'Categoria updated'
         '404':
           description: 'Categoria not found'
+
+  /area:
+    post:
+      tags:
+        - Area
+      summary: Criar area
+      requestBody:
+        content:
+          application/json:
+            schema:
+                type: object
+                properties:
+                  designacao:
+                    type: string
+                    example: Tecnologia
+
+      responses :
+        '200':
+          description: Uma area
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Area'
+        '400':
+          description: Something bad happened
+          
+
+  /area/list :
+    get:
+      tags:
+        - Area
+      summary: Obter todas as areas
+      responses :
+        '200':
+          description: Array de areas
+          content:
+            application/json:
+              schema:
+                type: array
+                items :
+                  $ref: '#/components/schemas/Area'
+        '400':
+          description: Something bad happened
+          
+  /area/id/{id}/list :
+    get:
+      tags:
+        - Area
+      summary: Obter todos os tópicos de uma area
+      parameters:
+        - name: id
+          in: path
+          description: 'Id da Area'
+          required: True
+          schema:
+            type: integer
+      responses :
+        '200':
+          description: Array de tópicos
+          content:
+            application/json:
+              schema:
+                type: array
+                items :
+                  $ref: '#/components/schemas/Topico'
+        '400':
+          description: Something bad happened
+          
+  /area/id/{id} :
+    get:
+      tags:
+        - Area
+      summary: Obter uma area
+      parameters:
+        - name: id
+          in: path
+          description: 'Id da area'
+          required: True
+          schema:
+            type: integer
+      responses :
+        '200':
+          description: Array de areas
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Area'
+        '400':
+          description: Something bad happened
+          
+    delete:
+      tags:
+        - Area
+      summary: Eliminar uma area
+      parameters:
+        - name: id
+          in: path
+          description: 'Id da area'
+          required: True
+          schema:
+            type: integer
+      responses :
+        '200':
+          description: Mensagem
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Area deleted
+        '400':
+          description: Existance of dependencies
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: 'Cannot delete Area : dependencies existence'
+                  dependencies:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Topico'
+          
+        '401':
+          description: Something bad happened
+          
+    put:
+      tags:
+        - Area
+      summary: Atualizar area
+      parameters:
+        - name: id
+          in: path
+          description: 'Id da area'
+          required: True
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                designacao:
+                  type: string
+                  example: 'Programação'
+      responses :
+        '200':
+          description: 'Area updated'
+        '404':
+          description: 'Area not found'
+
     
 
 
@@ -425,5 +606,15 @@ components:
         categoria:
           type: number
           example: 1
+          
+    Topico :
+      type: object
+      properties:
+        idtopico :
+          type: number
+          example: 3
+        designacao: 
+          type: string
+          example: 'Desenvolvimento Web'
           
             

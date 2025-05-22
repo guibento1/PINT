@@ -30,7 +30,6 @@ controllers.byID = async (req,res) => {
     res.json(data);
 
   } catch (error) {
-    console.log(error);
     return res.status(400).json({ error: 'Something bad happened' });
   }
 
@@ -68,8 +67,6 @@ controllers.delete = async (req,res) => {
 
 
     const data = await models.area.findAll({ where: { categoria: id } });
-    console.log(Array.isArray(data));
-    console.log(data.length);
 
     if( data.length > 0){
         return res.status(400).json({message:"Cannot delete Category : dependencies existence",dependencies : data });
@@ -108,6 +105,21 @@ controllers.update = async (req, res) => {
 
     } catch (error) {
         res.status(500).json({ message: 'Error updating Category' });
+    }
+};
+
+
+controllers.listAreas = async (req, res) => {
+
+    const { id } = req.params;
+
+    try {
+
+        const data = await models.area.findAll({ where: { categoria: id } });
+        res.status(200).json(data);
+
+    } catch (error) {
+        res.status(400).json({ message: 'No areas found under category' });
     }
 };
 
