@@ -16,6 +16,7 @@ const index = require('./routes/indexRoute.js');
 const utilizador = require('./routes/utilizadorRoute.js');
 const categoria = require('./routes/categoriaRoute.js');
 const area = require('./routes/areaRoute.js');
+const topico = require('./routes/topicoRoute.js');
 
 // Route Defenition
 app.use('/',(req, res, next) => {
@@ -29,4 +30,5 @@ app.use('/',index);
 app.use('/utilizador',utilizador);
 app.use('/categoria',categoria);
 app.use('/area',area);
+app.use('/topico',topico);
 

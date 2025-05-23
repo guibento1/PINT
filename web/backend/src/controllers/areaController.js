@@ -43,7 +43,8 @@ controllers.create = async (req,res) => {
   const { designacao,categoria } = req.body;
 
   const insertData = {
-    designacao
+    designacao,
+    categoria
   };
 
   try {

@@ -7,6 +7,7 @@ tags:
   - name: Utilizadores
   - name: Categoria
   - name: Area
+  - name: Topico
 
 paths:
 
@@ -197,22 +198,9 @@ paths:
           required: True
           schema:
             type: integer
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                passwordhash:
-                  type: string
-                  example: '5a4364dceb1416d1117e0085b0f5af12a30fe3a4f7a503f8f40309324972ecb3309b690141837b1c3d9db8d5de8a172a3c05fe979ded9e90c30a8d70587b9c'
       responses :
         '200':
-          description: 'User deactivated'
-        '500':
-          description: 'Missing passwordhash'
-        '501':
-          description: 'Password mismatch'
+          description: 'User activated'
         '404':
           description: 'User not found'
       
@@ -436,7 +424,14 @@ paths:
               schema:
                 type: array
                 items :
-                  $ref: '#/components/schemas/Topico'
+                  type: object
+                  properties:
+                    idtopico:
+                      type: number
+                      example: 1
+                    designacao:
+                      type: string
+                      example: 'Redes'
         '400':
           description: Something bad happened
           
@@ -528,6 +523,248 @@ paths:
         '404':
           description: 'Area not found'
 
+  /topico:
+    post:
+      tags:
+        - Topico
+      summary: Criar area
+      requestBody:
+        content:
+          application/json:
+            schema:
+                type: object
+                properties:
+                  designacao:
+                    type: string
+                    example: CSS
+                  areas:
+                    type: array
+                    items:
+                      type: number
+                      example: 1
+      responses :
+        '200':
+          description: Uma topico
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Topico'
+        '400':
+          description: 'At least one area must be provided'
+        '500':
+          description: 'Something went wrong' 
+          
+
+  /topico/list :
+    get:
+      tags:
+        - Topico
+      summary: Obter todos os tópicos
+      responses :
+        '200':
+          description: Array de tópicos
+          content:
+            application/json:
+              schema:
+                type: array
+                items :
+                  $ref: '#/components/schemas/Topico'
+        '400':
+          description: 'Something went wrong' 
+          
+  /topico/id/{id}/listcursos :
+    get:
+      tags:
+        - Topico
+      summary: Obter todos os cursos de uma area
+      parameters:
+        - name: id
+          in: path
+          description: 'Id do tópico'
+          required: True
+          schema:
+            type: integer
+      responses :
+        '200':
+          description: Array de cursos
+          content:
+            application/json:
+              schema:
+                type: array
+                items :
+                  type: object
+                  properties:
+                    idcurso:
+                      type: number
+                      example: 1
+                    nome:
+                      type: string
+                      example: 'Redes'
+                    disponivel:
+                      type: boolean
+                      example: true
+                    thumnail:
+                      type: string
+                      example: 'https://something.png'
+        '400':
+          description: 'Something went wrong'
+          
+  /topico/id/{id}/listposts :
+    get:
+      tags:
+        - Topico
+      summary: Obter todos os cursos de uma area
+      parameters:
+        - name: id
+          in: path
+          description: 'Id do tópico'
+          required: True
+          schema:
+            type: integer
+      responses :
+        '200':
+          description: Array de cursos
+          content:
+            application/json:
+              schema:
+                type: array
+                items :
+                  type: object
+                  properties:
+                    idpost:
+                      type: number
+                      example: 6
+                    titulo:
+                      type: string
+                      example: 'Javascript, destesto esta linguagem'
+                    pontuacao:
+                      type: number
+                      example: -138
+        '400':
+          description: 'Something went wrong'
+          
+  /topico/id/{id} :
+    get:
+      tags:
+        - Topico
+      summary: Obter uma topico
+      parameters:
+        - name: id
+          in: path
+          description: 'Id da Topico'
+          required: True
+          schema:
+            type: integer
+      responses :
+        '200':
+          description: Array de topicos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Topico'
+        '400':
+          description: 'Something went wrong'
+          
+    delete:
+      tags:
+        - Topico
+      summary: Eliminar um topico
+      parameters:
+        - name: id
+          in: path
+          description: 'Id da Topico'
+          required: True
+          schema:
+            type: integer
+      responses :
+        '200':
+          description: Mensagem
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Topico deleted
+        '400':
+          description: Existance of dependencies
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: 'Cannot delete Area : dependencies existence'
+                  dependencies:
+                    type: object
+                    properties:
+                      cursos:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            idcurso:
+                              type: number
+                              example: 7
+                            nome:
+                              type: string
+                              example: redes
+                            disponivel:
+                              type: boolean
+                              example: true
+                            thumnail:
+                              type: string
+                              example: 'https://something.png'
+                      posts:
+                        type: array
+                        items :
+                          type: object
+                          properties:
+                            idpost:
+                              type: number
+                              example: 6
+                            titulo:
+                              type: string
+                              example: 'Javascript, destesto esta linguagem'
+                            pontuacao:
+                              type: number
+                              example: -138
+                          
+        '401':
+          description: Something bad happened
+    put:
+      tags:
+        - Topico
+      summary: Atualizar Topico
+      parameters:
+        - name: id
+          in: path
+          description: 'Id da topico'
+          required: True
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                designacao:
+                  type: string
+                  example: 'Bootstrap'
+                areas:
+                  type: array
+                  items:
+                    type: number
+                    example: 6
+      responses :
+        '200':
+          description: 'Topico updated'
+        '404':
+          description: 'Topico not found'
+
     
 
 
@@ -615,6 +852,11 @@ components:
           example: 3
         designacao: 
           type: string
-          example: 'Desenvolvimento Web'
+          example: 'Javascript'
+        areas:
+          type: array
+          items:
+            $ref: '#/components/schemas/Area'
+          
           
             
