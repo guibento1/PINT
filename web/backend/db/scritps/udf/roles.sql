@@ -1,3 +1,5 @@
+-- Trigger UDFs
+
 CREATE OR REPLACE FUNCTION adicionar_role()
 RETURNS TRIGGER AS $$
 DECLARE

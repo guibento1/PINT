@@ -1,3 +1,27 @@
+-- Verificar se o utilizador é admin
+
+CREATE OR REPLACE FUNCTION isadmin(p_id BIGINT)
+RETURNS BOOLEAN AS $$
+DECLARE
+    v_ativo BOOLEAN;
+BEGIN
+
+    SELECT ativo INTO v_ativo
+    FROM Admin
+    WHERE utilizador = p_id
+    LIMIT 1;
+
+    IF FOUND THEN
+        RETURN v_ativo;
+    ELSE
+        RETURN FALSE;
+    END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- Trigger UDFs
+
 CREATE OR REPLACE FUNCTION desativar_utilizador()
 RETURNS TRIGGER AS $$
 BEGIN

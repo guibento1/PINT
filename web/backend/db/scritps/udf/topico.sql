@@ -1,3 +1,5 @@
+-- Trigger UDFs
+
 CREATE OR REPLACE FUNCTION remover_topico()
 RETURNS TRIGGER AS $$
 BEGIN
