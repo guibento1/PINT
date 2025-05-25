@@ -1,6 +1,9 @@
+const { uploadFile, generateSASUrl } = require('../utils.js');
 var initModels = require("../models/init-models.js");
 var db = require("../database.js");
 var models = initModels(db);
+const crypto = require('crypto');
+const path = require('path');
 
 // Aux Functions
 
@@ -144,6 +147,7 @@ controllers.list = async (req,res) => {
 };
 
 controllers.create = async (req, res) => {
+
     const { nome, email, salt, passwordhash, morada, telefone, foto, roles } = req.body;
 
     const insertData = {
@@ -220,5 +224,44 @@ controllers.activate = async (req, res) => {
         return res.status(500).json({ error: 'Something bad happened' });
     }
 };
+
+controllers.test = async (req, res) => {
+
+        var fileUrl = "";
+
+        const file = req.file;
+        const { nome } = JSON.parse(req.body.info);
+
+        if(req.file){
+
+            const fileBuffer = req.file.buffer;
+            const originalFileName = req.file.originalname;
+            const fileExtension = path.extname(originalFileName).toLowerCase();
+
+            if(fileExtension != ".jpg"){
+                res.status(400).json({ message: 'Profile Pic must be a .jpg'});
+            }
+
+
+            const blobName = crypto.randomBytes(16).toString('hex').slice(0,16) + fileExtension;
+
+            try {
+
+                await uploadFile(fileBuffer, blobName,"userprofiles");
+                const blobUrl = await generateSASUrl(blobName, 'userprofiles');
+
+                return res.status(200).json({ message: 'blobUrl: '+blobUrl});
+            } catch (error) {
+                return res.status(400).json({ message: 'upload failed'});
+                console.log(error);
+            }
+
+        }
+
+        console.log('Uploaded File:', file);  
+        console.log('Form Data:', nome); 
+
+        res.status(200).json({ message: 'All Good'});
+}
 
 module.exports = controllers;
