@@ -1,4 +1,4 @@
-const { uploadFile, generateSASUrl } = require('../utils.js');
+const { uploadFile, deleteFile, generateSASUrl } = require('../utils.js');
 var initModels = require("../models/init-models.js");
 var db = require("../database.js");
 var models = initModels(db);
@@ -42,6 +42,49 @@ async function updateRoles(id, roles) {
     }
 }
 
+
+async function updateFoto(fotoFile, existingBlob = null) {
+
+    const fileExtensions = [".jpg", ".png"];
+
+    if (!fotoFile || !fotoFile.buffer || !fotoFile.originalname) {
+        throw 'Invalid fotoFile object';
+    }
+
+    try {
+        if (existingBlob !== null) {
+            try {
+                await deleteFile(existingBlob, "userprofiles");
+            } catch (error) {
+                console.error(`Error deleting existing file: ${error}`);
+                throw error;
+            }
+        }
+
+        const fileBuffer = fotoFile.buffer;
+        const originalFileName = fotoFile.originalname;
+        const fileExtension = path.extname(originalFileName).toLowerCase();
+
+        if (!fileExtensions.includes(fileExtension)) {
+            throw `Profile Pic must be one of the following: ${fileExtensions.join(", ")}`;
+        }
+
+        const blobName = crypto.randomBytes(16).toString('hex').slice(0, 16) + fileExtension;
+
+        try {
+            await uploadFile(fileBuffer, blobName, "userprofiles");
+        } catch (error) {
+            console.error(`Error uploading file: ${error}`);
+            throw error;
+        }
+
+        return blobName;
+    } catch (error) {
+        console.error(`Error updating profile picture: ${error}`);
+        throw error;
+    }
+}
+
 const controllers = {};
 
 controllers.byEmail = async (req, res) => {
@@ -63,6 +106,7 @@ controllers.byEmail = async (req, res) => {
         }
 
         data.dataValues.roles = await findRoles(data.idutilizador);
+        data.dataValues.foto =  data.dataValues.foto ? await generateSASUrl(data.dataValues.foto, 'userprofiles') : null;
         res.status(200).json(data);
     } catch (error) {
         return res.status(500).json({ error: 'Something bad happened' });
@@ -84,6 +128,7 @@ controllers.byID = async (req, res) => {
         }
 
         data.dataValues.roles = await findRoles(id);
+        data.dataValues.foto =  data.dataValues.foto ? await generateSASUrl(data.dataValues.foto, 'userprofiles') : null;
         res.status(200).json(data);
     } catch (error) {
         console.log(error);
@@ -93,32 +138,50 @@ controllers.byID = async (req, res) => {
 
 controllers.update = async (req, res) => {
     const { id } = req.params;
-    const { nome, email, passwordhash, morada, telefone, foto, roles } = req.body;
 
+    const foto = req.file;
+    const { nome, email, passwordhash, morada, telefone, roles } = JSON.parse(req.body.info);
+    
     const updatedData = {};
     if (nome) updatedData.nome = nome;
     if (email) updatedData.email = email;
     if (passwordhash) updatedData.passwordhash = passwordhash;
     if (morada !== undefined) updatedData.morada = morada;
     if (telefone !== undefined) updatedData.telefone = telefone;
-    if (foto !== undefined) updatedData.foto = foto;
 
     try {
 
-        const [affectedCount, updatedRows] = await models.utilizadores.update(updatedData, {
-            where: { idutilizador: id, ativo: true },
-            returning: true,
-        });
+        
+        const result = await models.utilizadores.findOne({ where: { idutilizador: id } });
 
-        if ((affectedCount === 0 || updatedRows.length === 0) && roles == undefined ) {
-            return res.status(404).json({ message: 'User not found or inactive' });
+        if(foto){
+
+            updatedData.foto = await updateFoto(foto,result.foto);
+            result.dataValues.foto = await generateSASUrl(updatedData.foto, 'userprofiles');
+
         }
+        
+        if (Object.keys(updatedData).length !== 0) {
+            
+            const [affectedCount, updatedRows] = await models.utilizadores.update(updatedData, {
+                where: { idutilizador: id, ativo: true },
+                returning: true,
+            });
+
+            if (affectedCount === 0 && roles === undefined) {
+                return res.status(404).json({ message: 'User not found or inactive' });
+            }
+
+            if (affectedCount === 0 && roles === undefined) {
+                return res.status(404).json({ message: 'User not found or inactive' });
+            }
+        }
+
 
         if (roles !== undefined) {
             await updateRoles(id, roles);
         }
 
-        const result = await models.utilizadores.findOne({ where: { idutilizador: id } });
         result.dataValues.roles = await findRoles(id);
 
         res.status(200).json(result);
@@ -137,6 +200,7 @@ controllers.list = async (req,res) => {
 
         for (let user of data) {
             user.dataValues.roles = await findRoles(user.idutilizador);
+            user.dataValues.foto =  user.dataValues.foto ? await generateSASUrl(user.dataValues.foto, 'userprofiles') : null;
         }
             
         res.status(200).json(data);
@@ -148,7 +212,9 @@ controllers.list = async (req,res) => {
 
 controllers.create = async (req, res) => {
 
-    const { nome, email, salt, passwordhash, morada, telefone, foto, roles } = req.body;
+    const foto = req.file;
+    var fotoUrl = null;
+    const { nome, email, salt, passwordhash, morada, telefone, roles }  = JSON.parse(req.body.info);
 
     const insertData = {
         nome,
@@ -160,9 +226,17 @@ controllers.create = async (req, res) => {
 
     if (morada !== undefined) insertData.morada = morada;
     if (telefone !== undefined) insertData.telefone = telefone;
-    if (foto !== undefined) insertData.foto = foto;
 
     try {
+
+
+        if(foto){
+
+            insertData.foto = await updateFoto(foto);
+            fotoUrl = await generateSASUrl(insertData.foto, 'userprofiles');
+
+        }
+
         const createdRow = await models.utilizadores.create(insertData, {
             returning: true,
         });
@@ -171,7 +245,10 @@ controllers.create = async (req, res) => {
             await updateRoles(createdRow.idutilizador, roles);
         }
 
+
+
         createdRow.dataValues.roles = await findRoles(createdRow.idutilizador);
+        createdRow.dataValues.foto = fotoUrl;
         res.status(201).json(createdRow);
 
     } catch (error) {

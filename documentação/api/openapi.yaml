@@ -40,33 +40,37 @@ paths:
       summary: Criar utilizador
       requestBody:
         content:
-          application/json:
+          multipart/form-data:
             schema:
               type: object
               properties:
-                nome:
-                  type: string
-                email:
-                  type: string
-                salt:
-                  type: string
-                passwordhash:
-                  type: string
-                morada:
-                  type: string
+                info:
+                  type: object
+                  properties:
+                    nome:
+                      type: string
+                    email:
+                      type: string
+                    salt:
+                      type: string
+                    passwordhash:
+                      type: string
+                    morada:
+                      type: string
+                    roles:
+                      type: array
+                      items:
+                        type: string
+                        example: 'admin'
+                  required:
+                    - nome
+                    - email
+                    - salt
+                    - passwordhash
                 foto:
                   type: string
-                roles:
-                  type: array
-                  items:
-                    type: string
-                    example: 'admin'
-                      
-              required:
-                - nome
-                - email
-                - salt
-                - passwordhash
+                  format: binary
+
       responses :
         '200':
           description: Um utilizador
@@ -156,25 +160,29 @@ paths:
             type: integer
       requestBody:
         content:
-          application/json:
+          multipart/form-data:
             schema:
               type: object
               properties:
-                nome:
-                  type: string
-                email:
-                  type: string
-                passwordhash:
-                  type: string
-                morada:
-                  type: string
+                info:
+                  type: object
+                  properties:
+                    nome:
+                      type: string
+                    email:
+                      type: string
+                    passwordhash:
+                      type: string
+                    morada:
+                      type: string
+                    roles:
+                      type: array
+                      items:
+                        type: string
+                        example: 'admin'
                 foto:
                   type: string
-                roles:
-                  type: array
-                  items:
-                    type: string
-                    example: 'admin'
+                  format: binary
 
       responses :
         '200':

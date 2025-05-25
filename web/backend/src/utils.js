@@ -20,7 +20,7 @@ async function uploadFile(fileBuffer, blobName, containerName) {
 
         const containerClient = blobServiceClient.getContainerClient(containerName);
         const blobClient = containerClient.getBlockBlobClient(blobName);
-        const uploadBlobResponse = await blobClient.upload(fileBuffer, fileBuffer.length);
+        const uploadBlobResponse = await blobClient.upload(fileBuffer, fileBuffer.length,{});
 
         console.log(`Uploaded image to blob "${blobName}" successfully.`, uploadBlobResponse);
 
@@ -56,4 +56,21 @@ async function generateSASUrl(blobName, containerName) {
 
 }
 
-module.exports = { uploadFile, generateSASUrl };
+async function deleteFile(blobName, containerName) {
+    try {
+        const containerClient = blobServiceClient.getContainerClient(containerName);
+        const blobClient = containerClient.getBlockBlobClient(blobName);
+
+        const deleteBlobResponse = await blobClient.delete({
+            conditions: {
+                permanentDelete: true,
+            },
+        });
+
+    } catch (error) {
+        console.error('Error permanently deleting blob from Azure Blob Storage:', error.message);
+        throw error;
+    }
+}
+
+module.exports = { uploadFile, deleteFile, generateSASUrl };
