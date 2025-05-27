@@ -51,9 +51,7 @@ paths:
                       type: string
                     email:
                       type: string
-                    salt:
-                      type: string
-                    passwordhash:
+                    password:
                       type: string
                     morada:
                       type: string
@@ -84,6 +82,31 @@ paths:
           description: User with that email already exists, activate it instead
         '404':
           description: User not found
+          
+  /utilizador/validate:
+    get:
+      tags:
+        - Utilizadores
+      summary: Validar utilizador
+      parameters:
+        - name: email
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Um utilizador
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Utilizador'
+        '400':
+          description: Email and password is required
+        '404':
+          description: User not found
+        '500':
+          description: Password mismatch
           
   /utilizador/list:
     get:
@@ -171,7 +194,7 @@ paths:
                       type: string
                     email:
                       type: string
-                    passwordhash:
+                    password:
                       type: string
                     morada:
                       type: string
@@ -808,14 +831,6 @@ components:
         email:
           type: string
           example: 'carlos.santos@email.com'
-          
-        salt:
-          type: string
-          example: 'c4e83f5caf2680e1'
-          
-        passwordhash:
-          type: string
-          example: '86304abeed0c35aa7e ...'
           
         dataregisto:
           type: string

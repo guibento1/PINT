@@ -8,6 +8,7 @@ const upload = multer({ storage: storage });
 const utilizadorController = require('../controllers/utilizadorController.js'); 
 
 router.get('/',utilizadorController.byEmail);
+router.get('/validate',utilizadorController.validateUser);
 router.get('/list',utilizadorController.list);
 router.get('/id/:id',utilizadorController.byID);
 router.put('/id/:id', upload.single('foto'), utilizadorController.update);

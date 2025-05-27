@@ -22,6 +22,7 @@ async function findRoles(id) {
 }
 
 async function updateRoles(id, roles) {
+
     try {
         const existingRoles = await findRoles(id);
 
@@ -40,6 +41,7 @@ async function updateRoles(id, roles) {
     } catch (error) {
         throw error;
     }
+
 }
 
 
@@ -88,6 +90,7 @@ async function updateFoto(fotoFile, existingBlob = null) {
 const controllers = {};
 
 controllers.byEmail = async (req, res) => {
+
     const email = req.query.email;
 
     if (!email) {
@@ -95,7 +98,10 @@ controllers.byEmail = async (req, res) => {
     }
 
     try {
-        const data = await models.utilizadores.findOne({ where: { email } });
+        const data = await models.utilizadores.findOne({ 
+            where: { email },
+            attributes: ["idutilizador","email","nome","dataregisto","foto","ativo"]
+        });
 
         if (!data) {
             return res.status(404).json({ error: 'User not found' });
@@ -113,11 +119,73 @@ controllers.byEmail = async (req, res) => {
     }
 };
 
+
+
+controllers.validateUser = async (req, res) => {
+
+    const email = req.query.email;
+    const { password } = req.body;
+
+    if (!email) {
+        return res.status(400).json({ error: 'Email is required' });
+    }
+
+    try {
+        const data = await models.utilizadores.findOne({ 
+            where: { email }
+        });
+
+        if (!data) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        if (!data.ativo) {
+            return res.status(403).json({ error: 'User disabled' });
+        }
+
+        if (!password) {
+            return res.status(403).json({ error: 'No password provided' });
+        }
+
+        const passwordhash = crypto.pbkdf2Sync(password, data.salt, 1000, 64, 'sha512').toString('hex') ;
+
+        if(passwordhash == data.passwordhash){
+
+            data.dataValues.roles = await findRoles(data.idutilizador);
+            data.dataValues.foto =  data.dataValues.foto ? await generateSASUrl(data.dataValues.foto, 'userprofiles') : null;
+
+
+            const responseData = { 
+                idutilizador: data.idutilizador, 
+                email: data.email, 
+                nome: data.nome,
+                dataregisto: data.dataregisto,
+                ativo: data.ativo, 
+                foto: data.dataValues.foto, 
+                roles: data.dataValues.roles 
+            };
+
+            res.status(200).json(responseData);
+        }
+
+        return res.status(400).json({ error: 'Password mismatch' });
+        
+
+    } catch (error) {
+        return res.status(500).json({ error: 'Something bad happened' });
+    }
+};
+
 controllers.byID = async (req, res) => {
     const id = req.params.id;
 
     try {
-        const data = await models.utilizadores.findOne({ where: { idutilizador: id } });
+
+
+        const data = await models.utilizadores.findOne({ 
+            where: { idutilizador: id },
+            attributes: ["idutilizador","email","nome","dataregisto","foto","ativo"]
+        });
 
         if (!data) {
             return res.status(404).json({ error: 'User not found' });
@@ -137,27 +205,32 @@ controllers.byID = async (req, res) => {
 };
 
 controllers.update = async (req, res) => {
+
     const { id } = req.params;
 
     const foto = req.file;
-    const { nome, email, passwordhash, morada, telefone, roles } = JSON.parse(req.body.info);
+    const { nome, email, password, morada, telefone, roles } = JSON.parse(req.body.info);
     
     const updatedData = {};
     if (nome) updatedData.nome = nome;
     if (email) updatedData.email = email;
-    if (passwordhash) updatedData.passwordhash = passwordhash;
     if (morada !== undefined) updatedData.morada = morada;
     if (telefone !== undefined) updatedData.telefone = telefone;
 
     try {
 
         
-        const result = await models.utilizadores.findOne({ where: { idutilizador: id } });
+        var result = await models.utilizadores.findOne({ where: { idutilizador: id } });
+
+
+        if (password){
+            const passwordhash = crypto.pbkdf2Sync(password, result.salt, 1000, 64, 'sha512').toString('hex') ;
+            updatedData.passwordhash = passwordhash;
+        }
 
         if(foto){
 
             updatedData.foto = await updateFoto(foto,result.foto);
-            result.dataValues.foto = await generateSASUrl(updatedData.foto, 'userprofiles');
 
         }
         
@@ -182,7 +255,14 @@ controllers.update = async (req, res) => {
             await updateRoles(id, roles);
         }
 
+
+        result = await models.utilizadores.findOne({ 
+            where: { idutilizador: id } ,
+            attributes: ["idutilizador","email","nome","dataregisto","foto","ativo"]
+        });
+
         result.dataValues.roles = await findRoles(id);
+        result.dataValues.foto = await generateSASUrl(result.foto, 'userprofiles');
 
         res.status(200).json(result);
     } catch (error) {
@@ -196,7 +276,9 @@ controllers.list = async (req,res) => {
 
     try {
 
-        const data = await models.utilizadores.findAll();
+        const data = await models.utilizadores.findAll({ 
+            attributes: ["idutilizador","email","nome","dataregisto","foto","ativo"]
+        });
 
         for (let user of data) {
             user.dataValues.roles = await findRoles(user.idutilizador);
@@ -214,7 +296,11 @@ controllers.create = async (req, res) => {
 
     const foto = req.file;
     var fotoUrl = null;
-    const { nome, email, salt, passwordhash, morada, telefone, roles }  = JSON.parse(req.body.info);
+    const { nome, email, password, morada, telefone, roles }  = JSON.parse(req.body.info);
+
+
+    const salt = crypto.randomBytes(8).toString('hex');
+    const passwordhash = crypto.pbkdf2Sync(password, salt, 1000, 64, 'sha512').toString('hex') ;
 
     const insertData = {
         nome,
@@ -249,7 +335,20 @@ controllers.create = async (req, res) => {
 
         createdRow.dataValues.roles = await findRoles(createdRow.idutilizador);
         createdRow.dataValues.foto = fotoUrl;
-        res.status(201).json(createdRow);
+
+
+
+    const responseData = { 
+        idutilizador: createdRow.idutilizador, 
+        email: createdRow.email, 
+        nome: createdRow.nome,
+        dataregisto: createdRow.dataregisto,
+        ativo: createdRow.ativo, 
+        foto: createdRow.dataValues.foto, 
+        roles: createdRow.dataValues.roles 
+    };
+
+        res.status(201).json(responseData);
 
     } catch (error) {
         const dbMessage = error?.parent?.message || '';
