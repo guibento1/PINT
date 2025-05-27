@@ -1,6 +1,13 @@
+// const https = require("https");
+// const fs = require("fs");
 const express  = require("express");
 const app = express();
 const port = 3000;
+
+// const options = {
+//   key: fs.readFileSync("path/to/server.key"),
+//   cert: fs.readFileSync("path/to/server.cert")
+// };
 
 var cors = require('cors')
 
@@ -31,4 +38,8 @@ app.use('/utilizador',utilizador);
 app.use('/categoria',categoria);
 app.use('/area',area);
 app.use('/topico',topico);
+
+// https.createServer(options, app).listen(port, () => {
+//   console.log(`HTTPS server listening on port ${port}`);
+// });
 
