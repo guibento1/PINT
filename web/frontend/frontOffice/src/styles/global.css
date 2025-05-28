@@ -1,0 +1,81 @@
+/* botão azul padrão */
+.btn-soft {
+  background-color: #00b0da;
+  color: white;
+  border-radius: 50px;
+  padding: 0.4rem 1.5rem;
+  border: none;
+  font-weight: 500;
+  font-size: 1rem;
+}
+
+.btn-soft:hover {
+  background-color: #00c4f2;
+  color: white;
+}
+
+/* botão cinza estilo "registrar-se" */
+.btn-outline-soft {
+  background-color: white;
+  color: #6c757d;
+  border: 2px solid #ced4da;
+  border-radius: 50px;
+  padding: 0.4rem 1.5rem;
+  font-weight: 500;
+  font-size: 1rem;
+}
+
+.btn-outline-soft:hover {
+  background-color: #f1f1f1;
+  color: #495057;
+  border-color: #adb5bd;
+}
+
+/* remover sublinhado de todos os <a> */
+a {
+  text-decoration: none !important;
+}
+
+/* topo do footer arredondado */
+footer {
+  border-top-left-radius: 15px;
+  border-top-right-radius: 15px;
+}
+
+/* footer - botoões e texto */
+.footer-btn {
+  background-color: #00b0da;
+  color: white;
+  border-radius: 50px;
+  padding: 0.2rem 0.8rem;
+  font-size: 0.8rem;
+  border: none;
+  font-weight: 500;
+}
+
+.footer-btn:hover {
+  background-color: #00c4f2;
+  color: white;
+}
+footer {
+  font-size: 0.85rem;
+}
+
+
+/* centralizar texto e imagens do footer para telas estreitas */
+@media (max-width: 768px) {
+  footer .container {
+    text-align: center;
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 1rem;
+  }
+
+  footer .mt-2.d-flex {
+    justify-content: center !important;
+  }
+
+  footer img {
+    margin: 0 5px;
+  }
+}
