@@ -10,9 +10,7 @@ function Layout({ children }) {
   return (
     <>
       {!isLoginPage && <NavbarFront />}
-      <div className="container py-4">
         {children}
-      </div>
     </>
   );
 }
