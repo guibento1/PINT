@@ -10,7 +10,7 @@ const utilizadorController = require('../controllers/utilizadorController.js');
 
 router.get('/', authenticateJWT, authorizeRoles('admin'), utilizadorController.byEmail);
 router.get('/list', authenticateJWT, authorizeRoles('admin'), utilizadorController.list);
-router.get('/login', utilizadorController.loginUser);
+router.post('/login', utilizadorController.loginUser);
 router.get('/id/:id', authenticateJWT, utilizadorController.byID);
 router.put('/id/:id', authenticateJWT, upload.single('foto'), utilizadorController.update);
 router.post('/', upload.single('foto'), utilizadorController.create);
