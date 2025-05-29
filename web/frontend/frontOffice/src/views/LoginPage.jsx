@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import Footer from '../components/Footer';
-import logoSoftinsa from '../assets/images/logo_softinsa.png';
-import logoSoftSkills from '../assets/images/logo_softskills.png';
+import Footer from '../../../shared/Footer';
+import logoSoftinsa from '../../../shared/assets/images/logo_softinsa.png';
+import logoSoftSkills from '../../../shared/assets/images/logo_softskills.png';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
