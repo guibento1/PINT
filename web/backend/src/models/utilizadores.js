@@ -19,15 +19,15 @@ module.exports = function(sequelize, DataTypes) {
     },
     salt: {
       type: DataTypes.CHAR(16),
-      allowNull: false
+      allowNull: true
     },
     passwordhash: {
       type: DataTypes.CHAR(128),
-      allowNull: false
+      allowNull: true
     },
     dataregisto: {
       type: DataTypes.DATEONLY,
-      allowNull: false
+      allowNull: true
     },
     morada: {
       type: DataTypes.STRING(100),

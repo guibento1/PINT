@@ -9,6 +9,8 @@ module.exports = {
   password: process.env.POSTGRES_PASSWORD,
   port: 5432,               
   dialect: 'postgres',      
+  schema: 'public',      
+  views: true,
   define: {
     timestamps: false, 
   },

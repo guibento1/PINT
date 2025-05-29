@@ -1,4 +1,4 @@
-const { uploadFile, deleteFile, generateSASUrl } = require('../utils.js');
+const { uploadFile, deleteFile, generateSASUrl, sendEmail } = require('../utils.js');
 const { generateAccessToken } = require('../middleware.js');
 
 var initModels = require("../models/init-models.js");
@@ -142,6 +142,11 @@ controllers.loginUser = async (req, res) => {
         }
 
         if (!data.ativo) {
+
+            if(data.passwordhash == null){
+                return res.status(400).json({ message: 'User has not confirmed email' });
+            }
+
             return res.status(403).json({ error: 'User disabled' });
         }
 
@@ -282,9 +287,6 @@ controllers.update = async (req, res) => {
                     return res.status(404).json({ message: 'User not found or inactive' });
                 }
 
-                if (affectedCount === 0 && roles === undefined) {
-                    return res.status(404).json({ message: 'User not found or inactive' });
-                }
             }
 
 
@@ -331,6 +333,128 @@ controllers.list = async (req,res) => {
         return res.status(400).json({ error: 'Something bad happened' });
     }
 };
+
+
+controllers.register = async (req, res) => {
+
+    const { nome, email }  = req.body;
+    const roles = ['formando'];
+    const ativo = false;
+
+
+
+    const insertData = {
+        nome,
+        email,
+        ativo
+    };
+
+
+    try {
+
+        const createdRow = await models.utilizadores.create(insertData, {
+            returning: true,
+        });
+
+        const token = generateAccessToken( 
+        {
+            idutilizador: createdRow.idutilizador,
+            roles : roles 
+        })
+
+
+        const data = {
+            to: email,
+            subject: 'Confirmação de email',
+            text: `Bem vindo á thesoftskills,\n \
+                   para finalizar a criação de conta siga \
+                   o seguinte link: http://localhost:3001/resetpassword?token=${token}`,
+            html: `<h1>Bem vindo á thesoftskills,<h1> \
+                   <h2> para finalizar a criação de conta siga \
+                   o seguinte <a href="http://localhost:3001/resetpassword?token=${token}">link</a>. <h2>`
+
+        };
+
+        sendEmail(data);
+
+
+        res.status(201).json({message:"Confirm email"});
+
+    } catch (error) {
+
+        const dbMessage = error?.parent?.message || '';
+
+        if (dbMessage.includes('Utilizador existente')) {
+          return res.status(409).json({ error: 'User with that email already exists' });
+        }
+
+        console.error('Error creating User:', error);
+        return res.status(500).json({ message: 'Error creating User' });
+    }
+};
+
+
+controllers.resetPassword = async (req, res) => {
+
+    const id  = req.user.idutilizador;
+    const roles = req.user.roles;
+    const { password } = req.body;
+
+
+    const salt = crypto.randomBytes(8).toString('hex');
+    const passwordhash = crypto.pbkdf2Sync(password, salt, 1000, 64, 'sha512').toString('hex') ;
+
+
+    const updateData = {
+        salt,
+        passwordhash,
+        ativo: true
+    };
+    
+
+    try {
+
+        
+        var result = await models.utilizadores.findOne({ where: { idutilizador: id } });
+
+        if (result.dataregisto == null){
+            updateData.dataregisto = new Date();
+        }
+
+
+        const [affectedCount, updatedRows] = await models.utilizadores.update(updateData, {
+            where: { idutilizador: id },
+            returning: true,
+        });
+
+
+        if (affectedCount === 0 ) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+
+        await updateRoles(id, roles);
+
+
+        result = await models.utilizadores.findOne({ 
+            where: { idutilizador: id } ,
+            attributes: ["idutilizador","email","nome","dataregisto","foto","ativo"]
+        });
+
+        result.dataValues.roles = await findRoles(id);
+
+        if(result.foto!=null)
+            result.dataValues.foto = await generateSASUrl(result.foto, 'userprofiles');
+
+        res.status(200).json(result);
+
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ message: 'Error updating User' });
+    }
+};
+
+
 
 controllers.create = async (req, res) => {
 
@@ -461,8 +585,22 @@ controllers.activate = async (req, res) => {
 };
 
 controllers.test = async (req, res) => {
-    console.log(req.user);
-    return res.status(200).json({ message: 'All Good'});
+
+
+        try {
+
+            const response = await sendEmail();
+            return res.status(200).json(response);
+
+        } catch (error) {
+            console.log(error);
+            return res.status(500).json({ error: 'Something bad happened' });
+        }
+
+
+
+
+
 }
 
 module.exports = controllers;
