@@ -1,29 +1,30 @@
-import { useState } from 'react'
-import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
-import Navbar from "./components/navbar.jsx";
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import LayoutBack from './components/LayoutBack';
 
-import Index from './views/index';
-
+import HomeBack from './views/HomeBack';
+import Cursos from './views/Cursos';
+import PesquisarCursos from './views/PesquisarCursos';
+import Usuarios from './views/Usuarios';
+import Topicos from './views/Topicos';
+import Notificacoes from './views/Notificacoes';
+import Perfil from './views/Perfil';
 
 function App() {
   return (
-    <>
-      <Router>
-        <div className="App">
-          <Navbar/>
-          <div className="container py-4">
-            <div className="row">
-              <Routes>
-
-                <Route path="/" element={<Index />} />
-
-              </Routes>
-            </div>
-          </div>
-        </div>
-      </Router>
-    </>
-  )
+    <Router>
+      <LayoutBack>
+        <Routes>
+          <Route path="/" element={<HomeBack />} />
+          <Route path="/cursos" element={<Cursos />} />
+          <Route path="/pesquisar" element={<PesquisarCursos />} />
+          <Route path="/usuarios" element={<Usuarios />} />
+          <Route path="/topicos" element={<Topicos />} />
+          <Route path="/notificacoes" element={<Notificacoes />} />
+          <Route path="/perfil" element={<Perfil />} />
+        </Routes>
+      </LayoutBack>
+    </Router>
+  );
 }
 
 export default App;

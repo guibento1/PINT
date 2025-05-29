@@ -1,23 +1,12 @@
-import { BrowserRouter as Router, Route, Routes, useLocation } from "react-router-dom";
-import NavbarFront from './components/NavbarFront';
+import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import Layout from './components/LayoutFront';
 
+import LoginPage from './views/LoginPage';
 import Cursos from './views/Cursos';
 import Topicos from './views/Topicos';
 import Notificacoes from './views/Notificacoes';
 import Perfil from './views/Perfil';
-import LoginPage from './views/LoginPage';
-
-function Layout({ children }) {
-  const location = useLocation();
-  const isLoginPage = location.pathname === "/";
-
-  return (
-    <>
-      {!isLoginPage && <NavbarFront />}
-        {children}
-    </>
-  );
-}
+import Home from './views/Home'; 
 
 function App() {
   return (
@@ -25,6 +14,7 @@ function App() {
       <Layout>
         <Routes>
           <Route path="/" element={<LoginPage />} />
+          <Route path="/home" element={<Home />} />
           <Route path="/cursos" element={<Cursos />} />
           <Route path="/topicos" element={<Topicos />} />
           <Route path="/notificacoes" element={<Notificacoes />} />

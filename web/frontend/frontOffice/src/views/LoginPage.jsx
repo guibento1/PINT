@@ -1,15 +1,24 @@
 import React, { useState } from 'react';
-import Footer from '../../../shared/Footer';
+import Footer from '../../../shared/components/Footer';
 import logoSoftinsa from '../../../shared/assets/images/logo_softinsa.png';
 import logoSoftSkills from '../../../shared/assets/images/logo_softskills.png';
+import { useNavigate } from 'react-router-dom';
+
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const navigate = useNavigate();
+  // Função para lidar com o envio do formulário
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    console.log("Login:", { email, password });
+
+    // Aqui viria a validação com API
+    if (email && password) {
+      // Após sucesso, redireciona:
+      navigate('/home');
+    }
   };
 
   return (
