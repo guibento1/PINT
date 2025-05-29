@@ -1,7 +1,11 @@
 import { BrowserRouter as Router, Route, Routes, useLocation } from "react-router-dom";
-import NavbarFront from "./components/NavbarFront.jsx";
-import LoginPage from './views/LoginPage.jsx';
-import Index from './views/index.jsx';
+import NavbarFront from './components/NavbarFront';
+
+import Cursos from './views/Cursos';
+import Topicos from './views/Topicos';
+import Notificacoes from './views/Notificacoes';
+import Perfil from './views/Perfil';
+import LoginPage from './views/LoginPage';
 
 function Layout({ children }) {
   const location = useLocation();
@@ -21,7 +25,10 @@ function App() {
       <Layout>
         <Routes>
           <Route path="/" element={<LoginPage />} />
-          <Route path="/home" element={<Index />} />
+          <Route path="/cursos" element={<Cursos />} />
+          <Route path="/topicos" element={<Topicos />} />
+          <Route path="/notificacoes" element={<Notificacoes />} />
+          <Route path="/perfil" element={<Perfil />} />
         </Routes>
       </Layout>
     </Router>
