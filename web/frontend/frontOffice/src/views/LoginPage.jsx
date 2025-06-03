@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import Footer from '../../../shared/components/Footer';
 import logoSoftinsa from '../../../shared/assets/images/logo_softinsa.png';
 import logoSoftSkills from '../../../shared/assets/images/logo_softskills.png';
 import { useNavigate } from 'react-router-dom';
@@ -10,6 +9,14 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const navigate = useNavigate();
 
+  const handleRoleRedirect = (role) => {
+    if (role === 'admin') {
+      window.location.href = 'http://localhost:3002/';
+    } else {
+      navigate('/home');
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -17,30 +24,28 @@ export default function LoginPage() {
       alert('Preencha todos os campos');
       return;
     }
-    
+
     try {
-      const response = await axios.post('http://localhost:3000/utilizador/login?email=' + email, 
+      const response = await axios.post(
+        'http://localhost:3000/utilizador/login?email=' + email,
         { password }
       );
 
-      alert ('Login efetuado com sucesso!');
+      alert('Login efetuado com sucesso!');
       localStorage.setItem('token', response.data.accessToken);
-      localStorage.setItem('user', JSON.stringify({
-        id: response.data.idutilizador,
-        email: response.data.email,
-        nome: response.data.nome,
-        roles: response.data.roles
-      }));
-      
-      const role = response.data.roles[0].role;
+      localStorage.setItem(
+        'user',
+        JSON.stringify({
+          id: response.data.idutilizador,
+          email: response.data.email,
+          nome: response.data.nome,
+          roles: response.data.roles
+        })
+      );
 
-      if (role === 'formando') {
-        navigate('/home');
-      } else if (role === 'formador') {
-        navigate('/home');
-      } else if (role === 'admin') {
-        navigate('/backoffice/HomeBack');
-      }
+      const role = response.data.roles[0]?.role || response.data.roles[0]; // compatível com os dois formatos
+      handleRoleRedirect(role);
+
     } catch (error) {
       console.error('Login error:', error);
       alert('Erro ao fazer login. Por favor, verifique suas credenciais.');
@@ -82,14 +87,13 @@ export default function LoginPage() {
               <button type="submit" className="btn-soft w-50 fw-bold">
                 Login
               </button>
-              <a href="/register" className="btn-outline-soft w-50 text-center">
+              <a href="/registar" className="btn-outline-soft w-50 text-center">
                 Registar-se
               </a>
             </div>
           </form>
         </div>
       </main>
-      <Footer />
     </div>
   );
 }

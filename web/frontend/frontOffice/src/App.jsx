@@ -1,6 +1,8 @@
+// web\frontend\frontOffice\src\App.jsx
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import LayoutFront from './components/LayoutFront';
 
+import RegisterPage from './views/RegisterPage';
 import LoginPage from './views/LoginPage';
 import Cursos from './views/Cursos';
 import Topicos from './views/Topicos';
@@ -19,6 +21,7 @@ function App() {
           <Route path="/topicos" element={<Topicos />} />
           <Route path="/notificacoes" element={<Notificacoes />} />
           <Route path="/perfil" element={<Perfil />} />
+          <Route path="/registar" element={<RegisterPage />} />
         </Routes>
       </LayoutFront>
     </Router>
