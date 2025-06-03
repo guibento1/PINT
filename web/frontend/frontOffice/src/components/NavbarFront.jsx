@@ -1,5 +1,7 @@
+// web\frontend\frontOffice\src\components\NavbarFront.jsx
 import { useState } from 'react';
 import { NavLink, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import logoSoftinsa from '../../../shared/assets/images/logo_softinsa.png';
 import logoSoftskills from '../../../shared/assets/images/logo_softskills.png';
 import NotificationsIcon from '@mui/icons-material/Notifications';
@@ -15,6 +17,13 @@ export default function NavbarFront() {
 
   const toggleMenu = () => setMenuAberto(!menuAberto);
   const fecharMenu = () => setMenuAberto(false);
+
+  const navigate = useNavigate();
+  const handleLogout = () => {
+    localStorage.clear();
+    fecharMenu();
+    navigate('/');
+  };
 
   return (
     <nav className="navbar navbar-expand-lg navbar-light bg-white border-bottom px-3">
@@ -84,6 +93,11 @@ export default function NavbarFront() {
               >
                 <AccountCircleIcon /> {nomeUsuario}
               </NavLink>
+            </li>
+            <li className="nav-item">
+              <button className="btn btn-outline-danger fw-semibold rounded-pill px-3" onClick={handleLogout}>
+                Sair
+              </button>
             </li>
           </ul>
         </div>

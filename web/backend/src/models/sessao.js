@@ -35,6 +35,11 @@ module.exports = function(sequelize, DataTypes) {
     plataformavideoconferencia: {
       type: DataTypes.STRING(60),
       allowNull: true
+    },
+    duracaohoras: {
+      type: DataTypes.BIGINT,
+      allowNull: true,
+      defaultValue: 1
     }
   }, {
     tableName: 'sessao',

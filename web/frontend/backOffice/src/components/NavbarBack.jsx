@@ -1,5 +1,7 @@
+//web\frontend\backOffice\src\components\NavbarBack.jsx
 import { useState } from 'react';
 import { NavLink, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import logoSoftinsa from '../../../shared/assets/images/logo_softinsa.png';
 import logoSoftskills from '../../../shared/assets/images/logo_softskills.png';
 import NotificationsIcon from '@mui/icons-material/Notifications';
@@ -19,6 +21,13 @@ export default function NavbarBack() {
 
   const fecharMenu = () => {
     setMenuAberto(false);
+  };
+
+  const navigate = useNavigate();
+  const handleLogout = () => {
+    localStorage.clear();
+    fecharMenu();
+    navigate('/');
   };
 
   return (
@@ -97,6 +106,7 @@ export default function NavbarBack() {
                 )}
               </NavLink>
             </li>
+            
             <li className="nav-item d-flex align-items-center">
               <NavLink
                 to="/perfil"
@@ -105,6 +115,11 @@ export default function NavbarBack() {
               >
                 <AccountCircleIcon /> {nomeUsuario}
               </NavLink>
+            </li>
+            <li className="nav-item">
+              <button className="btn btn-outline-danger fw-semibold rounded-pill px-3" onClick={handleLogout}>
+                Sair
+              </button>
             </li>
           </ul>
         </div>

@@ -1,3 +1,4 @@
+const { authenticateJWT, authorizeRoles } = require('../middleware.js');
 const express = require('express');
 const router = express.Router();
 
@@ -7,14 +8,16 @@ const upload = multer({ storage: storage });
 
 const utilizadorController = require('../controllers/utilizadorController.js'); 
 
-router.get('/',utilizadorController.byEmail);
-router.get('/validate',utilizadorController.validateUser);
-router.get('/list',utilizadorController.list);
-router.get('/id/:id',utilizadorController.byID);
-router.put('/id/:id', upload.single('foto'), utilizadorController.update);
+router.get('/', authenticateJWT, authorizeRoles('admin'), utilizadorController.byEmail);
+router.get('/list', authenticateJWT, authorizeRoles('admin'), utilizadorController.list);
+router.post('/login', utilizadorController.loginUser);
+router.get('/id/:id', authenticateJWT, utilizadorController.byID);
+router.put('/id/:id', authenticateJWT, upload.single('foto'), utilizadorController.update);
 router.post('/', upload.single('foto'), utilizadorController.create);
-router.delete('/id/:id',utilizadorController.delete);
-router.patch('/activate/:id',utilizadorController.activate);
-//router.post('/test', upload.single('foto'), utilizadorController.test);
+router.delete('/id/:id', authenticateJWT, utilizadorController.delete);
+router.patch('/activate/:id', authenticateJWT, utilizadorController.activate);
+router.post('/register', utilizadorController.register);
+router.post('/resetpassword', authenticateJWT, utilizadorController.resetPassword);
+router.post('/test', utilizadorController.test);
 
 module.exports = router;

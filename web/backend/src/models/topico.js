@@ -15,6 +15,7 @@ module.exports = function(sequelize, DataTypes) {
   }, {
     tableName: 'topico',
     schema: 'public',
+    hasTrigger: true,
     timestamps: false,
     indexes: [
       {

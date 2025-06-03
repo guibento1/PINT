@@ -11,7 +11,7 @@ CREATE TABLE Utilizadores (
     email VARCHAR(60) UNIQUE NOT NULL,
     salt CHAR(16) NOT NULL,
     passwordhash CHAR(128) NOT NULL, -- pbkdf2Sync(password, salt, 1000, 64, 'sha512')    
-    dataRegisto DATE NOT NULL,
+    dataRegisto DATE,
     morada VARCHAR(100),
     telefone CHAR(9),
     foto VARCHAR(300),
@@ -19,6 +19,8 @@ CREATE TABLE Utilizadores (
 
     CONSTRAINT CHK_EMAIL CHECK (email ~ '^[a-zA-Z0-9_]+(\.[a-zA-Z0-9_]+)*@[a-z]+(\.[a-z]+)+$'),
     CONSTRAINT CHK_PHONE CHECK (telefone ~ '^9[1-6][0-9]{7}$'),
+    CONSTRAINT CHK_PASSNOTNULL CHECK (NOT ativo OR passwordhash IS NOT NULL);
+    CONSTRAINT CHK_SALT CHECK (passwordhash IS NULL OR salt IS NOT NULL);
     CONSTRAINT UTILIZADOR_PK PRIMARY KEY(idUtilizador)
 
 );
@@ -141,6 +143,7 @@ CREATE TABLE Notificacao (
 
     idNotificacao BIGINT GENERATED ALWAYS AS IDENTITY,
     conteudo VARCHAR(300),
+    instante TIMESTAMP NOT NULL,
 
     CONSTRAINT NOTIFICACAO_PK PRIMARY KEY(idNotificacao)
 );

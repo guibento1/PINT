@@ -34,6 +34,10 @@ var _topico = require("./topico");
 var _topicoarea = require("./topicoarea");
 var _utilizadores = require("./utilizadores");
 
+// Custom
+
+var _utilizadorcanais = require("./utilizadorcanais.js");
+
 function initModels(sequelize) {
   var admin = _admin(sequelize, DataTypes);
   var area = _area(sequelize, DataTypes);
@@ -177,6 +181,13 @@ function initModels(sequelize) {
   post.belongsTo(utilizadores, { as: "utilizador_utilizadore", foreignKey: "utilizador"});
   utilizadores.hasMany(post, { as: "posts", foreignKey: "utilizador"});
 
+  //Custom
+
+  var utilizadorcanais = _utilizadorcanais(sequelize, DataTypes);
+
+  utilizadorcanais.belongsTo(utilizadores, {foreignKey: 'idutilizador',targetKey: 'idutilizador'});
+  utilizadorcanais.belongsTo(canalnotificacoes, {foreignKey: 'canal',targetKey: 'idcanalnotificacoes'});
+
   return {
     admin,
     area,
@@ -212,6 +223,10 @@ function initModels(sequelize) {
     topico,
     topicoarea,
     utilizadores,
+
+    // Custom
+
+    utilizadorcanais
   };
 }
 module.exports = initModels;

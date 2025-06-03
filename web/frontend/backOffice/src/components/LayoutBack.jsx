@@ -1,3 +1,4 @@
+//web\frontend\backOffice\src\components\LayoutBack.jsx
 import NavbarBack from './NavbarBack';
 import Footer from '../../../shared/components/Footer';
 

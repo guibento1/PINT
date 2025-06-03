@@ -11,6 +11,10 @@ module.exports = function(sequelize, DataTypes) {
     conteudo: {
       type: DataTypes.STRING(300),
       allowNull: true
+    },
+    instante: {
+      type: DataTypes.DATE,
+      allowNull: false
     }
   }, {
     tableName: 'notificacao',

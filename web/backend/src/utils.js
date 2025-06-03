@@ -1,4 +1,6 @@
 const path = require('path');
+const Mailgun = require('mailgun.js');
+const formData = require('form-data');
 
 require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
 
@@ -9,8 +11,10 @@ const {
   generateBlobSASQueryParameters, 
   BlobSASPermissions } = require('@azure/storage-blob');
 
+
 const accountName = process.env.AZURESTORAGE_ACCOUNTNAME; 
 const accountKey = process.env.AZURESTORAGE_KEY;
+
 
 const sharedKeyCredential = new StorageSharedKeyCredential(accountName, accountKey);
 const blobServiceClient = new BlobServiceClient(`https://${accountName}.blob.core.windows.net`, sharedKeyCredential);
@@ -73,4 +77,21 @@ async function deleteFile(blobName, containerName) {
     }
 }
 
-module.exports = { uploadFile, deleteFile, generateSASUrl };
+
+
+
+const mailgun = new Mailgun(formData);
+
+const client = mailgun.client({
+  username: 'api',
+  key: process.env.MAILGUN_APIKEY,
+});
+
+async function sendEmail(data) {
+
+  data.from = `TheSoftSkill Team <postmaster@${process.env.MAILGUN_DOMAIN}>`;
+  const response = await client.messages.create(process.env.MAILGUN_DOMAIN, data);
+
+}
+
+module.exports = { uploadFile, deleteFile, generateSASUrl, sendEmail };

@@ -1,6 +1,13 @@
+// const https = require("https");
+// const fs = require("fs");
 const express  = require("express");
 const app = express();
 const port = 3000;
+
+// const options = {
+//   key: fs.readFileSync("path/to/server.key"),
+//   cert: fs.readFileSync("path/to/server.cert")
+// };
 
 var cors = require('cors')
 
@@ -17,6 +24,7 @@ const utilizador = require('./routes/utilizadorRoute.js');
 const categoria = require('./routes/categoriaRoute.js');
 const area = require('./routes/areaRoute.js');
 const topico = require('./routes/topicoRoute.js');
+const notificacao = require('./routes/notificacaoRoute.js');
 
 // Route Defenition
 app.use('/',(req, res, next) => {
@@ -31,4 +39,9 @@ app.use('/utilizador',utilizador);
 app.use('/categoria',categoria);
 app.use('/area',area);
 app.use('/topico',topico);
+app.use('/notificacao',notificacao);
+
+// https.createServer(options, app).listen(port, () => {
+//   console.log(`HTTPS server listening on port ${port}`);
+// });
 
