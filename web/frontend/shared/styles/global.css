@@ -185,3 +185,92 @@ footer {
     margin: 0 5px;
   }
 }
+
+/* =======================================
+   🎯 BOTÃO DE CURSO PADRONIZADO (estático)
+========================================== */
+.btn-primary-blue {
+  background-color: var(--footer-bg);
+  color: white;
+  border-radius: 12px;
+  padding: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  border: none;
+  width: 100%;
+  text-align: left;
+  transition: background-color 0.2s ease;
+}
+
+.btn-primary-blue:hover {
+  background-color: var(--primary-blue);
+  color: white;
+}
+
+/* =======================================
+   🧱 GRUPO DE BOTÕES RESPONSIVO
+========================================== */
+.btn-group-responsive {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+/* Cada botão do grupo ocupa metade do espaço, com mínimo */
+.btn-group-responsive .btn-primary-blue {
+  flex: 1 1 250px;
+  min-width: 240px;
+}
+
+/* =======================================
+   🛠️ BOTÃO COM LARGURA FIXA (como os de curso)
+========================================== */
+.btn-fixed-width {
+  max-width: 240px;
+  width: 100%;
+}
+
+/* =======================================
+   🔍 BOTÃO DE PESQUISA DE CURSOS
+========================================== */
+.btn-search-curso {
+  background-color: var(--gray-lighter);
+  border: 1px solid var(--gray-light);
+  border-radius: 12px;
+  padding: 0.7rem;
+  gap: 1rem;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  text-align: left;
+  transition: background-color 0.2s ease;
+}
+
+.btn-search-curso:hover {
+  background-color: #e9ecef;
+}
+
+/* =======================================
+   🛠️ BOTÃO QUE SE ADAPTA AO CONTEÚDO (SEM FORÇAR WIDTH)
+========================================== */
+.btn-primary-blue-auto {
+  background-color: var(--footer-bg);
+  color: white;
+  border-radius: 12px;
+  padding: 1rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 1rem;
+  border: none;
+  text-align: left;
+  transition: background-color 0.2s ease;
+  white-space: nowrap;
+  min-width: 280px;
+  max-width: 100%;
+}
+
+.btn-primary-blue-auto:hover {
+  background-color: var(--primary-blue);
+  color: white;
+}
