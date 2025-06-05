@@ -1,5 +1,4 @@
 // web/frontend/shared/services/axios.js
-
 import axios from "axios";
 
 // Criação do cliente Axios com base na variável de ambiente

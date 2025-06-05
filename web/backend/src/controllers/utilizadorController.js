@@ -1,3 +1,4 @@
+//web\backend\src\controllers\utilizadorController.js
 const { uploadFile, deleteFile, generateSASUrl, sendEmail } = require('../utils.js');
 const { generateAccessToken } = require('../middleware.js');
 
@@ -605,6 +606,33 @@ controllers.test = async (req, res) => {
 
 
 
-}
+};
+
+//autenticação 
+controllers.me = async (req, res) => {
+  try {
+    const id = req.user.idutilizador;
+
+    const data = await models.utilizadores.findOne({
+      where: { idutilizador: id },
+      attributes: ["idutilizador", "email", "nome", "dataregisto", "foto", "ativo"]
+    });
+
+    if (!data) {
+      return res.status(404).json({ error: 'Utilizador não encontrado' });
+    }
+
+    data.dataValues.roles = await findRoles(id);
+    data.dataValues.foto = data.foto
+      ? await generateSASUrl(data.foto, 'userprofiles')
+      : null;
+
+    return res.status(200).json(data);
+  } catch (error) {
+    console.error('Erro ao buscar /me:', error);
+    return res.status(500).json({ error: 'Erro ao obter os dados do utilizador' });
+  }
+};
+
 
 module.exports = controllers;

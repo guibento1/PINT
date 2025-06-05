@@ -5,11 +5,12 @@ import Footer from '../../../shared/components/Footer';
 
 export default function LayoutFront({ children }) {
   const location = useLocation();
-  const isLoginOrRegister = location.pathname === '/' || location.pathname === '/registar';
+  const noNavbarRoutes = ['/', '/registar', '/nao-autorizado'];
+  const isSpecialPage = noNavbarRoutes.includes(location.pathname);
 
   return (
     <div className="d-flex flex-column min-vh-100">
-      {!isLoginOrRegister && <NavbarFront />}
+      {!isSpecialPage && <NavbarFront />}
       <main className="flex-grow-1">{children}</main>
       <Footer />
     </div>

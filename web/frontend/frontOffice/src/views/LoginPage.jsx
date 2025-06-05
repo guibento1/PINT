@@ -1,3 +1,5 @@
+// web/frontend/frontOffice/src/views/LoginPage.jsx
+
 import React, { useState } from 'react';
 import logoSoftinsa from '../../../shared/assets/images/logo_softinsa.png';
 import logoSoftSkills from '../../../shared/assets/images/logo_softskills.png';
@@ -9,14 +11,6 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const navigate = useNavigate();
 
-  const handleRoleRedirect = (role) => {
-    if (role === 'admin') {
-      window.location.href = 'http://localhost:3001/';
-    } else {
-      navigate('/home');
-    }
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -27,29 +21,52 @@ export default function LoginPage() {
 
     try {
       const response = await axios.post(
-        'http://localhost:3000/utilizador/login?email=' + email,
-        { password }
+        `http://localhost:3000/utilizador/login?email=${email}`,
+        { password },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+          },
+        }
       );
+
+      const data = response.data;
+
+      if (!data.accessToken) {
+        throw new Error("Token de acesso não retornado");
+      }
+
+      const token = data.accessToken;
+
+      localStorage.setItem('token', token);
+      localStorage.setItem('user', JSON.stringify({
+        id: data.idutilizador,
+        email: data.email,
+        nome: data.nome,
+        roles: data.roles,
+      }));
 
       alert('Login efetuado com sucesso!');
-      localStorage.setItem('token', response.data.accessToken);
-      localStorage.setItem(
-        'user',
-        JSON.stringify({
-          id: response.data.idutilizador,
-          email: response.data.email,
-          nome: response.data.nome,
-          roles: response.data.roles
-        })
-      );
 
-      const role = response.data.roles[0]?.role || response.data.roles[0]; // compatível com os dois formatos
-      handleRoleRedirect(role);
+      const role = data.roles[0]?.role || data.roles[0];
+      if (role === 'admin') {
+        window.location.href = `http://localhost:3001/?token=${token}&user=${encodeURIComponent(JSON.stringify({
+            id: data.idutilizador,
+            email: data.email,
+            nome: data.nome,
+            roles: data.roles,
+          }))}`;
+
+      } else {
+        window.location.href = 'http://localhost:3002/home';
+      }
 
     } catch (error) {
-      console.error('Login error:', error);
+      console.error('Erro ao fazer login:', error.response?.data || error.message);
       alert('Erro ao fazer login. Por favor, verifique suas credenciais.');
     }
+
   };
 
   return (
