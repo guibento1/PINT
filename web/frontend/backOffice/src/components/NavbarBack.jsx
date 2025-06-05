@@ -27,7 +27,7 @@ export default function NavbarBack() {
   const handleLogout = () => {
     localStorage.clear();
     fecharMenu();
-    window.location.href = 'http://localhost:3001/'; // Redireciona para a página de login do frontOffice
+    window.location.href = 'http://localhost:3002/'; // Redireciona para a página de login do frontOffice
   };
 
   return (

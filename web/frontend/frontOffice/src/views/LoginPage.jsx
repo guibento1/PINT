@@ -11,7 +11,7 @@ export default function LoginPage() {
 
   const handleRoleRedirect = (role) => {
     if (role === 'admin') {
-      window.location.href = 'http://localhost:3002/';
+      window.location.href = 'http://localhost:3001/';
     } else {
       navigate('/home');
     }
