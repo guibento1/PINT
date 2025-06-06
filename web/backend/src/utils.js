@@ -85,11 +85,12 @@ const mailgun = new Mailgun(formData);
 const client = mailgun.client({
   username: 'api',
   key: process.env.MAILGUN_APIKEY,
+  url: 'https://api.eu.mailgun.net'
 });
 
 async function sendEmail(data) {
 
-  data.from = `TheSoftSkill Team <postmaster@${process.env.MAILGUN_DOMAIN}>`;
+  data.from = `TheSoftSkill Team <noreply@${process.env.MAILGUN_DOMAIN}>`;
   const response = await client.messages.create(process.env.MAILGUN_DOMAIN, data);
 
 }
