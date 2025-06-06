@@ -57,8 +57,12 @@ export default function LoginPage() {
             nome: data.nome,
             roles: data.roles,
           }))}`;
+          
+          // 🔁 Notifica o hook sobre "role" do user logado 
+          window.dispatchEvent(new Event('userUpdated'));
 
       } else {
+        // Tanto formador quanto formando vão para o frontOffice
         window.location.href = 'http://localhost:3002/home';
       }
 

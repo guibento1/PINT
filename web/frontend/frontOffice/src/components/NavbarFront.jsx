@@ -8,21 +8,30 @@ import NotificationsIcon from '@mui/icons-material/Notifications';
 import MenuIcon from '@mui/icons-material/Menu';
 import CloseIcon from '@mui/icons-material/Close';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
+import useUserRole from '../../../shared/hooks/useUserRole';
 
 export default function NavbarFront() {
   const [menuAberto, setMenuAberto] = useState(false);
+  const navigate = useNavigate();
+  const { isFormador, loading } = useUserRole();
 
-  const notificacoesAtivas = true; // lógica futura
-  const nomeUsuario = 'Maria Silva'; // substituir depois
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const nomeUsuario = user?.nome || 'Utilizador'; 
+
+
+  if (loading) {
+    return <div className="text-center mt-4">A carregar...</div>; // loading 
+  }
+
+  const notificacoesAtivas = true;
 
   const toggleMenu = () => setMenuAberto(!menuAberto);
   const fecharMenu = () => setMenuAberto(false);
 
-
   const handleLogout = () => {
     localStorage.clear();
     fecharMenu();
-    window.location.href = 'http://localhost:3002/'; // Redireciona para a página de login do frontOffice
+    window.location.href = 'http://localhost:3002/';
   };
 
   return (
@@ -83,6 +92,19 @@ export default function NavbarFront() {
                 )}
               </NavLink>
             </li>
+            {/* APENAS FORMADOR */}
+            {isFormador && (
+              <li className="nav-item">
+                <NavLink
+                  to="/gerircursos"
+                  className={({ isActive }) => `nav-link fw-semibold ${isActive ? 'active' : ''}`}
+                  onClick={fecharMenu}
+                >
+                  Gerir Cursos
+                </NavLink>
+              </li>
+            )}
+          {/*INFORMAÇÕES DO PERFIL*/}
             <li className="nav-item d-flex align-items-center">
               <NavLink
                 to="/perfil"

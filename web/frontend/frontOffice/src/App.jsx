@@ -11,6 +11,7 @@ import Perfil from './views/Perfil';
 import Home from './views/Home';
 import NaoAutorizado from './views/NaoAutorizado';
 import ProtectedRoute from '../../shared/components/ProtectedRoute';
+import GerirCursos from './views/GerirCursos';
 
 function App() {
   return (
@@ -24,7 +25,7 @@ function App() {
         <Route path="/notificacoes" element={<ProtectedRoute allowedRoles={['formando', 'formador']}><Notificacoes /></ProtectedRoute>} />
         <Route path="/perfil" element={<ProtectedRoute allowedRoles={['formando', 'formador']}><Perfil /></ProtectedRoute>} />
         <Route path="/registar" element={<RegisterPage />} />
-
+        <Route path="/gerircursos" element={<ProtectedRoute allowedRoles={['formador']}><GerirCursos /></ProtectedRoute>} />
         {/* ROTA DE ERRO */}
         <Route path="/nao-autorizado" element={<NaoAutorizado />} />
       </Routes>

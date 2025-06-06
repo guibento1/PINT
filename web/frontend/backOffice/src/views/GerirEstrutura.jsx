@@ -1,3 +1,4 @@
+//web\frontend\backOffice\src\views\GerirEstrutura.jsx
 import React, { useEffect, useState } from 'react';
 import api from '../../../shared/services/axios';
 
