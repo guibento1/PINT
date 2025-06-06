@@ -8,6 +8,7 @@ import NotificationsIcon from '@mui/icons-material/Notifications';
 import MenuIcon from '@mui/icons-material/Menu';
 import CloseIcon from '@mui/icons-material/Close';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
+import GerirEstrutura from '../views/GerirEstrutura';
 
 export default function NavbarBack() {
   const [menuAberto, setMenuAberto] = useState(false);
@@ -54,6 +55,15 @@ export default function NavbarBack() {
                 onClick={fecharMenu}
               >
                 Home
+              </NavLink>
+            </li>
+            <li className="nav-item">
+              <NavLink
+                to="/gerir-estrutura"
+                className={({ isActive }) => `nav-link fw-semibold ${isActive ? 'active' : ''}`}
+                onClick={fecharMenu}
+              >
+                Gerir estrutura
               </NavLink>
             </li>
             <li className="nav-item">

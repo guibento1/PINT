@@ -14,7 +14,7 @@ export default function Home() {
   const [categoriaSelecionada, setCategoriaSelecionada] = useState('');
   const [areaSelecionada, setAreaSelecionada] = useState('');
   const [topicoSelecionado, setTopicoSelecionado] = useState('');
-
+  
   // Carrega categorias ao iniciar
   useEffect(() => {
     api.get('/categoria/list')
