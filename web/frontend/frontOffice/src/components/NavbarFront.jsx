@@ -15,7 +15,7 @@ export default function NavbarFront() {
   const navigate = useNavigate();
   const { isFormador, loading } = useUserRole();
 
-  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const user = JSON.parse(sessionStorage.getItem('user') || '{}');
   const nomeUsuario = user?.nome || 'Utilizador'; 
 
 
@@ -29,7 +29,7 @@ export default function NavbarFront() {
   const fecharMenu = () => setMenuAberto(false);
 
   const handleLogout = () => {
-    localStorage.clear();
+    sessionStorage.clear();
     fecharMenu();
     window.location.href = 'http://localhost:3002/';
   };

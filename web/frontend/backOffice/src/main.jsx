@@ -11,14 +11,14 @@ const token = urlParams.get('token');
 const user = urlParams.get('user');
 
 if (token) {
-  localStorage.setItem('token', token);
+  sessionStorage.setItem('token', token);
   window.history.replaceState({}, document.title, '/'); // limpa a URL
 }
 
 if (user) {
   try {
     const decodedUser = JSON.parse(decodeURIComponent(user));
-    localStorage.setItem('user', JSON.stringify(decodedUser));
+    sessionStorage.setItem('user', JSON.stringify(decodedUser));
   } catch (err) {
     console.error('Erro ao decodificar o user:', err);
   }

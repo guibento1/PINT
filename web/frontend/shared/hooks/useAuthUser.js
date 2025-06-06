@@ -6,7 +6,7 @@ export default function useAuthUser() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
+    const token = sessionStorage.getItem('token');
 
     if (!token) {
       setLoading(false);
@@ -24,7 +24,7 @@ export default function useAuthUser() {
       })
       .catch((err) => {
         console.error('Erro ao validar token:', err);
-        localStorage.removeItem('token');
+        sessionStorage.removeItem('token');
       })
       .finally(() => setLoading(false));
   }, []);

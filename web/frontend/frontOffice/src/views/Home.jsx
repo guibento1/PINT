@@ -4,7 +4,7 @@ import api from '../../../shared/services/axios';
 import CardCurso from '../../../shared/components/CardCurso';
 
 export default function Home() {
-  const user = JSON.parse(localStorage.getItem('user'));
+  const user = JSON.parse(sessionStorage.getItem('user'));
 
   const [categorias, setCategorias] = useState([]);
   const [areas, setAreas] = useState([]);
@@ -67,39 +67,34 @@ export default function Home() {
 
       {/* Seleção Encadeada */}
       <div className="row mb-4">
-        <div className="col-md-4 mb-3">
           <label>Categoria</label>
+          {/* Categoria */}
           <select className="form-select" value={categoriaSelecionada} onChange={e => setCategoriaSelecionada(e.target.value)}>
-            <option value="">-- Selecione uma categoria --</option>
+            <option value="" key="default-cat">-- Selecione uma categoria --</option>
             {categorias.map(c => (
               <option key={c.idCategoria} value={c.idCategoria}>{c.designacao}</option>
             ))}
           </select>
-        </div>
 
-        {areas.length > 0 && (
-          <div className="col-md-4 mb-3">
-            <label>Área</label>
+          {/* Área */}
+          {areas.length > 0 && (
             <select className="form-select" value={areaSelecionada} onChange={e => setAreaSelecionada(e.target.value)}>
-              <option value="">-- Selecione uma área --</option>
+              <option value="" key="default-area">-- Selecione uma área --</option>
               {areas.map(a => (
                 <option key={a.idarea} value={a.idarea}>{a.designacao}</option>
               ))}
             </select>
-          </div>
-        )}
+          )}
 
-        {topicos.length > 0 && (
-          <div className="col-md-4 mb-3">
-            <label>Tópico</label>
+          {/* Tópico */}
+          {topicos.length > 0 && (
             <select className="form-select" value={topicoSelecionado} onChange={e => setTopicoSelecionado(e.target.value)}>
-              <option value="">-- Selecione um tópico --</option>
+              <option value="" key="default-topico">-- Selecione um tópico --</option>
               {topicos.map(t => (
                 <option key={t.idtopico} value={t.idtopico}>{t.designacao}</option>
               ))}
             </select>
-          </div>
-        )}
+          )}
       </div>
 
       {/* Cursos */}

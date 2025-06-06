@@ -3,8 +3,8 @@ import React from 'react';
 import { Navigate } from 'react-router-dom';
 
 export default function ProtectedRoute({ children, allowedRoles }) {
-  const token = localStorage.getItem('token');
-  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const token = sessionStorage.getItem('token');
+  const user = JSON.parse(sessionStorage.getItem('user') || '{}');
   const role = user?.roles?.[0]?.role || user?.roles?.[0];
 
   if (!token) {

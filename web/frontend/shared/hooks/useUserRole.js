@@ -6,7 +6,7 @@ export default function useUserRole() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const userDataRaw = localStorage.getItem('user');
+    const userDataRaw = sessionStorage.getItem('user');
 
     if (userDataRaw) {
       try {
@@ -14,7 +14,7 @@ export default function useUserRole() {
         const extractedRoles = userData.roles?.map((r) => r.role || r) || [];
         setRoles(extractedRoles);
       } catch (e) {
-        console.error('Erro ao processar user do localStorage:', e);
+        console.error('Erro ao processar user do sessionStorage:', e);
       }
     }
 
