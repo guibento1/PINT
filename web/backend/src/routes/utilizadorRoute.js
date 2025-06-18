@@ -13,11 +13,10 @@ router.get('/list', authenticateJWT, authorizeRoles('admin'), utilizadorControll
 router.post('/login', utilizadorController.loginUser);
 router.get('/id/:id', authenticateJWT, utilizadorController.byID);
 router.put('/id/:id', authenticateJWT, upload.single('foto'), utilizadorController.update);
-router.post('/', upload.single('foto'), utilizadorController.create);
+//router.post('/', upload.single('foto'), utilizadorController.create);
 router.delete('/id/:id', authenticateJWT, utilizadorController.delete);
 router.patch('/activate/:id', authenticateJWT, utilizadorController.activate);
 router.post('/register', utilizadorController.register);
 router.post('/resetpassword', authenticateJWT, utilizadorController.resetPassword);
-router.post('/test', utilizadorController.test);
 
 module.exports = router;

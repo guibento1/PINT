@@ -1,6 +1,8 @@
 const path = require('path');
 const Mailgun = require('mailgun.js');
 const formData = require('form-data');
+const axios = require('axios');
+const { GoogleAuth } = require('google-auth-library');
 
 require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
 
@@ -95,4 +97,68 @@ async function sendEmail(data) {
 
 }
 
-module.exports = { uploadFile, deleteFile, generateSASUrl, sendEmail };
+// Firebase
+
+
+async function getGoogleAuthToken() {
+
+  const serviceAccountJsonString = process.env.GOOGLE_OAUTH2_KEY;
+
+  if (!serviceAccountJsonString) {
+    throw new Error('GOOGLE_SERVICE_ACCOUNT_JSON environment variable is not set.');
+  }
+
+  const credentials = JSON.parse(serviceAccountJsonString);
+
+  const auth = new GoogleAuth({
+    credentials: credentials, 
+    scopes: 'https://www.googleapis.com/auth/firebase.messaging',
+  });
+
+  const client = await auth.getClient();
+  const accessToken = await client.getAccessToken();
+  return accessToken.token;
+}
+
+
+async function sendFCMNotification(topic, title, body, imageUrl = null) {
+  try {
+
+    if (typeof topic !== 'string' || typeof title !== 'string' || typeof body !== 'string') {
+      throw new Error('Invalid input data types');
+    }
+
+    const accessToken = await getGoogleAuthToken();
+    const fcmEndpoint = `https://fcm.googleapis.com/v1/projects/thesoftskills-2025/messages:send`;
+
+    const messagePayload = {
+      message: {
+        topic: topic,
+        notification: {
+          title: title,
+          body: body,
+        },
+      },
+    };
+
+    //console.log(messagePayload);
+
+    if (imageUrl) {
+      messagePayload.message.notification.imageUrl = imageUrl;
+    }
+
+    const response = await axios.post(fcmEndpoint, messagePayload, {
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken}`,
+      },
+    });
+
+    return response.data;
+  } catch (error) {
+    console.error('Error sending FCM notification:', error.response.data.error.details);
+    throw error;
+  }
+}
+
+module.exports = { uploadFile, deleteFile, generateSASUrl, sendEmail, sendFCMNotification };

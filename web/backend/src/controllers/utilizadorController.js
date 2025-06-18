@@ -303,7 +303,7 @@ controllers.update = async (req, res) => {
             result.dataValues.roles = await findRoles(id);
             result.dataValues.foto = await generateSASUrl(result.foto, 'userprofiles');
 
-            res.status(200).json(result);
+            return res.status(200).json(result);
         } catch (error) {
             console.log(error);
             res.status(500).json({ message: 'Error updating User' });
@@ -583,24 +583,5 @@ controllers.activate = async (req, res) => {
 
     return res.status(403).json({ message: 'Forbidden: insufficient permissions' });
 };
-
-controllers.test = async (req, res) => {
-
-
-        try {
-
-            const response = await sendEmail();
-            return res.status(200).json(response);
-
-        } catch (error) {
-            console.log(error);
-            return res.status(500).json({ error: 'Something bad happened' });
-        }
-
-
-
-
-
-}
 
 module.exports = controllers;

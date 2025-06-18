@@ -21,6 +21,7 @@ app.listen(port, () => {
 
 const index = require('./routes/indexRoute.js');
 const utilizador = require('./routes/utilizadorRoute.js');
+const test = require('./routes/testRoute.js');
 const categoria = require('./routes/categoriaRoute.js');
 const area = require('./routes/areaRoute.js');
 const topico = require('./routes/topicoRoute.js');
@@ -36,6 +37,7 @@ app.use('/',(req, res, next) => {
 
 app.use('/',index);
 app.use('/utilizador',utilizador);
+app.use('/test',test);
 app.use('/categoria',categoria);
 app.use('/area',area);
 app.use('/topico',topico);

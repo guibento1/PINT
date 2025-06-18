@@ -16,13 +16,11 @@ var _denunciacomentario = require("./denunciacomentario");
 var _denunciapost = require("./denunciapost");
 var _formador = require("./formador");
 var _formando = require("./formando");
+var _historiconotificacoes = require("./historiconotificacoes");
 var _inscricao = require("./inscricao");
 var _licao = require("./licao");
 var _licaomaterial = require("./licaomaterial");
 var _material = require("./material");
-var _notificacao = require("./notificacao");
-var _notificacaogeral = require("./notificacaogeral");
-var _notificacaopessoal = require("./notificacaopessoal");
 var _post = require("./post");
 var _respostacomentario = require("./respostacomentario");
 var _respostapost = require("./respostapost");
@@ -33,10 +31,6 @@ var _tipomaterial = require("./tipomaterial");
 var _topico = require("./topico");
 var _topicoarea = require("./topicoarea");
 var _utilizadores = require("./utilizadores");
-
-// Custom
-
-var _utilizadorcanais = require("./utilizadorcanais.js");
 
 function initModels(sequelize) {
   var admin = _admin(sequelize, DataTypes);
@@ -56,13 +50,11 @@ function initModels(sequelize) {
   var denunciapost = _denunciapost(sequelize, DataTypes);
   var formador = _formador(sequelize, DataTypes);
   var formando = _formando(sequelize, DataTypes);
+  var historiconotificacoes = _historiconotificacoes(sequelize, DataTypes);
   var inscricao = _inscricao(sequelize, DataTypes);
   var licao = _licao(sequelize, DataTypes);
   var licaomaterial = _licaomaterial(sequelize, DataTypes);
   var material = _material(sequelize, DataTypes);
-  var notificacao = _notificacao(sequelize, DataTypes);
-  var notificacaogeral = _notificacaogeral(sequelize, DataTypes);
-  var notificacaopessoal = _notificacaopessoal(sequelize, DataTypes);
   var post = _post(sequelize, DataTypes);
   var respostacomentario = _respostacomentario(sequelize, DataTypes);
   var respostapost = _respostapost(sequelize, DataTypes);
@@ -77,17 +69,13 @@ function initModels(sequelize) {
   area.belongsToMany(topico, { as: 'topico_topico_topicoareas', through: topicoarea, foreignKey: "area", otherKey: "topico" });
   avaliacaocontinua.belongsToMany(avaliacaocontinua, { as: 'cursosincrono_avaliacaocontinuas', through: submissao, foreignKey: "avaliacaocontinua", otherKey: "cursosincrono" });
   avaliacaocontinua.belongsToMany(avaliacaocontinua, { as: 'avaliacaocontinua_avaliacaocontinuas', through: submissao, foreignKey: "cursosincrono", otherKey: "avaliacaocontinua" });
-  canalnotificacoes.belongsToMany(notificacao, { as: 'idnotificacao_notificacaos', through: notificacaogeral, foreignKey: "canal", otherKey: "idnotificacao" });
   curso.belongsToMany(formando, { as: 'formando_formandos', through: inscricao, foreignKey: "curso", otherKey: "formando" });
   curso.belongsToMany(topico, { as: 'topico_topicos', through: cursotopico, foreignKey: "curso", otherKey: "topico" });
   cursosincrono.belongsToMany(licao, { as: 'licao_licaos', through: sessao, foreignKey: "cursosincrono", otherKey: "licao" });
   formando.belongsToMany(curso, { as: 'curso_curso_inscricaos', through: inscricao, foreignKey: "formando", otherKey: "curso" });
   licao.belongsToMany(cursosincrono, { as: 'cursosincrono_cursosincronos', through: sessao, foreignKey: "licao", otherKey: "cursosincrono" });
-  notificacao.belongsToMany(canalnotificacoes, { as: 'canal_canalnotificacos', through: notificacaogeral, foreignKey: "idnotificacao", otherKey: "canal" });
-  notificacao.belongsToMany(utilizadores, { as: 'utilizador_utilizadores', through: notificacaopessoal, foreignKey: "idnotificacao", otherKey: "utilizador" });
   topico.belongsToMany(area, { as: 'area_areas', through: topicoarea, foreignKey: "topico", otherKey: "area" });
   topico.belongsToMany(curso, { as: 'curso_cursos', through: cursotopico, foreignKey: "topico", otherKey: "curso" });
-  utilizadores.belongsToMany(notificacao, { as: 'idnotificacao_notificacao_notificacaopessoals', through: notificacaopessoal, foreignKey: "utilizador", otherKey: "idnotificacao" });
   topicoarea.belongsTo(area, { as: "area_area", foreignKey: "area"});
   area.hasMany(topicoarea, { as: "topicoareas", foreignKey: "area"});
   submissao.belongsTo(avaliacaocontinua, { as: "avaliacaocontinua_avaliacaocontinua", foreignKey: "avaliacaocontinua"});
@@ -96,8 +84,8 @@ function initModels(sequelize) {
   avaliacaocontinua.hasMany(submissao, { as: "cursosincrono_submissaos", foreignKey: "cursosincrono"});
   curso.belongsTo(canalnotificacoes, { as: "canal_canalnotificaco", foreignKey: "canal"});
   canalnotificacoes.hasMany(curso, { as: "cursos", foreignKey: "canal"});
-  notificacaogeral.belongsTo(canalnotificacoes, { as: "canal_canalnotificaco", foreignKey: "canal"});
-  canalnotificacoes.hasMany(notificacaogeral, { as: "notificacaogerals", foreignKey: "canal"});
+  historiconotificacoes.belongsTo(canalnotificacoes, { as: "canal_canalnotificaco", foreignKey: "canal"});
+  canalnotificacoes.hasMany(historiconotificacoes, { as: "historiconotificacos", foreignKey: "canal"});
   area.belongsTo(categoria, { as: "categoria_categorium", foreignKey: "categoria"});
   categoria.hasMany(area, { as: "areas", foreignKey: "categoria"});
   denunciacomentario.belongsTo(comentario, { as: "comentario_comentario", foreignKey: "comentario"});
@@ -144,10 +132,6 @@ function initModels(sequelize) {
   material.hasMany(licaomaterial, { as: "licaomaterials", foreignKey: "material"});
   submissao.belongsTo(material, { as: "submissao_material", foreignKey: "submissao"});
   material.hasMany(submissao, { as: "submissaos", foreignKey: "submissao"});
-  notificacaogeral.belongsTo(notificacao, { as: "idnotificacao_notificacao", foreignKey: "idnotificacao"});
-  notificacao.hasMany(notificacaogeral, { as: "notificacaogerals", foreignKey: "idnotificacao"});
-  notificacaopessoal.belongsTo(notificacao, { as: "idnotificacao_notificacao", foreignKey: "idnotificacao"});
-  notificacao.hasMany(notificacaopessoal, { as: "notificacaopessoals", foreignKey: "idnotificacao"});
   denunciapost.belongsTo(post, { as: "post_post", foreignKey: "post"});
   post.hasMany(denunciapost, { as: "denunciaposts", foreignKey: "post"});
   respostapost.belongsTo(post, { as: "post_post", foreignKey: "post"});
@@ -176,17 +160,8 @@ function initModels(sequelize) {
   utilizadores.hasMany(formando, { as: "formandos", foreignKey: "utilizador"});
   material.belongsTo(utilizadores, { as: "criador_utilizadore", foreignKey: "criador"});
   utilizadores.hasMany(material, { as: "materials", foreignKey: "criador"});
-  notificacaopessoal.belongsTo(utilizadores, { as: "utilizador_utilizadore", foreignKey: "utilizador"});
-  utilizadores.hasMany(notificacaopessoal, { as: "notificacaopessoals", foreignKey: "utilizador"});
   post.belongsTo(utilizadores, { as: "utilizador_utilizadore", foreignKey: "utilizador"});
   utilizadores.hasMany(post, { as: "posts", foreignKey: "utilizador"});
-
-  //Custom
-
-  var utilizadorcanais = _utilizadorcanais(sequelize, DataTypes);
-
-  utilizadorcanais.belongsTo(utilizadores, {foreignKey: 'idutilizador',targetKey: 'idutilizador'});
-  utilizadorcanais.belongsTo(canalnotificacoes, {foreignKey: 'canal',targetKey: 'idcanalnotificacoes'});
 
   return {
     admin,
@@ -206,13 +181,11 @@ function initModels(sequelize) {
     denunciapost,
     formador,
     formando,
+    historiconotificacoes,
     inscricao,
     licao,
     licaomaterial,
     material,
-    notificacao,
-    notificacaogeral,
-    notificacaopessoal,
     post,
     respostacomentario,
     respostapost,
@@ -223,10 +196,6 @@ function initModels(sequelize) {
     topico,
     topicoarea,
     utilizadores,
-
-    // Custom
-
-    utilizadorcanais
   };
 }
 module.exports = initModels;

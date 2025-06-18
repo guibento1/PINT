@@ -139,37 +139,51 @@ CREATE TABLE CanalNotificacoes (
 );
 
 
-CREATE TABLE Notificacao (
+CREATE TABLE HistoricoNotificacoes (
 
     idNotificacao BIGINT GENERATED ALWAYS AS IDENTITY,
-    conteudo VARCHAR(300),
-    instante TIMESTAMP NOT NULL,
+    canal  BIGINT NOT NULL,
+    titulo VARCHAR(60) NOT NULL,
+    conteudo TEXT NOT NULL,
+    instante TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    CONSTRAINT NOTIFICACAO_PK PRIMARY KEY(idNotificacao)
-);
-
-
-CREATE TABLE NotificacaoPessoal (
-
-    idNotificacao BIGINT,
-    utilizador BIGINT,
-
-    CONSTRAINT NOTIFICACAOPESSOAL_PK PRIMARY KEY(idNotificacao,utilizador),
-    CONSTRAINT UTILIZADOR_NOTIFICACAOPESSOAL_FK FOREIGN KEY (utilizador) REFERENCES Utilizadores(idUtilizador),
-    CONSTRAINT NOTIFICACAO_NOTIFICACAOPESSOAL_FK FOREIGN KEY (idNotificacao) REFERENCES Notificacao(idNotificacao)
-
+    CONSTRAINT CANAL_HISTORICONOTIFICACOES_FK FOREIGN KEY (canal) REFERENCES CanalNotificacoes(idcanalnotificacoes),
+    CONSTRAINT HISTORICONOTIFICACOES_PK PRIMARY KEY(idNotificacao)
 
 );
 
-CREATE TABLE NotificacaoGeral (
 
-    idNotificacao BIGINT,
-    canal BIGINT,
-
-    CONSTRAINT NOTIFICAOGERAL_PK PRIMARY KEY(idNotificacao,canal),
-    CONSTRAINT CANAL_NOTIFICACAOPESSOAL_FK FOREIGN KEY (canal) REFERENCES CanalNotificacoes(idCanalNotificacoes),
-    CONSTRAINT NOTIFICACAO_NOTIFICACAOPESSOAL_FK FOREIGN KEY (idNotificacao) REFERENCES Notificacao(idNotificacao)
-);
+-- CREATE TABLE Notificacao (
+--
+--     idNotificacao BIGINT GENERATED ALWAYS AS IDENTITY,
+--     conteudo VARCHAR(300),
+--     instante TIMESTAMP NOT NULL,
+--
+--     CONSTRAINT NOTIFICACAO_PK PRIMARY KEY(idNotificacao)
+-- );
+--
+--
+-- CREATE TABLE NotificacaoPessoal (
+--
+--     idNotificacao BIGINT,
+--     utilizador BIGINT,
+--
+--     CONSTRAINT NOTIFICACAOPESSOAL_PK PRIMARY KEY(idNotificacao,utilizador),
+--     CONSTRAINT UTILIZADOR_NOTIFICACAOPESSOAL_FK FOREIGN KEY (utilizador) REFERENCES Utilizadores(idUtilizador),
+--     CONSTRAINT NOTIFICACAO_NOTIFICACAOPESSOAL_FK FOREIGN KEY (idNotificacao) REFERENCES Notificacao(idNotificacao)
+--
+--
+-- );
+--
+-- CREATE TABLE NotificacaoGeral (
+--
+--     idNotificacao BIGINT,
+--     canal BIGINT,
+--
+--     CONSTRAINT NOTIFICAOGERAL_PK PRIMARY KEY(idNotificacao,canal),
+--     CONSTRAINT CANAL_NOTIFICACAOPESSOAL_FK FOREIGN KEY (canal) REFERENCES CanalNotificacoes(idCanalNotificacoes),
+--     CONSTRAINT NOTIFICACAO_NOTIFICACAOPESSOAL_FK FOREIGN KEY (idNotificacao) REFERENCES Notificacao(idNotificacao)
+-- );
 
 
 
