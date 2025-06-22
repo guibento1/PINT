@@ -26,6 +26,7 @@ const categoria = require('./routes/categoriaRoute.js');
 const area = require('./routes/areaRoute.js');
 const topico = require('./routes/topicoRoute.js');
 const notificacao = require('./routes/notificacaoRoute.js');
+const curso = require('./routes/cursoRoute.js');
 
 // Route Defenition
 app.use('/',(req, res, next) => {
@@ -42,6 +43,7 @@ app.use('/categoria',categoria);
 app.use('/area',area);
 app.use('/topico',topico);
 app.use('/notificacao',notificacao);
+app.use('/curso',curso);
 
 // https.createServer(options, app).listen(port, () => {
 //   console.log(`HTTPS server listening on port ${port}`);

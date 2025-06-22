@@ -1,4 +1,5 @@
 const path = require('path');
+const crypto = require('crypto');
 const Mailgun = require('mailgun.js');
 const formData = require('form-data');
 const axios = require('axios');
@@ -33,6 +34,48 @@ async function uploadFile(fileBuffer, blobName, containerName) {
         return blobClient.url;
     } catch (error) {
         console.error('Error uploading image to Azure Blob Storage:', error.message);
+        throw error;
+    }
+}
+
+
+async function updateFile(file, allowedFileExtensions, container, existingBlob = null) {
+
+
+    if (!file || !file.buffer || !file.originalname) {
+        throw 'Invalid file object';
+    }
+
+    try {
+        if (existingBlob !== null) {
+            try {
+                await deleteFile(existingBlob, container);
+            } catch (error) {
+                console.error(`Error deleting existing file: ${error}`);
+                throw error;
+            }
+        }
+
+        const fileBuffer = file.buffer;
+        const originalFileName = file.originalname;
+        const fileExtension = path.extname(originalFileName).toLowerCase();
+
+        if (!allowedFileExtensions.includes(fileExtension)) {
+            throw `Profile Pic must be one of the following: ${allowedfileExtensions.join(", ")}`;
+        }
+
+        const blobName = crypto.randomBytes(16).toString('hex').slice(0, 16) + fileExtension;
+
+        try {
+            await uploadFile(fileBuffer, blobName, container);
+        } catch (error) {
+            console.error(`Error uploading file: ${error}`);
+            throw error;
+        }
+
+        return blobName;
+    } catch (error) {
+        console.error(`Error uploading file: ${error}`);
         throw error;
     }
 }
@@ -161,4 +204,4 @@ async function sendFCMNotification(topic, title, body, imageUrl = null) {
   }
 }
 
-module.exports = { uploadFile, deleteFile, generateSASUrl, sendEmail, sendFCMNotification };
+module.exports = { uploadFile, deleteFile, updateFile, generateSASUrl, sendEmail, sendFCMNotification };

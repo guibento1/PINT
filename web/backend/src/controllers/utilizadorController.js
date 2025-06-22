@@ -1,11 +1,9 @@
-const { uploadFile, deleteFile, generateSASUrl, sendEmail } = require('../utils.js');
+const { uploadFile, deleteFile, updateFile, generateSASUrl, sendEmail } = require('../utils.js');
 const { generateAccessToken } = require('../middleware.js');
 
 var initModels = require("../models/init-models.js");
 var db = require("../database.js");
 var models = initModels(db);
-const crypto = require('crypto');
-const path = require('path');
 
 // Aux Functions
 
@@ -46,49 +44,6 @@ async function updateRoles(id, roles) {
 
 }
 
-
-async function updateFoto(fotoFile, existingBlob = null) {
-
-    const fileExtensions = [".jpg", ".png"];
-
-    if (!fotoFile || !fotoFile.buffer || !fotoFile.originalname) {
-        throw 'Invalid fotoFile object';
-    }
-
-    try {
-        if (existingBlob !== null) {
-            try {
-                await deleteFile(existingBlob, "userprofiles");
-            } catch (error) {
-                console.error(`Error deleting existing file: ${error}`);
-                throw error;
-            }
-        }
-
-        const fileBuffer = fotoFile.buffer;
-        const originalFileName = fotoFile.originalname;
-        const fileExtension = path.extname(originalFileName).toLowerCase();
-
-        if (!fileExtensions.includes(fileExtension)) {
-            throw `Profile Pic must be one of the following: ${fileExtensions.join(", ")}`;
-        }
-
-        const blobName = crypto.randomBytes(16).toString('hex').slice(0, 16) + fileExtension;
-
-        try {
-            await uploadFile(fileBuffer, blobName, "userprofiles");
-        } catch (error) {
-            console.error(`Error uploading file: ${error}`);
-            throw error;
-        }
-
-        return blobName;
-    } catch (error) {
-        console.error(`Error updating profile picture: ${error}`);
-        throw error;
-    }
-}
-
 const controllers = {};
 
 controllers.byEmail = async (req, res) => {
@@ -125,8 +80,7 @@ controllers.byEmail = async (req, res) => {
 
 controllers.loginUser = async (req, res) => {
 
-    const email = req.query.email;
-    const { password } = req.body;
+    const { email, password } = req.body;
 
     if (!email) {
         return res.status(400).json({ error: 'Email is required' });
@@ -251,13 +205,17 @@ controllers.update = async (req, res) => {
     ){
 
         const foto = req.file;
-        const { nome, email, password, morada, telefone, roles } = JSON.parse(req.body.info);
         
         const updatedData = {};
+
+
+        const { nome, email, password, morada, telefone, roles } = JSON.parse(req.body.info || "{}");
+
         if (nome) updatedData.nome = nome;
         if (email) updatedData.email = email;
         if (morada !== undefined) updatedData.morada = morada;
         if (telefone !== undefined) updatedData.telefone = telefone;
+
 
         try {
 
@@ -272,7 +230,7 @@ controllers.update = async (req, res) => {
 
             if(foto){
 
-                updatedData.foto = await updateFoto(foto,result.foto);
+                updatedData.foto = await updateFile( foto, [".jpg", ".png"], "userprofiles", result.foto);
 
             }
             
@@ -378,7 +336,7 @@ controllers.register = async (req, res) => {
         sendEmail(data);
 
 
-        res.status(201).json({message:"Confirm email"});
+        res.status(200).json({message:"Confirm email"});
 
     } catch (error) {
 

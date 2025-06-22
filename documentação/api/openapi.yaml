@@ -16,6 +16,8 @@ paths:
       tags:
         - Utilizadores
       summary: Obter utilizador por email
+      security:
+        - bearerAuth: []
       parameters:
         - name: email
           in: query
@@ -34,66 +36,94 @@ paths:
         '404':
           description: User not found
           
+  /utilizador/login:
     post:
       tags:
         - Utilizadores
-      summary: Criar utilizador
+      summary: Validar utilizador
       requestBody:
         content:
-          multipart/form-data:
+          application/json:
             schema:
-              type: object
-              properties:
-                info:
-                  type: object
-                  properties:
-                    nome:
-                      type: string
-                    email:
-                      type: string
-                    password:
-                      type: string
-                    morada:
-                      type: string
-                    roles:
-                      type: array
-                      items:
-                        type: string
-                        example: 'admin'
-                  required:
-                    - nome
-                    - email
-                    - salt
-                    - passwordhash
-                foto:
-                  type: string
-                  format: binary
-
-      responses :
+                type: object
+                properties:
+                  email:
+                    type: string
+                    example: user@email.provider
+                  password:
+                    type: string
+                    example: "************"
+      responses:
         '200':
           description: Um utilizador
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Utilizador'
+                allOf:
+                  - $ref: '#/components/schemas/Utilizador'
+                  - type: object
+                    properties:
+                      accessToken:
+                        type: string
+                        example: "ZHV0aWxpemFkb3IiOiIyIiwicm9sZXMiOlt7InJvbGUi"
         '400':
-          description: Something bad happened
-        '409':
-          description: User with that email already exists, activate it instead
+          description: Email and password is required
         '404':
           description: User not found
+        '500':
+          description: Password mismatch
           
-  /utilizador/validate:
-    get:
+  /utilizador/register:
+    post:
       tags:
         - Utilizadores
-      summary: Validar utilizador
-      parameters:
-        - name: email
-          in: query
-          required: true
-          schema:
-            type: integer
+      summary: Registar utilizador
+      requestBody:
+        content:
+          application/json:
+            schema:
+                type: object
+                properties:
+                  nome:
+                    type: string
+                    example: "César Cabral"
+                  email:
+                    type: string
+                    example: user@email.provider
+
+      responses:
+        '200':
+          description: Um utilizador
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Comfirm email"
+
+        '400':
+          description: User with choosen email already exists
+        '500':
+          description: Error creating user
+          
+  /utilizador/resetpassword:
+    post:
+      tags:
+        - Utilizadores
+      summary: Mudar de palavra passe
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+                type: object
+                properties:
+                  password:
+                    type: string
+                    example: "************"
       responses:
         '200':
           description: Um utilizador
@@ -102,17 +132,17 @@ paths:
               schema:
                 $ref: '#/components/schemas/Utilizador'
         '400':
-          description: Email and password is required
-        '404':
-          description: User not found
+          description: Password is required
         '500':
-          description: Password mismatch
+          description: Operation did not exit sucessfully
           
   /utilizador/list:
     get:
       tags:
         - Utilizadores
       summary: Obter utilizadores
+      security:
+        - bearerAuth: []
       responses :
         '200':
           description: Todos os utilizadores
@@ -128,6 +158,8 @@ paths:
       tags:
         - Utilizadores
       summary: Obter utilizador por id
+      security:
+        - bearerAuth: []
       parameters:
         - name: id
           in: path
@@ -151,6 +183,8 @@ paths:
       tags:
         - Utilizadores
       summary: Desativar utilizador
+      security:
+        - bearerAuth: []
       parameters:
         - name: id
           in: path
@@ -174,6 +208,8 @@ paths:
       tags:
         - Utilizadores
       summary: Atualizar utilizador
+      security:
+        - bearerAuth: []
       parameters:
         - name: id
           in: path
@@ -222,6 +258,8 @@ paths:
       tags:
         - Utilizadores
       summary: Ativar utilizador
+      security:
+        - bearerAuth: []
       parameters:
         - name: id
           in: path
@@ -242,6 +280,8 @@ paths:
       tags:
         - Categoria
       summary: Criar categoria
+      security:
+        - bearerAuth: []
       requestBody:
         content:
           application/json:
@@ -268,6 +308,8 @@ paths:
       tags:
         - Categoria
       summary: Obter todas as categorias
+      security:
+        - bearerAuth: []
       responses :
         '200':
           description: Array de categorias
@@ -285,6 +327,8 @@ paths:
       tags:
         - Categoria
       summary: Obter todas as areas de uma categoria
+      security:
+        - bearerAuth: []
       parameters:
         - name: id
           in: path
@@ -309,6 +353,8 @@ paths:
       tags:
         - Categoria
       summary: Obter uma categoria
+      security:
+        - bearerAuth: []
       parameters:
         - name: id
           in: path
@@ -330,6 +376,8 @@ paths:
       tags:
         - Categoria
       summary: Eliminar uma categoria
+      security:
+        - bearerAuth: []
       parameters:
         - name: id
           in: path
@@ -370,6 +418,8 @@ paths:
       tags:
         - Categoria
       summary: Atualizar Categoria
+      security:
+        - bearerAuth: []
       parameters:
         - name: id
           in: path
@@ -397,6 +447,8 @@ paths:
       tags:
         - Area
       summary: Criar area
+      security:
+        - bearerAuth: []
       requestBody:
         content:
           application/json:
@@ -423,6 +475,8 @@ paths:
       tags:
         - Area
       summary: Obter todas as areas
+      security:
+        - bearerAuth: []
       responses :
         '200':
           description: Array de areas
@@ -440,6 +494,8 @@ paths:
       tags:
         - Area
       summary: Obter todos os tópicos de uma area
+      security:
+        - bearerAuth: []
       parameters:
         - name: id
           in: path
@@ -471,6 +527,8 @@ paths:
       tags:
         - Area
       summary: Obter uma area
+      security:
+        - bearerAuth: []
       parameters:
         - name: id
           in: path
@@ -492,6 +550,8 @@ paths:
       tags:
         - Area
       summary: Eliminar uma area
+      security:
+        - bearerAuth: []
       parameters:
         - name: id
           in: path
@@ -532,6 +592,8 @@ paths:
       tags:
         - Area
       summary: Atualizar area
+      security:
+        - bearerAuth: []
       parameters:
         - name: id
           in: path
@@ -559,6 +621,8 @@ paths:
       tags:
         - Topico
       summary: Criar area
+      security:
+        - bearerAuth: []
       requestBody:
         content:
           application/json:
@@ -591,6 +655,8 @@ paths:
       tags:
         - Topico
       summary: Obter todos os tópicos
+      security:
+        - bearerAuth: []
       responses :
         '200':
           description: Array de tópicos
@@ -608,6 +674,8 @@ paths:
       tags:
         - Topico
       summary: Obter todos os cursos de uma area
+      security:
+        - bearerAuth: []
       parameters:
         - name: id
           in: path
@@ -645,6 +713,8 @@ paths:
       tags:
         - Topico
       summary: Obter todos os cursos de uma area
+      security:
+        - bearerAuth: []
       parameters:
         - name: id
           in: path
@@ -679,6 +749,8 @@ paths:
       tags:
         - Topico
       summary: Obter uma topico
+      security:
+        - bearerAuth: []
       parameters:
         - name: id
           in: path
@@ -700,6 +772,8 @@ paths:
       tags:
         - Topico
       summary: Eliminar um topico
+      security:
+        - bearerAuth: []
       parameters:
         - name: id
           in: path
@@ -769,6 +843,8 @@ paths:
       tags:
         - Topico
       summary: Atualizar Topico
+      security:
+        - bearerAuth: []
       parameters:
         - name: id
           in: path
@@ -801,10 +877,15 @@ paths:
 
 
 components:
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      
   schemas:
-  
     Utilizador:
-    
       type: object
       properties:
       

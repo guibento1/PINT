@@ -22,7 +22,7 @@ module.exports = function(sequelize, DataTypes) {
     },
     canal: {
       type: DataTypes.BIGINT,
-      allowNull: false,
+      allowNull: true,
       references: {
         model: 'canalnotificacoes',
         key: 'idcanalnotificacoes'
