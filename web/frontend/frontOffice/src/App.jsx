@@ -1,29 +1,35 @@
-import { BrowserRouter as Router, Route, Routes, useLocation } from "react-router-dom";
-import NavbarFront from "./components/NavbarFront.jsx";
-import LoginPage from './views/LoginPage.jsx';
-import Index from './views/index.jsx';
+// web\frontend\frontOffice\src\App.jsx
+import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import LayoutFront from './components/LayoutFront';
 
-function Layout({ children }) {
-  const location = useLocation();
-  const isLoginPage = location.pathname === "/";
-
-  return (
-    <>
-      {!isLoginPage && <NavbarFront />}
-        {children}
-    </>
-  );
-}
+import RegisterPage from './views/RegisterPage';
+import LoginPage from './views/LoginPage';
+import Cursos from './views/Cursos';
+import Topicos from './views/Topicos';
+import Notificacoes from './views/Notificacoes';
+import Perfil from './views/Perfil';
+import Home from './views/Home';
+import NaoAutorizado from './views/NaoAutorizado';
+import ProtectedRoute from '../../shared/components/ProtectedRoute';
+import GerirCursos from './views/GerirCursos';
 
 function App() {
   return (
-    <Router>
-      <Layout>
-        <Routes>
-          <Route path="/" element={<LoginPage />} />
-          <Route path="/home" element={<Index />} />
-        </Routes>
-      </Layout>
+  <Router>
+      <LayoutFront>
+      <Routes>
+        <Route path="/" element={<LoginPage />} />
+        <Route path="/home" element={<ProtectedRoute allowedRoles={['formando', 'formador']}><Home /></ProtectedRoute>} />
+        <Route path="/cursos" element={<ProtectedRoute allowedRoles={['formando', 'formador']}><Cursos /></ProtectedRoute>} />
+        <Route path="/topicos" element={<ProtectedRoute allowedRoles={['formando', 'formador']}><Topicos /></ProtectedRoute>} />
+        <Route path="/notificacoes" element={<ProtectedRoute allowedRoles={['formando', 'formador']}><Notificacoes /></ProtectedRoute>} />
+        <Route path="/perfil" element={<ProtectedRoute allowedRoles={['formando', 'formador']}><Perfil /></ProtectedRoute>} />
+        <Route path="/registar" element={<RegisterPage />} />
+        <Route path="/gerircursos" element={<ProtectedRoute allowedRoles={['formador']}><GerirCursos /></ProtectedRoute>} />
+        {/* ROTA DE ERRO */}
+        <Route path="/nao-autorizado" element={<NaoAutorizado />} />
+      </Routes>
+    </LayoutFront>
     </Router>
   );
 }

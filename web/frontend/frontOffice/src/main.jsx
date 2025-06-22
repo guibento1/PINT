@@ -1,7 +1,11 @@
+//web\frontend\frontOffice\src\main.jsx
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import App from './App.jsx'
-import './styles/global.css';
+import 'bootstrap/dist/css/bootstrap.min.css';
+import 'bootstrap-icons/font/bootstrap-icons.css';
+import '../../shared/styles/global.css';
+
 
 
 createRoot(document.getElementById('root')).render(

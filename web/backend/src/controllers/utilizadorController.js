@@ -205,7 +205,6 @@ controllers.update = async (req, res) => {
     ){
 
         const foto = req.file;
-        
         const updatedData = {};
 
 
@@ -418,6 +417,8 @@ controllers.create = async (req, res) => {
 
     const foto = req.file;
     var fotoUrl = null;
+    console.log('req.body:', req.body);
+    console.log('req.body.info:', req.body.info);
     const { nome, email, password, morada, telefone, roles }  = JSON.parse(req.body.info);
 
 

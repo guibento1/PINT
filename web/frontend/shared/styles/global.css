@@ -1,0 +1,323 @@
+/* ================================
+   🌐 VARIÁVEIS GLOBAIS DE TEMA
+================================== */
+
+body {
+  color: var(--text-dark);
+}
+
+:root {
+  --primary-blue: #00b0da;
+  --primary-blue-hover: #00c4f2;
+  --footer-bg: #007bff;
+  --text-light: #ffffff;
+  --text-muted: #6c757d;
+  --gray-light: #ced4da;
+  --gray-lighter: #f1f1f1;
+  --text-dark: #495057;
+  --gray-hover: #e9ecef; 
+  --gray-border: #adb5bd;
+}
+
+.dark {
+  /* modo escuro futuro */
+  --primary-blue: #00a0c4;
+  --primary-blue-hover: #008db1;
+  --footer-bg: #003f73;
+  --text-light: #ffffff;
+  --text-muted: #a0a0a0;
+  --gray-light: #3a3a3a;
+  --gray-lighter: #2c2c2c;
+  --text-dark: #e0e0e0;
+}
+
+/* =======================================
+   🧱 CONTAINERS PADRÃO COM BORDA E RAIO
+========================================== */
+.card-rounded {
+  background-color: var(--text-light);
+  border: 1px solid var(--gray-light);
+  border-radius: 15px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+}
+
+.card-rounded-sm {
+  background-color: var(--text-light);
+  border: 1px solid var(--gray-light);
+  border-radius: 15px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+
+
+/* ================================
+   🔘 BOTÕES
+================================== */
+
+.btn-soft {
+  background-color: var(--primary-blue);
+  color: var(--text-light);
+  border-radius: 50px;
+  padding: 0.4rem 1.5rem;
+  border: none;
+  font-weight: 500;
+  font-size: 1rem;
+  transition: all 0.2s ease;
+}
+
+.btn-soft:hover {
+  background-color: var(--primary-blue-hover);
+  color: var(--text-light);
+}
+
+.btn-outline-soft {
+  background-color: var(--text-light); 
+  color: var(--text-muted);
+  border: 2px solid var(--gray-light);
+  border-radius: 50px;
+  padding: 0.4rem 1.5rem;
+  font-weight: 500;
+  font-size: 1rem;
+}
+
+.btn-outline-soft:hover {
+  background-color: var(--gray-lighter);
+  color: var(--text-dark);
+  border-color: var(--gray-border);
+}
+
+.footer-btn {
+  background-color: var(--primary-blue);
+  color: var(--text-light);
+  border-radius: 50px;
+  padding: 0.2rem 0.8rem;
+  font-size: 0.8rem;
+  border: none;
+  font-weight: 500;
+}
+
+.footer-btn:hover {
+  background-color: var(--primary-blue-hover);
+  color: var(--text-light);
+}
+
+.btn-icon-sm {
+  background-color: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--gray-light);
+  padding: 0.1rem 0.6rem;
+  font-size: 0.85rem;
+  border-radius: 30px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  transition: all 0.2s ease;
+}
+
+.btn-icon-sm:hover {
+  background-color: var(--gray-lighter);
+  color: var(--text-dark);
+  border-color: var(--gray-border, var(--gray-light));
+}
+
+
+/* ================================
+   🔗 LINKS
+================================== */
+
+a {
+  text-decoration: none !important;
+}
+
+/* ================================
+   🔗 NAVBAR LINKS ESTILO "PILL"
+================================== */
+
+.navbar-nav .nav-link {
+  color: var(--text-muted);
+  border: 2px solid var(--gray-light);
+  border-radius: 50px;
+  padding: 0.3rem 1rem;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.navbar-nav .nav-link:hover,
+.navbar-nav .nav-link.active {
+  background-color: var(--primary-blue);
+  color: white !important;
+  border-color: var(--primary-blue);
+}
+
+/* ================================
+   🖼️ LOGO RESPONSIVA NA NAVBAR
+================================== */
+
+.navbar-brand img {
+  height: 100%;
+  max-height: 48px;
+  object-fit: contain;
+}
+
+
+/* ================================
+   👤 USUÁRIO SEMPRE VISÍVEL
+================================== */
+
+.navbar-user {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  white-space: nowrap;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.navbar-user .MuiSvgIcon-root {
+  font-size: 1.5rem;
+}
+
+/* ================================
+   🟦 NAVBAR ESTILOS
+================================== */
+
+nav.navbar {
+  border-bottom-left-radius: 15px;
+  border-bottom-right-radius: 15px;
+}
+
+@media (max-width: 991.98px) {
+  .navbar-collapse .navbar-nav {
+    flex-direction: row !important;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.5rem;
+    padding-top: 0.25rem;
+    padding-bottom: 0.25rem;
+  } 
+
+}
+
+
+
+
+/* ================================
+   🦶 FOOTER
+================================== */
+
+footer {
+  background-color: var(--footer-bg);
+  font-size: 0.85rem;
+  border-top-left-radius: 15px;
+  border-top-right-radius: 15px;
+}
+
+@media (max-width: 768px) {
+  footer .container {
+    text-align: center;
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 1rem;
+  }
+
+  footer .mt-2.d-flex {
+    justify-content: center !important;
+  }
+
+  footer img {
+    margin: 0 5px;
+  }
+}
+
+/* =======================================
+   🎯 BOTÃO DE CURSO PADRONIZADO (estático)
+========================================== */
+.btn-primary-blue {
+  background-color: var(--footer-bg);
+  color: var(--text-light);
+  border-radius: 12px;
+  padding: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  border: none;
+  width: 100%;
+  text-align: left;
+  transition: background-color 0.2s ease;
+}
+
+.btn-primary-blue:hover {
+  background-color: var(--primary-blue);
+  color: var(--text-light);
+}
+
+
+/* =======================================
+   🧱 GRUPO DE BOTÕES RESPONSIVO
+========================================== */
+.btn-group-responsive {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+/* Cada botão do grupo ocupa metade do espaço, com mínimo */
+.btn-group-responsive .btn-primary-blue {
+  flex: 1 1 250px;
+  min-width: 240px;
+}
+
+/* =======================================
+   🛠️ BOTÃO COM LARGURA FIXA (como os de curso)
+========================================== */
+.btn-fixed-width {
+  max-width: 240px;
+  width: 100%;
+}
+
+/* =======================================
+   🔍 BOTÃO DE PESQUISA DE CURSOS
+========================================== */
+.btn-search-curso {
+  background-color: var(--gray-lighter);
+  border: 1px solid var(--gray-light);
+  border-radius: 12px;
+  padding: 0.7rem;
+  gap: 1rem;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  text-align: left;
+  transition: background-color 0.2s ease;
+}
+
+.btn-search-curso:hover {
+  background-color: var(--gray-hover); 
+}
+
+
+/* =======================================
+   🛠️ BOTÃO QUE SE ADAPTA AO CONTEÚDO (SEM FORÇAR WIDTH)
+========================================== */
+.btn-primary-blue-auto {
+  background-color: var(--footer-bg);
+  color: var(--text-light);
+  border-radius: 12px;
+  padding: 1rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 1rem;
+  border: none;
+  text-align: left;
+  transition: background-color 0.2s ease;
+  white-space: nowrap;
+  min-width: 280px;
+  max-width: 100%;
+}
+
+.btn-primary-blue-auto:hover {
+  background-color: var(--primary-blue);
+  color: var(--text-light);
+}
