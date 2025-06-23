@@ -229,7 +229,7 @@ controllers.update = async (req, res) => {
 
             if(foto){
 
-                updatedData.foto = await updateFile( foto, [".jpg", ".png"], "userprofiles", result.foto);
+                updatedData.foto = await updateFile( foto, "userprofiles", result.foto, [".jpg", ".png"]);
 
             }
             

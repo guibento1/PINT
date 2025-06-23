@@ -2,10 +2,12 @@ const Sequelize = require('sequelize');
 module.exports = function(sequelize, DataTypes) {
   return sequelize.define('licao', {
     idlicao: {
+      autoIncrement: true,
+      autoIncrementIdentity: true,
       type: DataTypes.BIGINT,
       allowNull: false,
       primaryKey: true,
-      unique: "licao_idlicao_key"
+      unique: "unique_idlicao"
     },
     curso: {
       type: DataTypes.BIGINT,
@@ -42,6 +44,13 @@ module.exports = function(sequelize, DataTypes) {
         fields: [
           { name: "idlicao" },
           { name: "curso" },
+        ]
+      },
+      {
+        name: "unique_idlicao",
+        unique: true,
+        fields: [
+          { name: "idlicao" },
         ]
       },
     ]

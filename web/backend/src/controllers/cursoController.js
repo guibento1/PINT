@@ -2,7 +2,7 @@ const Sequelize = require('sequelize');
 var initModels = require("../models/init-models.js");
 var db = require("../database.js");
 var models = initModels(db);
-const {  updateFile, generateSASUrl } = require('../utils.js');
+const {  updateFile, deleteFile, generateSASUrl } = require('../utils.js');
 
 const controllers = {};
 
@@ -28,6 +28,15 @@ async function findTopicos(id) {
 
     return [];
 
+}
+
+function isLink(str) {
+  try {
+    new URL(str);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 
@@ -336,6 +345,84 @@ async function getCursosByCategorias(categorias,roles) {
 
 }
 
+
+async function addLicao(idcurso,licao) {
+
+    const createdRow = await models.licao.create(licao, {
+        returning: true,
+    });
+
+    return createdRow;
+
+}
+
+
+async function rmLicao(idlicao) {
+
+    let data = await models.licaomaterial.findAll({ 
+        where: { licao: idlicao }
+        ,include: [{
+            model: models.material,
+            as: 'material_material', 
+            attributes: ['idmaterial', 'referencia'],
+        }],
+    });
+
+    let materiais = data.map((entry) => entry.material) || [];
+    let referencias = data.map((entry) => entry.material_material.referencia) || [];
+
+    for (const referencia in referencias) {
+        if (!isLink(referencia)) {
+            await deleteFile(referencia,"ficheiroslicao");
+        }
+    }
+
+
+    await models.licaomaterial.destroy({ where: { licao: idlicao } });
+    await models.material.destroy({ 
+        where: { 
+            idmaterial : { [Sequelize.Op.in]: materiais }
+        } 
+    });
+
+    await models.licao.destroy({ 
+        where: { 
+            idlicao : idlicao 
+        } 
+    });
+
+}
+
+async function addLicaoContent(idlicao,ficheiro,material) {
+
+    if ( material.referencia !== undefined && ficheiro ){
+        throw new error("Ambigous call, link and file provided");
+    }
+
+    if (!material.referencia){
+        material.referencia = await updateFile(ficheiro, "ficheiroslicao");
+    }
+
+
+    const createdMaterial = await models.material.create(material, {
+        returning: true,
+    });
+
+    await models.licaomaterial.create({material : createdMaterial.idmaterial, licao : idlicao});
+
+    if ( !isLink(createdMaterial.referencia) ){
+        createdMaterial.dataValues.referencia = await generateSASUrl(createdMaterial.referencia, 'ficheiroslicao');
+    }
+
+    return createdMaterial;
+
+
+}
+
+
+
+
+
 controllers.list = async (req, res) => {
 
     try {
@@ -441,7 +528,7 @@ controllers.createCursoAssincrono = async (req, res) => {
     try {
 
         if(thumbnail){
-            insertData.thumbnail = await updateFile(thumbnail, [".jpg", ".png"], "thumbnailscursos");
+            insertData.thumbnail = await updateFile(thumbnail, "thumbnailscursos", null, [".jpg", ".png"]);
         }
 
 
@@ -469,6 +556,87 @@ controllers.createCursoAssincrono = async (req, res) => {
         console.error('Error creating curso:', error);
         return res.status(500).json({ message: 'Error creating curso' });
         
+    }
+
+}
+
+
+controllers.addLicao = async (req, res) => {
+
+
+    const idcursoassinc = req.params.idcursoassinc;
+
+    const { titulo, descricao } = req.body;
+
+
+    try {
+
+
+        const cursoassinc =  await models.cursoassincrono.findOne({
+            where : { idcursoassincrono :  idcursoassinc },
+            attributes: ["curso"]
+        });
+
+        const licao = {
+            curso : cursoassinc.curso,
+            titulo,
+            descricao
+        };
+
+
+
+
+        const createdRow = await addLicao(cursoassinc.curso,licao);
+        return res.status(200).json(createdRow);
+
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({message : "Could not create licao"});
+    }
+
+}
+
+
+controllers.rmLicao = async (req, res) => {
+
+    try {
+
+        await rmLicao(req.params.idlicao);
+        return res.status(200).json({"message": "licao sucessfully deleted"});
+
+    } catch (error) {
+
+        return res.status(500).json({"message": "could no delete licao"});
+        
+    }
+
+}
+
+
+
+controllers.addLicaoContent = async (req, res) => {
+
+    const idlicao = req.params.idlicao;
+    const ficheiro = req.file;
+
+    const { titulo, tipo, link } = JSON.parse(req.body.info || "{}");
+
+
+    const material = {
+        titulo,
+        tipo,
+        referencia : link,
+        criador : req.user.idutilizador
+    };
+
+    try {
+
+        const createdMaterial = await addLicaoContent(idlicao,ficheiro,material);
+        return res.status(200).json(createdMaterial);
+        
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({message : "Could not create material"});
     }
 
 }

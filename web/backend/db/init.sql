@@ -242,7 +242,7 @@ CREATE TABLE CursoSincrono (
 
 CREATE TABLE Licao (
 
-    idLicao BIGINT UNIQUE,
+    idCursoSincrono BIGINT UNIQUE GENERATED ALWAYS AS IDENTITY,
     curso BIGINT,
     titulo VARCHAR(100) NOT NULL,
     descricao TEXT NOT NULL,
@@ -276,7 +276,7 @@ CREATE TABLE Material (
 
     idMaterial BIGINT GENERATED ALWAYS AS IDENTITY,
     titulo VARCHAR(60) NOT NULL,
-    link VARCHAR(300) NOT NULL,
+    referencia VARCHAR(300) NOT NULL,
     tipo BIGINT NOT NULL,
     criador BIGINT NOT NULL,
 
@@ -388,9 +388,8 @@ CREATE TABLE LicaoMaterial (
 
     material BIGINT,
     licao BIGINT,
-    curso BIGINT,
 
-    CONSTRAINT LICAOMATERIAL_PK PRIMARY KEY(material,licao,curso),
+    CONSTRAINT LICAOMATERIAL_PK PRIMARY KEY(material,licao),
     CONSTRAINT LICAO_LICAOMATERIAL_FK FOREIGN KEY (licao,curso) REFERENCES Licao(idLicao,curso),
     CONSTRAINT MATERIAL_LICAOMATERIAL_FK FOREIGN KEY (material) REFERENCES Material(idMaterial)
 

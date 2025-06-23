@@ -18,15 +18,6 @@ module.exports = function(sequelize, DataTypes) {
         model: 'licao',
         key: 'idlicao'
       }
-    },
-    curso: {
-      type: DataTypes.BIGINT,
-      allowNull: false,
-      primaryKey: true,
-      references: {
-        model: 'licao',
-        key: 'idlicao'
-      }
     }
   }, {
     tableName: 'licaomaterial',
@@ -39,7 +30,6 @@ module.exports = function(sequelize, DataTypes) {
         fields: [
           { name: "material" },
           { name: "licao" },
-          { name: "curso" },
         ]
       },
     ]

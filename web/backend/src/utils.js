@@ -39,7 +39,7 @@ async function uploadFile(fileBuffer, blobName, containerName) {
 }
 
 
-async function updateFile(file, allowedFileExtensions, container, existingBlob = null) {
+async function updateFile(file,  container, existingBlob = null, allowedFileExtensions = null) {
 
 
     if (!file || !file.buffer || !file.originalname) {
@@ -60,7 +60,7 @@ async function updateFile(file, allowedFileExtensions, container, existingBlob =
         const originalFileName = file.originalname;
         const fileExtension = path.extname(originalFileName).toLowerCase();
 
-        if (!allowedFileExtensions.includes(fileExtension)) {
+        if (allowedFileExtensions != null && !allowedFileExtensions.includes(fileExtension)) {
             throw `Profile Pic must be one of the following: ${allowedfileExtensions.join(", ")}`;
         }
 

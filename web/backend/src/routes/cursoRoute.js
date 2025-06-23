@@ -10,17 +10,13 @@ const cursoController = require('../controllers/cursoController.js');
 
 router.get('/list', authenticateJWT, cursoController.list);
 router.post('/create/cursoassincrono', authenticateJWT, authorizeRoles('admin'), upload.single('thumbnail'), cursoController.createCursoAssincrono);
-router.get('/listbytopicos', authenticateJWT, cursoController.getCursosByTopicos);
-router.get('/listbyareas', authenticateJWT, cursoController.getCursosByAreas);
-router.get('/listbycategorias', authenticateJWT, cursoController.getCursosByCategorias);
-//router.post('/create/cursosincrono', authenticateJWT, authorizeRoles('admin'), cursoController.createcursoassincrono);
-
-// router.post('/login', cursoController.loginUser);
-// router.get('/id/:id', authenticateJWT, cursoController.byID);
-// router.put('/id/:id', authenticateJWT, upload.single('foto'), cursoController.update);
-// router.delete('/id/:id', authenticateJWT, cursoController.delete);
-// router.patch('/activate/:id', authenticateJWT, cursoController.activate);
-// router.post('/register', cursoController.register);
-// router.post('/resetpassword', authenticateJWT, cursoController.resetPassword);
+router.get('/list/topicos', authenticateJWT, cursoController.getCursosByTopicos);
+router.get('/list/areas', authenticateJWT, cursoController.getCursosByAreas);
+router.get('/list/categorias', authenticateJWT, cursoController.getCursosByCategorias);
+router.post('/create/licao/:idcursoassinc', authenticateJWT, authorizeRoles('admin'), cursoController.addLicao);
+router.post('/licao/:idlicao/addContent', authenticateJWT, authorizeRoles('admin'), upload.single('ficheiro'), cursoController.addLicaoContent);
+router.delete('/licao/:idlicao', authenticateJWT, authorizeRoles('admin'), cursoController.rmLicao );
+// router.delete('/licao/:idlicao/rmContent', authenticateJWT, authorizeRoles('admin'), cursoController.addLicao);
+// router.delete('/licao/:idlicao', authenticateJWT, authorizeRoles('admin'), cursoController.addLicao);
 
 module.exports = router;

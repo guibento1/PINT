@@ -12,7 +12,7 @@ module.exports = function(sequelize, DataTypes) {
       type: DataTypes.STRING(60),
       allowNull: false
     },
-    link: {
+    referencia: {
       type: DataTypes.STRING(300),
       allowNull: false
     },
