@@ -1,0 +1,1484 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "The SoftSkills",
+    "version": "1.0.0"
+  },
+  "tags": [
+    {
+      "name": "Utilizadores"
+    },
+    {
+      "name": "Categoria"
+    },
+    {
+      "name": "Area"
+    },
+    {
+      "name": "Topico"
+    }
+  ],
+  "paths": {
+    "/utilizador": {
+      "get": {
+        "tags": [
+          "Utilizadores"
+        ],
+        "summary": "Obter utilizador por email",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "email",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Um utilizador",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Utilizador"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Email is required"
+          },
+          "404": {
+            "description": "User not found"
+          }
+        }
+      }
+    },
+    "/utilizador/login": {
+      "post": {
+        "tags": [
+          "Utilizadores"
+        ],
+        "summary": "Validar utilizador",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "example": "user@email.provider"
+                  },
+                  "password": {
+                    "type": "string",
+                    "example": "************"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Um utilizador",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/Utilizador"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "accessToken": {
+                          "type": "string",
+                          "example": "ZHV0aWxpemFkb3IiOiIyIiwicm9sZXMiOlt7InJvbGUi"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Email and password is required"
+          },
+          "404": {
+            "description": "User not found"
+          },
+          "500": {
+            "description": "Password mismatch"
+          }
+        }
+      }
+    },
+    "/utilizador/register": {
+      "post": {
+        "tags": [
+          "Utilizadores"
+        ],
+        "summary": "Registar utilizador",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "nome": {
+                    "type": "string",
+                    "example": "César Cabral"
+                  },
+                  "email": {
+                    "type": "string",
+                    "example": "user@email.provider"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Um utilizador",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Comfirm email"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "User with choosen email already exists"
+          },
+          "500": {
+            "description": "Error creating user"
+          }
+        }
+      }
+    },
+    "/utilizador/resetpassword": {
+      "post": {
+        "tags": [
+          "Utilizadores"
+        ],
+        "summary": "Mudar de palavra passe",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "password": {
+                    "type": "string",
+                    "example": "************"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Um utilizador",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Utilizador"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Password is required"
+          },
+          "500": {
+            "description": "Operation did not exit sucessfully"
+          }
+        }
+      }
+    },
+    "/utilizador/list": {
+      "get": {
+        "tags": [
+          "Utilizadores"
+        ],
+        "summary": "Obter utilizadores",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Todos os utilizadores",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Utilizador"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/utilizador/id/{id}": {
+      "get": {
+        "tags": [
+          "Utilizadores"
+        ],
+        "summary": "Obter utilizador por id",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Id do utilizador",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Um utilizador",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Utilizador"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Something bad happened"
+          },
+          "404": {
+            "description": "User not found"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Utilizadores"
+        ],
+        "summary": "Desativar utilizador",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Id do utilizador",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Um utilizador",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Utilizador"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Something bad happened"
+          },
+          "404": {
+            "description": "User not found"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Utilizadores"
+        ],
+        "summary": "Atualizar utilizador",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Id do utilizador",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "info": {
+                    "type": "object",
+                    "properties": {
+                      "nome": {
+                        "type": "string"
+                      },
+                      "email": {
+                        "type": "string"
+                      },
+                      "password": {
+                        "type": "string"
+                      },
+                      "morada": {
+                        "type": "string"
+                      },
+                      "roles": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "example": "admin"
+                        }
+                      }
+                    }
+                  },
+                  "foto": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Um utilizador",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Utilizador"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error updating User"
+          }
+        }
+      }
+    },
+    "/utilizador/activate/{id}": {
+      "patch": {
+        "tags": [
+          "Utilizadores"
+        ],
+        "summary": "Ativar utilizador",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Id do utilizador",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User activated"
+          },
+          "404": {
+            "description": "User not found"
+          }
+        }
+      }
+    },
+    "/categoria": {
+      "post": {
+        "tags": [
+          "Categoria"
+        ],
+        "summary": "Criar categoria",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "designacao": {
+                    "type": "string",
+                    "example": "Tecnologia"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Uma Categoria",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Categoria"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Something bad happened"
+          }
+        }
+      }
+    },
+    "/categoria/list": {
+      "get": {
+        "tags": [
+          "Categoria"
+        ],
+        "summary": "Obter todas as categorias",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Array de categorias",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Categoria"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Something bad happened"
+          }
+        }
+      }
+    },
+    "/categoria/id/{id}/list": {
+      "get": {
+        "tags": [
+          "Categoria"
+        ],
+        "summary": "Obter todas as areas de uma categoria",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Id da categoria",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Array de Areas",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Area"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Something bad happened"
+          }
+        }
+      }
+    },
+    "/categoria/id/{id}": {
+      "get": {
+        "tags": [
+          "Categoria"
+        ],
+        "summary": "Obter uma categoria",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Id da categoria",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Array de categorias",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Categoria"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Something bad happened"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Categoria"
+        ],
+        "summary": "Eliminar uma categoria",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Id da categoria",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Mensage",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Category deleted"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Existance of dependencies",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Cannot delete Category : dependencies existence"
+                    },
+                    "dependencies": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Area"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Something bad happened"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Categoria"
+        ],
+        "summary": "Atualizar Categoria",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Id da Categoria",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "designacao": {
+                    "type": "string",
+                    "example": "desporto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Categoria updated"
+          },
+          "404": {
+            "description": "Categoria not found"
+          }
+        }
+      }
+    },
+    "/area": {
+      "post": {
+        "tags": [
+          "Area"
+        ],
+        "summary": "Criar area",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "designacao": {
+                    "type": "string",
+                    "example": "Tecnologia"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Uma area",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Area"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Something bad happened"
+          }
+        }
+      }
+    },
+    "/area/list": {
+      "get": {
+        "tags": [
+          "Area"
+        ],
+        "summary": "Obter todas as areas",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Array de areas",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Area"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Something bad happened"
+          }
+        }
+      }
+    },
+    "/area/id/{id}/list": {
+      "get": {
+        "tags": [
+          "Area"
+        ],
+        "summary": "Obter todos os tópicos de uma area",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Id da Area",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Array de tópicos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "idtopico": {
+                        "type": "number",
+                        "example": 1
+                      },
+                      "designacao": {
+                        "type": "string",
+                        "example": "Redes"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Something bad happened"
+          }
+        }
+      }
+    },
+    "/area/id/{id}": {
+      "get": {
+        "tags": [
+          "Area"
+        ],
+        "summary": "Obter uma area",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Id da area",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Array de areas",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Area"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Something bad happened"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Area"
+        ],
+        "summary": "Eliminar uma area",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Id da area",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Mensagem",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Area deleted"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Existance of dependencies",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Cannot delete Area : dependencies existence"
+                    },
+                    "dependencies": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Topico"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Something bad happened"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Area"
+        ],
+        "summary": "Atualizar area",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Id da area",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "designacao": {
+                    "type": "string",
+                    "example": "Programação"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Area updated"
+          },
+          "404": {
+            "description": "Area not found"
+          }
+        }
+      }
+    },
+    "/topico": {
+      "post": {
+        "tags": [
+          "Topico"
+        ],
+        "summary": "Criar area",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "designacao": {
+                    "type": "string",
+                    "example": "CSS"
+                  },
+                  "areas": {
+                    "type": "array",
+                    "items": {
+                      "type": "number",
+                      "example": 1
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Uma topico",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Topico"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "At least one area must be provided"
+          },
+          "500": {
+            "description": "Something went wrong"
+          }
+        }
+      }
+    },
+    "/topico/list": {
+      "get": {
+        "tags": [
+          "Topico"
+        ],
+        "summary": "Obter todos os tópicos",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Array de tópicos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Topico"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Something went wrong"
+          }
+        }
+      }
+    },
+    "/topico/id/{id}/listcursos": {
+      "get": {
+        "tags": [
+          "Topico"
+        ],
+        "summary": "Obter todos os cursos de uma area",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Id do tópico",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Array de cursos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "idcurso": {
+                        "type": "number",
+                        "example": 1
+                      },
+                      "nome": {
+                        "type": "string",
+                        "example": "Redes"
+                      },
+                      "disponivel": {
+                        "type": "boolean",
+                        "example": true
+                      },
+                      "thumnail": {
+                        "type": "string",
+                        "example": "https://something.png"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Something went wrong"
+          }
+        }
+      }
+    },
+    "/topico/id/{id}/listposts": {
+      "get": {
+        "tags": [
+          "Topico"
+        ],
+        "summary": "Obter todos os cursos de uma area",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Id do tópico",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Array de cursos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "idpost": {
+                        "type": "number",
+                        "example": 6
+                      },
+                      "titulo": {
+                        "type": "string",
+                        "example": "Javascript, destesto esta linguagem"
+                      },
+                      "pontuacao": {
+                        "type": "number",
+                        "example": -138
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Something went wrong"
+          }
+        }
+      }
+    },
+    "/topico/id/{id}": {
+      "get": {
+        "tags": [
+          "Topico"
+        ],
+        "summary": "Obter uma topico",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Id da Topico",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Array de topicos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Topico"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Something went wrong"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Topico"
+        ],
+        "summary": "Eliminar um topico",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Id da Topico",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Mensagem",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Topico deleted"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Existance of dependencies",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Cannot delete Area : dependencies existence"
+                    },
+                    "dependencies": {
+                      "type": "object",
+                      "properties": {
+                        "cursos": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "idcurso": {
+                                "type": "number",
+                                "example": 7
+                              },
+                              "nome": {
+                                "type": "string",
+                                "example": "redes"
+                              },
+                              "disponivel": {
+                                "type": "boolean",
+                                "example": true
+                              },
+                              "thumnail": {
+                                "type": "string",
+                                "example": "https://something.png"
+                              }
+                            }
+                          }
+                        },
+                        "posts": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "idpost": {
+                                "type": "number",
+                                "example": 6
+                              },
+                              "titulo": {
+                                "type": "string",
+                                "example": "Javascript, destesto esta linguagem"
+                              },
+                              "pontuacao": {
+                                "type": "number",
+                                "example": -138
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Something bad happened"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Topico"
+        ],
+        "summary": "Atualizar Topico",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Id da topico",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "designacao": {
+                    "type": "string",
+                    "example": "Bootstrap"
+                  },
+                  "areas": {
+                    "type": "array",
+                    "items": {
+                      "type": "number",
+                      "example": 6
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Topico updated"
+          },
+          "404": {
+            "description": "Topico not found"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "Utilizador": {
+        "type": "object",
+        "properties": {
+          "idUtilizador": {
+            "type": "integer",
+            "example": 3
+          },
+          "roles": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "idRole": {
+                  "type": "integer",
+                  "example": 1
+                },
+                "role": {
+                  "type": "string",
+                  "example": "admin"
+                }
+              }
+            }
+          },
+          "nome": {
+            "type": "string",
+            "example": "Carlos Santos"
+          },
+          "email": {
+            "type": "string",
+            "example": "carlos.santos@email.com"
+          },
+          "dataregisto": {
+            "type": "string",
+            "example": "2024-03-20"
+          },
+          "morada": {
+            "type": "string",
+            "example": "Travessa do Norte, 78"
+          },
+          "foto": {
+            "type": "string",
+            "example": "http://randomobjectstorage/bc9d7e181a996ea.jpg"
+          }
+        }
+      },
+      "Categoria": {
+        "type": "object",
+        "properties": {
+          "idCategoria": {
+            "type": "number",
+            "example": 1
+          },
+          "designacao": {
+            "type": "string",
+            "example": "Tecnologia"
+          }
+        }
+      },
+      "Area": {
+        "type": "object",
+        "properties": {
+          "idarea": {
+            "type": "number",
+            "example": 3
+          },
+          "designacao": {
+            "type": "string",
+            "example": "Desenvolvimento Web"
+          },
+          "categoria": {
+            "type": "number",
+            "example": 1
+          }
+        }
+      },
+      "Topico": {
+        "type": "object",
+        "properties": {
+          "idtopico": {
+            "type": "number",
+            "example": 3
+          },
+          "designacao": {
+            "type": "string",
+            "example": "Javascript"
+          },
+          "areas": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Area"
+            }
+          }
+        }
+      }
+    }
+  }
+}

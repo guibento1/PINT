@@ -10,8 +10,8 @@ const controllers = {};
 async function findTopicos(id) {
 
     let data = await models.cursotopico.findAll({ 
-        where: { curso: id }
-        ,include: [{
+        where: { curso: id },
+        include: [{
             model: models.topico,
             as: 'topico_topico', 
             attributes: ['idtopico', 'designacao'],
@@ -74,6 +74,8 @@ async function updateTopicos(id, topicos) {
 }
 
 async function addTipo(cursosIn) {
+
+    if(! (typeof cursosIn[Symbol.iterator] === 'function' )) cursosIn = [cursosIn];
 
     const cursosOut = await Promise.all(
 
@@ -142,11 +144,35 @@ async function filterCursoResults(roles,cursos) {
             cursosLecionados.includes(curso.idcurso)
         ));
 
+
     }
 
     if ( cursosfiltrados != null ){
+
+        cursosfiltrados = await Promise.all( 
+
+            cursosfiltrados.map(async (curso) => {
+
+                if(curso.thumbnail && !isLink(curso.thumbnail)){
+                    curso.dataValues.thumbnail = await generateSASUrl(curso.thumbnail, 'thumbnailscursos');
+                }
+                return curso;
+            })
+
+        );
+
         return cursosfiltrados;
     }
+
+
+    cursos = await Promise.all(
+        cursos.map(async (curso) => {
+            if (curso.thumbnail && !isLink(curso.thumbnail)) {
+                curso.dataValues.thumbnail = await generateSASUrl(curso.thumbnail, 'thumbnailscursos');
+            }
+            return curso;
+        })
+    );
 
 
     return cursos;
@@ -154,68 +180,7 @@ async function filterCursoResults(roles,cursos) {
 }
 
 
-async function filterCursoResults(roles,cursos) {
-
-    let data;
-
-    const admin = roles.find((roleEntry) => roleEntry.role === "admin")?.id || 0;
-    const formando = roles.find((roleEntry) => roleEntry.role === "formando")?.id || 0;
-    const formador = roles.find((roleEntry) => roleEntry.role === "formador")?.id || 0;
-
-    let cursosfiltrados = null;
-
-
-    if (!admin){
-
-        let cursosLecionados=[];
-        let cursosInscritos=[];
-
-        if (formador) {
-
-            data = await models.cursosincrono.findAll({
-                where: { formador: formador },
-                attributes: ["curso"]
-            });
-
-            data.length > 0 ? (data = data.map((c) => c.curso)) : (data = []);
-
-            cursosLecionados = data;
-
-        }
-
-        if (formando){
-
-            data = await models.inscricao.findAll({
-                where: { formando: formando },
-                attributes: ["curso"]
-            });
-
-            data.length > 0 ? (data = data.map((c) => c.curso)) : (data = []);
-
-            cursosInscritos = data;
-
-        }
-
-
-        cursosfiltrados = cursos.filter((curso) => ( 
-            curso.disponivel || 
-            cursosInscritos.includes(curso.idcurso) || 
-            cursosLecionados.includes(curso.idcurso)
-        ));
-
-    }
-
-    if ( cursosfiltrados != null ){
-        return cursosfiltrados;
-    }
-
-
-    return cursos;
-
-}
-
-
-async function getCursosByTopicos(topicos,roles) {
+async function getCursosByTopicos(topicos) {
 
 
     let idcursos = [];
@@ -233,38 +198,9 @@ async function getCursosByTopicos(topicos,roles) {
 
         });
 
-        if (data.length > 0){
+        cursos = ( data && data.length > 0) ? data.map((entry) => parseInt(entry.curso)) : [];
 
-            idcursos = data.map((entry) => entry.curso);
-
-
-            data = await models.curso.findAll({
-
-                where: {
-                    idcurso: {
-                        [Sequelize.Op.in]: idcursos
-                    }
-                },
-
-                attributes: [
-                    "idcurso",
-                    "nome",
-                    "disponivel",
-                    "iniciodeinscricoes",
-                    "fimdeinscricoes",
-                    "maxinscricoes",
-                    "thumbnail"
-                ]
-
-            });
-
-
-            cursos = data;
-            cursos = await filterCursoResults(roles,cursos);
-            return await addTipo(cursos);
-        }
-
-        return null;
+        return cursos;
         
     } catch (error) {
         console.log(error);
@@ -274,10 +210,9 @@ async function getCursosByTopicos(topicos,roles) {
 }
 
 
-async function getCursosByAreas(areas,roles) {
+async function getCursosByAreas(areas) {
     
     let topicos = [];
-
 
     try {
 
@@ -296,7 +231,7 @@ async function getCursosByAreas(areas,roles) {
         if (data.length > 0){
 
             topicos = data.map((entry) => entry.topico);
-            cursos = await getCursosByTopicos(topicos,roles)
+            cursos = await getCursosByTopicos(topicos)
             return cursos;
         }
 
@@ -310,7 +245,7 @@ async function getCursosByAreas(areas,roles) {
 }
 
 
-async function getCursosByCategorias(categorias,roles) {
+async function getCursosByCategorias(categorias) {
     
     let areas = [];
 
@@ -332,7 +267,7 @@ async function getCursosByCategorias(categorias,roles) {
         if (data.length > 0){
 
             areas = data.map((entry) => entry.idarea);
-            cursos = await getCursosByAreas(areas,roles)
+            cursos = await getCursosByAreas(areas)
             return cursos;
         }
 
@@ -416,105 +351,13 @@ async function addLicaoContent(idlicao,ficheiro,material) {
 
     return createdMaterial;
 
-
 }
 
 
+async function createCurso(thumbnail,info) {
 
 
-
-controllers.list = async (req, res) => {
-
-    try {
-
-        if (req.user.roles) {
-
-            let data;
-            let cursos;
-
-            data = await models.curso.findAll({
-                attributes: [
-                    "idcurso",
-                    "nome",
-                    "disponivel",
-                    "iniciodeinscricoes",
-                    "fimdeinscricoes",
-                    "maxinscricoes",
-                    "thumbnail"
-                ]
-            });
-
-            cursos = data;
-            cursos = await filterCursoResults(req.user.roles,cursos);
-            return res.status(200).json(await addTipo(cursos));
-        }
-    } catch (error) {
-        return res.status(400).json({ error: "Something bad happened" });
-    }
-};
-
-
-
-
-controllers.getCursosByAreas = async (req, res) => {
-
-    let data;    
-    let areas = [];
-    Array.isArray(req.query.area) ? areas = req.query.area : areas.push(req.query.area);
-    areas = [...new Set(areas)];
-
-    const cursos = await getCursosByAreas(areas,req.user.roles); 
-
-    if(cursos == null){
-        return res.status(404).json({ message: 'No cursos Found' });
-    }
-
-    return res.status(200).json(cursos);
-
-
-}
-
-
-controllers.getCursosByCategorias = async (req, res) => {
-
-    let data;    
-    let categorias = [];
-    Array.isArray(req.query.categoria) ? categorias = req.query.categoria : categorias.push(req.query.categoria);
-    categorias = [...new Set(categorias)];
-
-    const cursos = await getCursosByCategorias(categorias,req.user.roles); 
-
-    if(cursos == null){
-        return res.status(404).json({ message: 'No cursos Found' });
-    }
-
-    return res.status(200).json(cursos);
-
-
-}
-
-
-controllers.getCursosByTopicos = async (req, res) => {
-
-    let topicos = [];
-    Array.isArray(req.query.topico) ? topicos = req.query.topico : topicos.push(req.query.topico);
-    const cursos = await getCursosByTopicos(topicos,req.user.roles);
-
-    if(cursos == null){
-        return res.status(404).json({ message: 'No cursos Found' });
-    }
-
-    return res.status(200).json(cursos);
-
-
-}
-
-
-controllers.createCursoAssincrono = async (req, res) => {
-
-    const thumbnail = req.file;
-    const { nome, disponivel, iniciodeinscricoes, fimdeinscricoes, planocurricular, topicos } = JSON.parse(req.body.info || "{}");
-
+    const { nome, disponivel, iniciodeinscricoes, fimdeinscricoes, planocurricular, topicos } = info;
 
     const insertData = {
         nome,
@@ -525,23 +368,299 @@ controllers.createCursoAssincrono = async (req, res) => {
     if (fimdeinscricoes !== undefined) insertData.fimdeinscricoes = fimdeinscricoes;
     if (planocurricular !== undefined) insertData.planocurricular = planocurricular;
 
+
+    if(thumbnail){
+        insertData.thumbnail = await updateFile(thumbnail, "thumbnailscursos", null, [".jpg", ".png"]);
+    }
+
+
+    const createdRow = await models.curso.create(insertData, {
+        returning: true,
+    });
+
+
+    if (topicos == undefined || topicos==null || topicos.length==0) {
+        return res.status(400).json({ message: 'At least one topic must be provided' });
+    } 
+
+    await updateTopicos(createdRow.idcurso,topicos);
+
+    if(createdRow.thumbnail && !isURL(createdRow.thumbnail)){
+        createdRow.dataValues.thumbnail = await generateSASUrl(createdRow.thumbnail, 'thumbnailscursos');
+    }
+
+    createdRow.dataValues.topicos = await findTopicos(createdRow.idcurso);
+    return createdRow;
+
+}
+
+
+async function updateCurso(id, thumbnail, info) {
+
+  const { nome, disponivel, iniciodeinscricoes, fimdeinscricoes, planocurricular, topicos } = info;
+
+  const existingCurso = await models.curso.findByPk(id);
+  if (!existingCurso) {
+    throw new Error(`Curso with id ${id} not found`);
+  }
+
+  const updateData = {};
+
+  if (nome !== undefined) updateData.nome = nome;
+  if (disponivel !== undefined) updateData.disponivel = disponivel;
+  if (iniciodeinscricoes !== undefined) updateData.iniciodeinscricoes = iniciodeinscricoes;
+  if (fimdeinscricoes !== undefined) updateData.fimdeinscricoes = fimdeinscricoes;
+  if (planocurricular !== undefined) updateData.planocurricular = planocurricular;
+
+  if (thumbnail) {
+    updateData.thumbnail = await updateFile(thumbnail, "thumbnailscursos", existingCurso.thumbnail, [".jpg", ".png"]);
+  }
+
+  await existingCurso.update(updateData);
+
+  if(topicos){
+
+      if (topicos.length === 0) {
+        throw new Error('At least one topic must be provided');
+      }
+
+      await updateTopicos(existingCurso.idcurso, topicos);
+  }
+
+
+  if (existingCurso.thumbnail && !isURL(existingCurso.thumbnail)) {
+    existingCurso.dataValues.thumbnail = await generateSASUrl(existingCurso.thumbnail, 'thumbnailscursos');
+  }
+
+  existingCurso.dataValues.topicos = await findTopicos(existingCurso.idcurso);
+
+  return existingCurso;
+}
+
+
+
+
+controllers.list = async (req, res) => {
+
+    let topicos = [];
+    let areas = [];
+    let categorias = [];
+    let filter = [];
+
+    const filterFlag = req.query.area || req.query.categoria || req.query.topico;
+
+    const queryOptions = {
+        attributes: [
+            "idcurso",
+            "nome",
+            "disponivel",
+            "iniciodeinscricoes",
+            "fimdeinscricoes",
+            "maxinscricoes",
+            "thumbnail"
+        ]
+    };
+
     try {
 
-        if(thumbnail){
-            insertData.thumbnail = await updateFile(thumbnail, "thumbnailscursos", null, [".jpg", ".png"]);
+        if (req.query.area) {
+            areas = Array.isArray(req.query.area) ? req.query.area : [req.query.area];
+            areas = [...new Set(areas)];
+            filter.push(...await getCursosByAreas(areas));
+        }
+
+        if (req.query.categoria) {
+            categorias = Array.isArray(req.query.categoria) ? req.query.categoria : [req.query.categoria];
+            categorias = [...new Set(categorias)];
+            filter.push(...await getCursosByCategorias(categorias));
+        }
+
+        if (req.query.topico) {
+            topicos = Array.isArray(req.query.topico) ? req.query.topico : [req.query.topico];
+            topicos = [...new Set(topicos)];
+            filter.push(...await getCursosByTopicos(topicos));
+        }
+
+        filter = [...new Set(filter)];
+
+        if (filterFlag) {
+            queryOptions.where = {
+                idcurso: {
+                    [Sequelize.Op.in]: filter
+                }
+            };
+        }
+
+        if (req.query.search) {
+
+            if (!queryOptions.where)  queryOptions.where = {};
+        
+            queryOptions.where.nome = {
+                [Sequelize.Op.iLike]: `%${req.query.search}%`
+            };
         }
 
 
-        const createdRow = await models.curso.create(insertData, {
-            returning: true,
+        const data = await models.curso.findAll(queryOptions);
+
+        if (req.user.roles) {
+            const cursos = await filterCursoResults(req.user.roles, data);
+            return res.status(200).json(await addTipo(cursos));
+        }
+
+        return res.status(200).json(await addTipo(data));
+
+    } catch (error) {
+        console.log(error);
+        return res.status(400).json({ error: "Something bad happened" });
+    }
+};
+
+
+controllers.getCurso = async (req, res) => {
+
+    const id  = req.params.id;
+    let acessible = false;
+    
+    const admin = req.user.roles.find((roleEntry) => roleEntry.role === "admin")?.id || 0;
+    const formando = req.user.roles.find((roleEntry) => roleEntry.role === "formando")?.id || 0;
+
+    if(formando){
+
+        let data = await models.inscricao.findOne({
+            where: {
+                curso : id ,
+                formando : formando
+            },
         });
 
+        if(data){
+            acessible = true;
+        }
 
-        if (topicos == undefined || topicos==null || topicos.length==0) {
-            return res.status(400).json({ message: 'At least one topic must be provided' });
-        } 
+    }
 
-        await updateTopicos(createdRow.idcurso,topicos);
+    if(admin){
+        acessible = true;
+    }
+
+    try {
+
+
+        let data = await models.curso.findOne({
+
+            where: {
+                idcurso : id ,
+            },
+
+            attributes: [
+                "idcurso",
+                "nome",
+                "disponivel",
+                "iniciodeinscricoes",
+                "fimdeinscricoes",
+                "planocurricular",
+                "maxinscricoes",
+                "thumbnail"
+            ]
+
+        });
+
+        const curso = data; 
+        if( !curso.disponivel && !acessible ) return res.status(400).json({"message":"curso non existent or not acessible"});
+
+
+        curso.dataValues.topicos = await findTopicos(id);
+
+        if(curso.sincrono){
+
+            //TODO
+
+        } else {
+
+            if(acessible) {
+
+                data = await models.licao.findAll({
+                   where: {
+                       curso : id
+                   },
+
+                   attributes: [
+                    "idlicao",
+                    "titulo",
+                    "descricao"
+                   ]
+                });
+
+                let licoes;
+
+                data && data.length > 0 ? licoes = data : licoes = [];
+
+                licoes = await Promise.all(
+
+                    licoes.map(async (licao) => {
+
+
+                        data = await models.licaomaterial.findAll({
+                            where: {
+                               licao: licao.idlicao,
+                            },
+
+                            attributes: [],
+
+                            include: [{
+                                model: models.material,
+                                as: 'material_material', 
+                                attributes: ['idmaterial', 'titulo', 'referencia', 'tipo'],
+                            }],
+                        });
+
+                        if (data) {
+                          data = await Promise.all(data.map(async (entry) => {
+                            let out = entry.material_material;
+
+                            if (!isLink(out.referencia)) {
+                              out.dataValues.referencia = await generateSASUrl(out.referencia, 'ficheiroslicao');
+                            }
+
+                            return out;
+                          }));
+                        }
+
+                        licao.dataValues.materiais = data;
+                        return licao;
+                    })
+                );
+
+
+                curso.dataValues.licoes = licoes; 
+
+            }
+
+
+        }
+
+        return res.status(200).json(await addTipo(curso));
+        
+    } catch (error) {
+        console.log(error);
+        return res.status(400).json({ error: "Something bad happened" });
+        
+    }
+
+
+}
+
+
+controllers.createCursoAssincrono = async (req, res) => {
+
+    const thumbnail = req.file;
+    const info = JSON.parse(req.body.info || "{}");
+
+    try {
+
+        const createdRow = await createCurso(thumbnail,info);
+
         await models.cursoassincrono.create({curso:createdRow.idcurso});
 
         if(createdRow.thumbnail){

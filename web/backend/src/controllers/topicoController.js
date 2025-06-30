@@ -97,50 +97,50 @@ controllers.byID = async (req, res) => {
 };
 
 
-controllers.listCursos = async (req, res) => {
-
-    const { id } = req.params;
-
-    try {
-
-        let data = await models.cursotopico.findAll({ 
-            where: { topico: id }
-            ,include: [{
-                model: models.curso,
-                as: 'curso_curso', 
-                attributes: ['idcurso', 'nome', 'disponivel', 'thumbnail'],
-            }],
-        });
-
-
-        data = data.map(c => ({
-            idcurso: c.curso_curso.idcurso, 
-            nome: c.curso_curso.nome,
-            disponivel: c.curso_curso.disponivel,
-            thumbnail: c.curso_curso.thumbnail
-        }));
-
-        return res.status(200).json(data);
-
-    } catch (error) {
-        res.status(400).json({ message: 'Something went wrong' });
-    }
-};
-
-
-controllers.listPosts = async (req, res) => {
-
-    const { id } = req.params;
-
-    try {
-
-        const data = await models.post.findAll({ where: { topico: id },attributes: ['idpost', 'titulo', 'pontuacao'] });
-        res.status(200).json(data);
-
-    } catch (error) {
-        res.status(400).json({ message: 'No post found under category' });
-    }
-};
+// controllers.listCursos = async (req, res) => {
+//
+//     const { id } = req.params;
+//
+//     try {
+//
+//         let data = await models.cursotopico.findAll({ 
+//             where: { topico: id }
+//             ,include: [{
+//                 model: models.curso,
+//                 as: 'curso_curso', 
+//                 attributes: ['idcurso', 'nome', 'disponivel', 'thumbnail'],
+//             }],
+//         });
+//
+//
+//         data = data.map(c => ({
+//             idcurso: c.curso_curso.idcurso, 
+//             nome: c.curso_curso.nome,
+//             disponivel: c.curso_curso.disponivel,
+//             thumbnail: c.curso_curso.thumbnail
+//         }));
+//
+//         return res.status(200).json(data);
+//
+//     } catch (error) {
+//         res.status(400).json({ message: 'Something went wrong' });
+//     }
+// };
+//
+//
+// controllers.listPosts = async (req, res) => {
+//
+//     const { id } = req.params;
+//
+//     try {
+//
+//         const data = await models.post.findAll({ where: { topico: id },attributes: ['idpost', 'titulo', 'pontuacao'] });
+//         res.status(200).json(data);
+//
+//     } catch (error) {
+//         res.status(400).json({ message: 'No post found under category' });
+//     }
+// };
 
 
 controllers.create = async (req, res) => {
