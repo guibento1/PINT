@@ -7,14 +7,14 @@ backend/package-lock.json
 backend/db/data
 
 # Node.js (Frontend - BackOffice)
-web/frontend/backOffice/node_modules/
-web/frontend/backOffice/package-lock.json
+web/backOffice/node_modules/
+web/backOffice/package-lock.json
 
 # Node.js (Frontend - FrontOffice)
-web/frontend/frontOffice/node_modules/
-web/frontend/frontOffice/package-lock.json
+web/frontOffice/node_modules/
+web/frontOffice/package-lock.json
 
-# Node.js (Frontend - Raiz)
+# Node.js (Frontend - Raiz) ?
 web/frontend/node_modules/
 web/frontend/package-lock.json
 
