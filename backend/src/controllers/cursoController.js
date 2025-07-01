@@ -83,8 +83,6 @@ async function addTipo(cursosIn) {
             const data = await models.cursosincrono.findOne({
                 where: { curso: curso.idcurso },
             });
-
-            // curso.dataValues.topicos = await findTopicos(curso.idcurso);
             curso.dataValues.sincrono = !!data;
             return curso;
         })
@@ -308,7 +306,12 @@ async function rmLicao(idlicao) {
 
     for (const referencia in referencias) {
         if (!isLink(referencia)) {
-            await deleteFile(referencia,"ficheiroslicao");
+
+            try {
+                await deleteFile(referencia,"ficheiroslicao");
+            } catch (error) {
+                console.log("Could not delete the file, prop does not exist");
+            }
         }
     }
 
@@ -520,6 +523,80 @@ controllers.list = async (req, res) => {
 };
 
 
+controllers.rmCurso = async (req, res) => {
+
+    const id  = req.params.id;
+
+    try {
+
+        let data = await models.curso.findByPk(id,{
+            attributes: [
+                "idcurso",
+                "nome",
+                "disponivel",
+                "iniciodeinscricoes",
+                "fimdeinscricoes",
+                "planocurricular",
+                "maxinscricoes",
+                "thumbnail"
+            ]
+        });
+
+        const curso = await addTipo(data);
+
+
+        if(curso.sincrono){
+
+            //TODO
+
+        } else {
+
+
+            let data = await models.licao.findAll({
+
+                where: {
+                    curso : id ,
+                },
+
+                attributes: [
+                    "idlicao"
+                ]
+
+            });
+
+            await Promise.all(
+
+                data.map(async (entry) => {
+                    await rmLicao(entry.idlicao);
+                })
+
+            );
+
+
+            await models.curso.destroy({
+                where: {
+                    idcurso : id
+                }
+            });
+
+        }
+
+
+        return res.status(200).json({message:"Curso sucessfully deleted"});
+
+            
+    } catch (error) {
+
+        console.log(error);
+        return res.status(500).json({message:"Something went wrong"});
+        
+    }
+
+
+
+}
+
+
 controllers.getCurso = async (req, res) => {
 
     const id  = req.params.id;
@@ -569,11 +646,13 @@ controllers.getCurso = async (req, res) => {
 
         });
 
-        const curso = data; 
-        if( !curso.disponivel && !acessible ) return res.status(400).json({"message":"curso non existent or not acessible"});
+
+        let curso = data; 
+        if( !data || ( !data.disponivel && !acessible ) ) return res.status(404).json({"message":"curso non existent or not acessible"});
 
 
         curso.dataValues.topicos = await findTopicos(id);
+        curso = (await addTipo(curso))[0];
 
         if(curso.sincrono){
 
@@ -643,7 +722,7 @@ controllers.getCurso = async (req, res) => {
 
         }
 
-        return res.status(200).json(await addTipo(curso));
+        return res.status(200).json(curso);
         
     } catch (error) {
         console.log(error);
@@ -690,8 +769,18 @@ controllers.updateCursoAssincrono = async (req, res) => {
     const info = JSON.parse(req.body.info || "{}");
 
     try {
-        updatedCurso = await updateCurso(id, thumbnail, info);
-        return res.status(200).json(updatedCurso);
+
+        const data = await models.cursoassincrono.findOne({
+            where: {
+               curso: id
+            }
+        });
+
+        if(data){
+            updatedCurso = await updateCurso(id, thumbnail, info);
+            return res.status(200).json(updatedCurso);
+        }
+
     } catch (error) {
         console.error('Error updating curso:', error);
         return res.status(500).json({ message: 'Error creating curso' });
@@ -723,8 +812,6 @@ controllers.addLicao = async (req, res) => {
         };
 
 
-
-
         const createdRow = await addLicao(cursoassinc.curso,licao);
         return res.status(200).json(createdRow);
 
@@ -732,6 +819,7 @@ controllers.addLicao = async (req, res) => {
         console.log(error);
         return res.status(500).json({message : "Could not create licao"});
     }
+
 
 }
 

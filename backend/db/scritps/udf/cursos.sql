@@ -12,3 +12,51 @@ BEGIN
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
+
+
+CREATE OR REPLACE FUNCTION remover_inscricoes()
+RETURNS TRIGGER AS $$
+BEGIN
+
+    DELETE FROM inscricao
+    WHERE curso = OLD.idcurso; 
+
+    RETURN OLD;
+END;
+$$ LANGUAGE plpgsql;
+
+
+CREATE OR REPLACE FUNCTION remover_tipo()
+RETURNS TRIGGER AS $$
+DECLARE
+    sincrono BOOL;
+BEGIN
+
+    sincrono := EXISTS (SELECT 1 FROM cursosincrono WHERE curso = OLD.idcurso);
+
+    IF sincrono THEN
+       DELETE FROM cursosincrono
+       WHERE curso = OLD.idcurso;
+       RETURN OLD;
+    END IF;
+
+
+    DELETE FROM cursoassincrono
+    WHERE curso = OLD.idcurso;
+    RETURN OLD;
+
+END;
+$$ LANGUAGE plpgsql;
+
+
+CREATE OR REPLACE FUNCTION remover_topico()
+RETURNS TRIGGER AS $$
+BEGIN
+
+    DELETE FROM topicocurso
+    WHERE curso = OLD.idcurso; 
+
+    RETURN OLD;
+
+END;
+$$ LANGUAGE plpgsql;

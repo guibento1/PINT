@@ -14,6 +14,7 @@ router.post('/cursoassincrono', authenticateJWT, authorizeRoles('admin'), upload
 router.post('/licao/:idcursoassinc', authenticateJWT, authorizeRoles('admin'), cursoController.addLicao);
 router.post('/licao/:idlicao/addContent', authenticateJWT, authorizeRoles('admin'), upload.single('ficheiro'), cursoController.addLicaoContent);
 router.delete('/licao/:idlicao', authenticateJWT, authorizeRoles('admin'), cursoController.rmLicao );
-router.put('/cursoassincrono/:idcursoassinc', authenticateJWT, authorizeRoles('admin'), cursoController.updateCursoAssincrono );
+router.put('/cursoassincrono/:id', authenticateJWT, authorizeRoles('admin'), upload.single('thumbnail'), cursoController.updateCursoAssincrono );
+router.delete('/:id', authenticateJWT, authorizeRoles('admin'), cursoController.rmCurso );
 
 module.exports = router;
