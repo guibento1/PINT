@@ -2,9 +2,9 @@
 envVars/*
 
 # Node.js (Backend)
-web/backend/node_modules/
-web/backend/package-lock.json
-web/backend/db/data
+backend/node_modules/
+backend/package-lock.json
+backend/db/data
 
 # Node.js (Frontend - BackOffice)
 web/frontend/backOffice/node_modules/
