@@ -1,8 +1,8 @@
 // web/frontend/frontOffice/src/views/LoginPage.jsx
 
 import React, { useState } from 'react';
-import logoSoftinsa from '../../../shared/assets/images/logo_softinsa.png';
-import logoSoftSkills from '../../../shared/assets/images/logo_softskills.png';
+import logoSoftinsa from '../../../shared/assets/images/softinsaLogo.svg';
+import logoSoftSkills from '../../../shared/assets/images/thesoftskillsLogo.svg';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 

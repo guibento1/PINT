@@ -5,7 +5,7 @@ import Footer from '../../../shared/components/Footer';
 
 export default function LayoutFront({ children }) {
   const location = useLocation();
-  const noNavbarRoutes = ['/', '/registar', '/nao-autorizado'];
+  const noNavbarRoutes = ['/','/login', '/registar','/nao-autorizado'];
   const isSpecialPage = noNavbarRoutes.includes(location.pathname);
 
   return (

@@ -17,18 +17,18 @@ function App() {
   return (
   <Router>
       <LayoutFront>
-      <Routes>
-        <Route path="/" element={<LoginPage />} />
-        <Route path="/home" element={<ProtectedRoute allowedRoles={['formando', 'formador']}><Home /></ProtectedRoute>} />
-        <Route path="/cursos" element={<ProtectedRoute allowedRoles={['formando', 'formador']}><Cursos /></ProtectedRoute>} />
-        <Route path="/topicos" element={<ProtectedRoute allowedRoles={['formando', 'formador']}><Topicos /></ProtectedRoute>} />
-        <Route path="/notificacoes" element={<ProtectedRoute allowedRoles={['formando', 'formador']}><Notificacoes /></ProtectedRoute>} />
-        <Route path="/perfil" element={<ProtectedRoute allowedRoles={['formando', 'formador']}><Perfil /></ProtectedRoute>} />
-        <Route path="/registar" element={<RegisterPage />} />
-        <Route path="/gerircursos" element={<ProtectedRoute allowedRoles={['formador']}><GerirCursos /></ProtectedRoute>} />
-        {/* ROTA DE ERRO */}
-        <Route path="/nao-autorizado" element={<NaoAutorizado />} />
-      </Routes>
+        <Routes>
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/home" element={<ProtectedRoute allowedRoles={['formando', 'formador']}><Home /></ProtectedRoute>} />
+          <Route path="/cursos" element={<ProtectedRoute allowedRoles={['formando', 'formador']}><Cursos /></ProtectedRoute>} />
+          <Route path="/topicos" element={<ProtectedRoute allowedRoles={['formando', 'formador']}><Topicos /></ProtectedRoute>} />
+          <Route path="/notificacoes" element={<ProtectedRoute allowedRoles={['formando', 'formador']}><Notificacoes /></ProtectedRoute>} />
+          <Route path="/perfil" element={<ProtectedRoute allowedRoles={['formando', 'formador']}><Perfil /></ProtectedRoute>} />
+          <Route path="/registar" element={<RegisterPage />} />
+          <Route path="/gerircursos" element={<ProtectedRoute allowedRoles={['formador']}><GerirCursos /></ProtectedRoute>} />
+          {/* ROTA DE ERRO */}
+          <Route path="/nao-autorizado" element={<NaoAutorizado />} />
+        </Routes>
     </LayoutFront>
     </Router>
   );
