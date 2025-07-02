@@ -29,15 +29,15 @@ export default function Footer() {
           <div className="mt-2 d-flex gap-2">
 
             <a href="https://pt.linkedin.com/company/softinsa">
-              <i class="ri-linkedin-box-line fs-5 fs-sm-4 fs-md-3 fs-lg-3 fs-xl-2"></i>
+              <i className="ri-linkedin-box-line fs-5 fs-sm-4 fs-md-3 fs-lg-3 fs-xl-2"></i>
             </a>
 
             <a href="https://www.softinsa.pt/en/contacts/">
-              <i class="ri-instagram-line fs-5 fs-sm-4 fs-md-3 fs-lg-3 fs-xl-2"></i>
+              <i className="ri-instagram-line fs-5 fs-sm-4 fs-md-3 fs-lg-3 fs-xl-2"></i>
             </a>
 
             <a href="https://www.facebook.com/Softinsa/">
-              <i class="ri-facebook-circle-line fs-5 fs-sm-4 fs-md-3 fs-lg-3 fs-xl-2"></i>
+              <i className="ri-facebook-circle-line fs-5 fs-sm-4 fs-md-3 fs-lg-3 fs-xl-2"></i>
             </a>
           </div>
         </div>

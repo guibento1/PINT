@@ -6,9 +6,6 @@ export default function RegisterPage() {
   const [formData, setFormData] = useState({
     nome: '',
     email: '',
-    password: '',
-    morada: '',
-    role: 'formando' // valor padrão
   });
 
   const navigate = useNavigate();
@@ -19,39 +16,40 @@ export default function RegisterPage() {
   };
 
   const handleSubmit = async (e) => {
-  e.preventDefault();
 
-  const { nome, email, password, morada, role } = formData;
+    e.preventDefault();
 
-  if (!nome || !email || !password || !morada || !role) {
-    alert('Preencha todos os campos.');
-    return;
-  }
+    const { nome, email } = formData;
 
-  // Monta info como string JSON
-  const info = JSON.stringify({
-    nome,
-    email,
-    password,
-    morada,
-    roles: [role]
-  });
+    if (!nome || !email ) {
+      alert('Preencha todos os campos.');
+      return;
+    }
 
-  // Monta o FormData
-  const payload = new FormData();
-  payload.append('info', info);
-  // opcional: payload.append('foto', file); ← aqui vai vazio por agora
+    // Monta info como string JSON
+    const info = JSON.stringify({
+      nome,
+      email,
+      password,
+      morada,
+      roles: [role]
+    });
 
-  try {
-    await axios.post('http://localhost:3000/utilizador', payload);
+    // Monta o FormData
+    const payload = new FormData();
+    payload.append('info', info);
+    // opcional: payload.append('foto', file); ← aqui vai vazio por agora
 
-    alert('Conta criada com sucesso!');
-    navigate('/');
-  } catch (error) {
-    console.error('Erro no registo:', error);
-    alert('Erro ao criar conta. Tente outro email.');
-  }
-};
+    try {
+      await axios.post('http://localhost:3000/utilizador', payload);
+
+      alert('Conta criada com sucesso!');
+      navigate('/');
+    } catch (error) {
+      console.error('Erro no registo:', error);
+      alert('Erro ao criar conta. Tente outro email.');
+    }
+  };
 
 
   return (

@@ -1,5 +1,6 @@
-const { uploadFile, deleteFile, updateFile, generateSASUrl, sendEmail } = require('../utils.js');
+const { uploadFile, deleteFile, updateFile, generateSASUrl, sendEmail, isLink } = require('../utils.js');
 const { generateAccessToken } = require('../middleware.js');
+const crypto = require('crypto');
 
 var initModels = require("../models/init-models.js");
 var db = require("../database.js");
@@ -258,7 +259,10 @@ controllers.update = async (req, res) => {
             });
 
             result.dataValues.roles = await findRoles(id);
-            result.dataValues.foto = await generateSASUrl(result.foto, 'userprofiles');
+
+            if(result.foto){
+                result.dataValues.foto = await generateSASUrl(result.foto, 'userprofiles');
+            }
 
             return res.status(200).json(result);
         } catch (error) {

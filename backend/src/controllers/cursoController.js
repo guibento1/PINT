@@ -2,7 +2,7 @@ const Sequelize = require('sequelize');
 var initModels = require("../models/init-models.js");
 var db = require("../database.js");
 var models = initModels(db);
-const {  updateFile, deleteFile, generateSASUrl } = require('../utils.js');
+const {  updateFile, deleteFile, generateSASUrl, isLink } = require('../utils.js');
 
 const controllers = {};
 
@@ -30,14 +30,6 @@ async function findTopicos(id) {
 
 }
 
-function isLink(str) {
-  try {
-    new URL(str);
-    return true;
-  } catch {
-    return false;
-  }
-}
 
 
 async function updateTopicos(id, topicos) {

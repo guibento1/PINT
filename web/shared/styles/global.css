@@ -331,3 +331,40 @@ footer {
   background-color: var(--primary-blue);
   color: var(--text-light);
 }
+
+
+/* =======================================
+   🛠️ Modal
+========================================== */
+
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw; 
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.6); 
+  z-index: 1050;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.modal-content-box {
+  background-color: #fff;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3); max-width: 500px;  width: 90%; 
+  position: relative; 
+  z-index: 1051; 
+  animation-duration: 0.3s; 
+}
+
+
+@media (max-width: 576px) {
+  .modal-content-box {
+    width: 95%; 
+    margin: 10px; 
+  }
+}
