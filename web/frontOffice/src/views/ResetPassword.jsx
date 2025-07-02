@@ -19,7 +19,7 @@ export default function ResetPassword() {
   const getModalTitle = () => {
     switch (resetPasswordStatus) {
       case 0:
-        return "Passord establecida com sucesso";
+        return "Password establecida com sucesso";
       case 1:
         return "Campos em falta";
       case 2:
@@ -102,19 +102,19 @@ export default function ResetPassword() {
     setLoading(true);
 
     try {
-      const res = await fetch('http://localhost:3000/utilizador/resetpassword', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ password }),
-      });
+      const data = await axios.post(
+        import.meta.env.VITE_API_URL+'/utilizador/resetpassword', 
+        { password },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+          },
+        }
+      );
 
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.message || 'Erro ao redefinir a password.');
+      if (!data) {
+        throw new Error('Erro ao redefinir a password.');
       }
       
       setResetPasswordStatus(0);

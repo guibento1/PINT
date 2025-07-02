@@ -194,8 +194,6 @@ async function sendFCMNotification(topic, title, body, imageUrl = null) {
       },
     };
 
-    //console.log(messagePayload);
-
     if (imageUrl) {
       messagePayload.message.notification.imageUrl = imageUrl;
     }

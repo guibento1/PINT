@@ -71,12 +71,13 @@ export default function NavbarFront() {
                   </NavLink>
                 </li>
                 <li className="nav-item">
+                  
                   <NavLink
-                    to="/topicos"
+                    to="/forums"
                     className={({ isActive }) => `nav-link fw-semibold ${isActive ? 'active' : ''}`}
                     onClick={fecharMenu}
                   >
-                    Tópicos
+                    Forums
                   </NavLink>
                 </li>
                 <li className="nav-item position-relative">

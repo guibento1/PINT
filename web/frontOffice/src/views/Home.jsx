@@ -69,7 +69,7 @@ export default function Home() {
       <div className="row mb-4">
           <label>Categoria</label>
           {/* Categoria */}
-          <select className="form-select" value={categoriaSelecionada} onChange={e => setCategoriaSelecionada(e.target.value)}>
+          <select className="form-select" value={categoriaSelecionada} onChange={e => setCategoriaSelecionada(e.target.key)}>
             <option value="" key="default-cat">-- Selecione uma categoria --</option>
             {categorias.map(c => (
               <option key={c.idCategoria} value={c.idCategoria}>{c.designacao}</option>
@@ -78,7 +78,7 @@ export default function Home() {
 
           {/* Área */}
           {areas.length > 0 && (
-            <select className="form-select" value={areaSelecionada} onChange={e => setAreaSelecionada(e.target.value)}>
+            <select className="form-select" value={areaSelecionada} onChange={e => setAreaSelecionada(e.target.key)}>
               <option value="" key="default-area">-- Selecione uma área --</option>
               {areas.map(a => (
                 <option key={a.idarea} value={a.idarea}>{a.designacao}</option>
@@ -88,7 +88,7 @@ export default function Home() {
 
           {/* Tópico */}
           {topicos.length > 0 && (
-            <select className="form-select" value={topicoSelecionado} onChange={e => setTopicoSelecionado(e.target.value)}>
+            <select className="form-select" value={topicoSelecionado} onChange={e => setTopicoSelecionado(e.target.key)}>
               <option value="" key="default-topico">-- Selecione um tópico --</option>
               {topicos.map(t => (
                 <option key={t.idtopico} value={t.idtopico}>{t.designacao}</option>
@@ -98,22 +98,36 @@ export default function Home() {
       </div>
 
       {/* Cursos */}
-      {cursos.length > 0 && (
-        <>
-          <h4 className="mb-3">Cursos disponíveis:</h4>
-          <div className="row">
-            {cursos.map(curso => (
-              <div className="col-md-4 mb-4" key={curso.idcurso}>
-                <CardCurso
-                  nome={curso.nome}
-                  thumnail={curso.thumnail}
-                  disponivel={curso.disponivel}
-                />
-              </div>
-            ))}
-          </div>
-        </>
-      )}
+      {cursos.length > 0 ?
+        (
+          <>
+            <h4 className="mb-3">Cursos disponíveis:</h4>
+            <div className="row">
+              {cursos.map(curso => (
+                <div className="col-md-4 mb-4" key={curso.idcurso}>
+                  <CardCurso
+                    nome={curso.nome}
+                    thumnail={curso.thumnail}
+                    disponivel={curso.disponivel}
+                  />
+                </div>
+              ))}
+            </div>
+          </>
+        )
+
+        :
+
+
+        (
+          <>
+            <h4 className="mb-3">Nenhum curso encontrado ...</h4>
+            <h4 className="mb-3">Inscreve-te num na pagina de cursos</h4>
+          </>
+        )
+
+
+      }
     </div>
   );
 }

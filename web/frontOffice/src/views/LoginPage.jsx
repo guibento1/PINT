@@ -70,10 +70,10 @@ export default function LoginPage() {
 
   const handleCloseModal = () => {
     setIsModalOpen(false);
-    window.location.href = 'http://localhost:3001/home';
+    navigate('/home');
   };
 
-  // Componet functions
+  // Component functions
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -86,7 +86,7 @@ export default function LoginPage() {
 
     try {
       const response = await axios.post(
-        `http://localhost:3000/utilizador/login`,
+        import.meta.env.VITE_API_URL + `/utilizador/login`,
         { email,password },
         {
           headers: {
@@ -117,21 +117,6 @@ export default function LoginPage() {
 
       setLoginStatus(0);
       handleOpenModal();
-
-      // const role = data.roles[0]?.role || data.roles[0];
-      // if (role === 'admin') {
-      //   window.location.href = `http://localhost:3001/?token=${token}&user=${encodeURIComponent(JSON.stringify({
-      //       id: data.idutilizador,
-      //       email: data.email,
-      //       nome: data.nome,
-      //       roles: data.roles,
-      //     }))}`;
-      //     
-      //     window.dispatchEvent(new Event('userUpdated'));
-      //
-      // } else {
-      //   window.location.href = 'http://localhost:3001/home';
-      // }
 
     } catch (error) {
       setLoginStatus(0);

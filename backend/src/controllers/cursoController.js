@@ -646,6 +646,11 @@ controllers.getCurso = async (req, res) => {
         curso.dataValues.topicos = await findTopicos(id);
         curso = (await addTipo(curso))[0];
 
+
+        if (curso.thumbnail) {
+            curso.dataValues.thumbnail = await generateSASUrl(curso.thumbnail, 'thumbnailscursos');
+        }
+
         if(curso.sincrono){
 
             //TODO
@@ -692,7 +697,6 @@ controllers.getCurso = async (req, res) => {
                         if (data) {
                           data = await Promise.all(data.map(async (entry) => {
                             let out = entry.material_material;
-
                             if (!isLink(out.referencia)) {
                               out.dataValues.referencia = await generateSASUrl(out.referencia, 'ficheiroslicao');
                             }

@@ -86,7 +86,7 @@ export default function RegisterPage() {
 
 
       const response = await axios.post(
-        `http://localhost:3000/utilizador/register`,
+        import.meta.env.VITE_API_URL+`/utilizador/register`,
         { nome,email },
         {
           headers: {
@@ -103,7 +103,6 @@ export default function RegisterPage() {
     } catch (error) {
       setRegisterStatus(2);
       handleOpenModal();
-      // console.error('Erro no registo:', error);
     }
   };
 
