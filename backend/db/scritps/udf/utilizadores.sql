@@ -25,6 +25,12 @@ $$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION desativar_utilizador()
 RETURNS TRIGGER AS $$
 BEGIN
+
+    IF current_setting('thesoftskills.bypass_triggers', true) = 'on' THEN
+        RETURN OLD; 
+    END IF;
+
+
     IF OLD.ativo THEN
 
     UPDATE utilizadores

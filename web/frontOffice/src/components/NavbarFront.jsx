@@ -1,12 +1,14 @@
 // web\frontend\frontOffice\src\components\NavbarFront.jsx
 import { useState } from 'react';
 import { NavLink, Link } from 'react-router-dom';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import logoSoftinsa from '../../../shared/assets/images/softinsaLogo.svg';
 import logoSoftskills from '../../../shared/assets/images/thesoftskillsLogo.svg';
 import useUserRole from '../../../shared/hooks/useUserRole';
 
 export default function NavbarFront() {
+  const location = useLocation();
+
   const [menuAberto, setMenuAberto] = useState(false);
   const navigate = useNavigate();
   const { isFormador, loading } = useUserRole();
@@ -123,13 +125,13 @@ export default function NavbarFront() {
               <li className="nav-item">
 
                   <NavLink
-                    to="/login"
+                    to={ location.pathname === '/login' ? '/registar' : '/login' }
                     className={({ isActive }) =>
                       `nav-link fw-semibold d-flex align-items-center gap-1 ${isActive ? 'active' : ''}`
                     }
                   >
                     <button className="btn fw-semibold rounded-pill px-3">
-                      Login
+                      { location.pathname === '/login' ? 'Registar' : 'Login' }
                     </button>
                   </NavLink>
 

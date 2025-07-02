@@ -1,6 +1,6 @@
 // web/frontend/frontOffice/src/views/LoginPage.jsx
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Modal from '../../../shared/components/Modal';
 import logoSoftinsa from '../../../shared/assets/images/softinsaLogo.svg';
 import logoSoftSkills from '../../../shared/assets/images/thesoftskillsLogo.svg';
@@ -16,9 +16,15 @@ export default function LoginPage() {
 
   const navigate = useNavigate();
 
+
+  useEffect(() => {
+    sessionStorage.getItem('user') && navigate('/home');
+  }, []);
+
   // Modal functions
 
   const getModalTitle = () => {
+
     switch (loginStatus) {
       case 0:
         return "Sucesso";
@@ -29,6 +35,7 @@ export default function LoginPage() {
       default:
         return "Erro";
     }
+
   };
 
   const getModalBody = () => {
@@ -73,6 +80,7 @@ export default function LoginPage() {
 
     if (!email || !password) {
       setLoginStatus(2);
+      handleOpenModal();
       return;
     }
 
@@ -108,7 +116,6 @@ export default function LoginPage() {
       }));
 
       setLoginStatus(0);
-      console.log(loginStatus);
       handleOpenModal();
 
       // const role = data.roles[0]?.role || data.roles[0];
@@ -127,7 +134,6 @@ export default function LoginPage() {
       // }
 
     } catch (error) {
-      console.log(error);
       setLoginStatus(0);
       handleOpenModal();
     }

@@ -1,4 +1,24 @@
--- Adiconar roles de admin, formando ou formador para um utilizador
+
+-- Eleminar utilizadores sem soft
+CREATE OR REPLACE PROCEDURE eleminarUtilizadoresSemPassword(
+    no_mercy BOOLEAN
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    PERFORM set_config('thesoftskills.bypass_triggers', 'on', true);
+
+    IF no_mercy THEN
+        DELETE FROM utilizadores
+        WHERE passwordhash IS NULL;
+    ELSE
+        DELETE FROM utilizadores
+        WHERE passwordhash IS NULL AND dataregisto < NOW() - INTERVAL '15 days';
+    END IF;
+
+    PERFORM set_config('thesoftskills.bypass_triggers', 'off', true);
+END;
+$$;
 
 CREATE OR REPLACE PROCEDURE setStatus(
     p_admin BOOLEAN,
