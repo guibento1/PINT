@@ -22,16 +22,6 @@ const accountKey = process.env.AZURESTORAGE_KEY;
 const sharedKeyCredential = new StorageSharedKeyCredential(accountName, accountKey);
 const blobServiceClient = new BlobServiceClient(`https://${accountName}.blob.core.windows.net`, sharedKeyCredential);
 
-
-function isLink(str) {
-  try {
-    new URL(str);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
 async function uploadFile(fileBuffer, blobName, containerName) {
     try {
 
@@ -193,6 +183,8 @@ async function sendFCMNotification(topic, title, body, imageUrl = null) {
         },
       },
     };
+
+    //console.log(messagePayload);
 
     if (imageUrl) {
       messagePayload.message.notification.imageUrl = imageUrl;
