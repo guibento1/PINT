@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import axios from 'axios';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import Modal from '../../../shared/components/Modal';
 
@@ -102,16 +103,12 @@ export default function ResetPassword() {
     setLoading(true);
 
     try {
-      const data = await axios.post(
-        import.meta.env.VITE_API_URL+'/utilizador/resetpassword', 
-        { password },
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            Accept: 'application/json',
-          },
+      const data = await axios.post(import.meta.env.VITE_API_URL + '/utilizador/resetpassword',{ password }, {
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
         }
-      );
+      });
 
       if (!data) {
         throw new Error('Erro ao redefinir a password.');
@@ -123,7 +120,7 @@ export default function ResetPassword() {
       setPassword('');
       setConfirmPassword('');
     } catch (err) {
-
+      console.log(err);
       setResetPasswordStatus(4);
       handleOpenModal();
 
