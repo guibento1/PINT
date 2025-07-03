@@ -157,7 +157,7 @@ async function filterCursoResults(roles,cursos) {
 
     cursos = await Promise.all(
         cursos.map(async (curso) => {
-            if (curso.thumbnail && !isLink(curso.thumbnail)) {
+            if (curso.thumbnail) {
                 curso.dataValues.thumbnail = await generateSASUrl(curso.thumbnail, 'thumbnailscursos');
             }
             return curso;
@@ -728,6 +728,239 @@ controllers.getCurso = async (req, res) => {
 
 
 }
+
+
+controllers.getCursoInscritos = async (req, res) => {
+
+    const idUtilizador = req.params.idutilizador;
+    let cursos;
+    let data;
+
+
+    if( 
+        req.user.idutilizador == idUtilizador || 
+        ( req.user.roles && req.user.roles.map((roleEntry) => roleEntry.role).includes("admin") ) 
+    ){
+
+        try {
+            
+
+
+            data = await models.formando.findOne({ where: { utilizador : idUtilizador } });
+            if (!data){
+
+                return res.status(404).json({message:"User does not have formando role, no formando has found with the provided userId"})
+
+            }
+
+            const idFormando = data.idformando;
+
+            data = await models.inscricao.findAll({ where: { formando : idFormando } });
+            
+            if( data.length == 0){
+                return res.status(200).json({message:"no courses were found"});
+            }
+
+            const cursosIndexes = data.map( (inscricao) => inscricao.curso );
+
+            cursos = await models.curso.findAll({
+
+                attributes: [
+                    "idcurso",
+                    "nome",
+                    "disponivel",
+                    "iniciodeinscricoes",
+                    "fimdeinscricoes",
+                    "planocurricular",
+                    "maxinscricoes",
+                    "thumbnail"
+                ],
+
+                where: {
+                    idcurso: {
+                        [Sequelize.Op.in]: cursosIndexes
+                    }
+                }
+            });
+
+            cursos = await Promise.all(
+                cursos.map(async (curso) => {
+                    if (curso.thumbnail) {
+                        curso.dataValues.thumbnail = await generateSASUrl(curso.thumbnail, 'thumbnailscursos');
+                    }
+                    return curso;
+                })
+            );
+
+
+            return res.status(200).json(await addTipo(cursos));
+
+
+        } catch (error) {
+            return res.status(500).json({message: "Something wrong happened"});
+        }
+
+    }
+
+
+    return res.status(403).json({ message: 'Forbidden: insufficient permissions' });
+
+
+};
+
+
+controllers.getInscricoes = async (req, res) => {
+
+    const id  = req.params.id;
+    let data;
+
+    try {
+
+        data = await models.inscricao.findAll({ 
+            where: { curso : id } ,
+            include: [{
+                model: models.formando,
+                as: 'formando_formando', 
+                attributes: ['utilizador'],
+            }],
+
+        });
+
+        const utilizadoresindexes = data.map((entry) => entry.formando_formando.utilizador);
+
+
+        let utilizadores = await models.utilizadores.findAll({
+
+            attributes: ["idutilizador","email","nome"],
+            where: {
+                idutilizador: {
+                    [Sequelize.Op.in]: utilizadoresindexes
+                },
+                ativo : true
+            }
+        });
+
+        utilizadores = utilizadores.map((utilizador) => {
+            utilizador.dataValues.idformando = data.find((entry) => entry.formando_formando.utilizador == utilizador.idutilizador).formando; 
+
+            return utilizador;
+        }) 
+
+        return res.status(200).json(utilizadores);
+            
+    } catch (error) {
+
+        return res.status(400).json({message:"Something Bad Happended"});
+    }
+
+};
+
+
+controllers.inscreverCurso = async (req, res) => {
+
+    const id = req.params.id;
+    let { utilizador } = req.body;
+    let cursos;
+    let data;
+
+    if (
+      utilizador &&
+      !(
+        (req.user.roles && req.user.roles.map(roleEntry => roleEntry.role).includes("admin")) ||
+        req.user.idutilizador == utilizador
+      )
+    ) {
+      return res.status(403).json({ message: 'Forbidden: insufficient permissions' });
+    }
+
+    utilizador = utilizador || req.user.idutilizador;
+
+    try {
+
+        data = await models.formando.findOne({ where: { utilizador : utilizador } });
+
+        if (!data){
+
+            return res.status(404).json({message:"User does not have formando role, no formando has found with the provided userId"})
+
+        }
+
+        const formando = data.idformando;
+
+        data = await models.curso.findByPk(id);
+
+
+        if (!data){
+            return res.status(404).json({message:"Course not found"})
+        }
+
+        const maxInscricoes = data.maxinscricoes;
+        const nInscricoes = await models.inscricao.count({ where: { curso : id } });
+
+        if(!maxInscricoes || nInscricoes+1 < maxInscricoes){
+
+            const insertData = { formando, curso:id, registo: new Date() };
+            await models.inscricao.create(insertData);
+            return res.status(200).json({ message: 'Subscription done sucessfully' });
+
+        }
+
+        return res.status(400).json({ message: 'No positions avaiable' });
+        
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({ message: 'Could not subscribe to the course' });
+    }
+
+};
+
+
+controllers.sairCurso = async (req, res) => {
+
+    const id = req.params.id;
+    let { utilizador } = req.body;
+    let cursos;
+    let data;
+
+    if (
+      utilizador &&
+      !(
+        (req.user.roles && req.user.roles.map(roleEntry => roleEntry.role).includes("admin")) ||
+        req.user.idutilizador == utilizador
+      )
+    ) {
+      return res.status(403).json({ message: 'Forbidden: insufficient permissions' });
+    }
+
+    utilizador = utilizador || req.user.idutilizador;
+
+    try {
+
+        data = await models.formando.findOne({ where: { utilizador : utilizador } });
+
+        if (!data){
+
+            return res.status(404).json({message:"User does not have formando role, no formando has found with the provided userId"})
+
+        }
+
+        const formando = data.idformando;
+        await models.inscricao.destroy(
+            { 
+                where : { formando, curso : id }
+            }
+        );
+
+        return res.status(200).json({ message: 'Unsubscribe done sucessfully' });
+
+
+        
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({ message: 'Could not subscribe to the course' });
+    }
+
+};
 
 
 controllers.createCursoAssincrono = async (req, res) => {
