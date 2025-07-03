@@ -61,43 +61,7 @@ export default function Home() {
   return (
     <div className="container py-5">
       <h2 className="mb-4">Bem-vindo(a), {user?.nome || 'Utilizador'}</h2>
-      <p>Este é o painel principal para o perfil <strong>{user?.role || 'formando'}</strong>.</p>
 
-      <hr />
-
-      {/* Seleção Encadeada */}
-      <div className="row mb-4">
-          <label>Categoria</label>
-          {/* Categoria */}
-          <select className="form-select" value={categoriaSelecionada} onChange={e => setCategoriaSelecionada(e.target.key)}>
-            <option value="" key="default-cat">-- Selecione uma categoria --</option>
-            {categorias.map(c => (
-              <option key={c.idCategoria} value={c.idCategoria}>{c.designacao}</option>
-            ))}
-          </select>
-
-          {/* Área */}
-          {areas.length > 0 && (
-            <select className="form-select" value={areaSelecionada} onChange={e => setAreaSelecionada(e.target.key)}>
-              <option value="" key="default-area">-- Selecione uma área --</option>
-              {areas.map(a => (
-                <option key={a.idarea} value={a.idarea}>{a.designacao}</option>
-              ))}
-            </select>
-          )}
-
-          {/* Tópico */}
-          {topicos.length > 0 && (
-            <select className="form-select" value={topicoSelecionado} onChange={e => setTopicoSelecionado(e.target.key)}>
-              <option value="" key="default-topico">-- Selecione um tópico --</option>
-              {topicos.map(t => (
-                <option key={t.idtopico} value={t.idtopico}>{t.designacao}</option>
-              ))}
-            </select>
-          )}
-      </div>
-
-      {/* Cursos */}
       {cursos.length > 0 ?
         (
           <>

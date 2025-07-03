@@ -380,7 +380,7 @@ async function createCurso(thumbnail,info) {
 
     await updateTopicos(createdRow.idcurso,topicos);
 
-    if(createdRow.thumbnail && !isURL(createdRow.thumbnail)){
+    if(createdRow.thumbnail){
         createdRow.dataValues.thumbnail = await generateSASUrl(createdRow.thumbnail, 'thumbnailscursos');
     }
 
@@ -423,7 +423,7 @@ async function updateCurso(id, thumbnail, info) {
   }
 
 
-  if (existingCurso.thumbnail && !isURL(existingCurso.thumbnail)) {
+  if (existingCurso.thumbnail) {
     existingCurso.dataValues.thumbnail = await generateSASUrl(existingCurso.thumbnail, 'thumbnailscursos');
   }
 
@@ -500,13 +500,14 @@ controllers.list = async (req, res) => {
 
 
         const data = await models.curso.findAll(queryOptions);
+        let cursos = await filterCursoResults(req.user.roles, data);
+        cursos = await addTipo(cursos); 
 
-        if (req.user.roles) {
-            const cursos = await filterCursoResults(req.user.roles, data);
-            return res.status(200).json(await addTipo(cursos));
+        if (req.query.sincrono) {
+            cursos = cursos.filter((curso) => curso.dataValues.sincrono == (req.query.sincrono == "true"));
         }
 
-        return res.status(200).json(await addTipo(data));
+        return res.status(200).json(cursos);
 
     } catch (error) {
         console.log(error);
@@ -896,8 +897,9 @@ controllers.inscreverCurso = async (req, res) => {
 
         const maxInscricoes = data.maxinscricoes;
         const nInscricoes = await models.inscricao.count({ where: { curso : id } });
+        const curso = data;
 
-        if(!maxInscricoes || nInscricoes+1 < maxInscricoes){
+        if(curso.disponivel && (!maxInscricoes || nInscricoes+1 < maxInscricoes)){
 
             const insertData = { formando, curso:id, registo: new Date() };
             await models.inscricao.create(insertData);
@@ -905,7 +907,7 @@ controllers.inscreverCurso = async (req, res) => {
 
         }
 
-        return res.status(400).json({ message: 'No positions avaiable' });
+        return res.status(400).json({ message: 'No positions or course avaiable' });
         
     } catch (error) {
         console.log(error);
@@ -999,11 +1001,13 @@ controllers.updateCursoAssincrono = async (req, res) => {
 
     try {
 
-        const data = await models.cursoassincrono.findOne({
-            where: {
-               curso: id
-            }
-        });
+        const data = await models.curso.findByPk(id);
+
+        // const data = await models.cursoassincrono.findOne({
+        //     where: {
+        //        curso: id
+        //     }
+        // });
 
         if(data){
             updatedCurso = await updateCurso(id, thumbnail, info);

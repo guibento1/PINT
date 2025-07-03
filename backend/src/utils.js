@@ -7,6 +7,15 @@ const { GoogleAuth } = require('google-auth-library');
 
 require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
 
+function isLink(str) {
+  try {
+    new URL(str);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 const { 
   BlobServiceClient, 
   StorageSharedKeyCredential, 
@@ -204,4 +213,4 @@ async function sendFCMNotification(topic, title, body, imageUrl = null) {
   }
 }
 
-module.exports = { uploadFile, deleteFile, updateFile, generateSASUrl, sendEmail, sendFCMNotification };
+module.exports = { isLink ,uploadFile, deleteFile, updateFile, generateSASUrl, sendEmail, sendFCMNotification };
