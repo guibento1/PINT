@@ -98,6 +98,8 @@ export default function LoginPage() {
 
       const data = response.data;
 
+      console.log(data);
+
       if (!data.accessToken) {
 
         setLoginStatus(1);
@@ -119,7 +121,8 @@ export default function LoginPage() {
       handleOpenModal();
 
     } catch (error) {
-      setLoginStatus(0);
+      console.log(error);
+      setLoginStatus(3);
       handleOpenModal();
     }
 

@@ -170,6 +170,67 @@ async function filterCursoResults(roles,cursos) {
 }
 
 
+async function filterCursos(cursos, topicosIn = [], areasIn = [], categoriasIn = []) {
+
+  const checkIfcursoInTopicos = async (curso, topicos) => {
+    if (!topicos.length) return false;
+
+    const nEntries = await models.cursotopico.count({
+      where: {
+        curso: curso.idcurso,
+        topico: { [Sequelize.Op.in]: topicos }
+      }
+    });
+
+    return nEntries > 0;
+  };
+
+  const checkIfcursoInAreas = async (curso, areas) => {
+    if (!areas.length) return false;
+
+    const data = await models.topicoarea.findAll({
+      where: {
+        area: { [Sequelize.Op.in]: areas }
+      }
+    });
+
+    if (!data || !data.length) return false;
+
+    const topicos = data.map((entry) => entry.topico);
+    return checkIfcursoInTopicos(curso, topicos);
+  };
+
+  const checkIfcursoInCategorias = async (curso, categorias) => {
+    if (!categorias.length) return false;
+
+    const data = await models.area.findAll({
+      where: {
+        categoria: { [Sequelize.Op.in]: categorias }
+      },
+      attributes: ['idarea']
+    });
+
+    if (!data || !data.length) return false;
+
+    const areas = data.map((entry) => entry.idarea);
+    return checkIfcursoInAreas(curso, areas);
+  };
+
+  const matchedCursos = await Promise.all(
+      cursos.map(async (curso) => {
+        const match =
+          (await checkIfcursoInTopicos(curso, topicosIn)) ||
+          (await checkIfcursoInAreas(curso, areasIn)) ||
+          (await checkIfcursoInCategorias(curso, categoriasIn));
+
+        return match ? curso : null;
+      })
+    );
+
+  return matchedCursos.filter(Boolean);
+}
+
+
 async function getCursosByTopicos(topicos) {
 
 
@@ -734,6 +795,11 @@ controllers.getCurso = async (req, res) => {
 controllers.getCursoInscritos = async (req, res) => {
 
     const idUtilizador = req.params.idutilizador;
+    let topicos = [];
+    let areas = [];
+    let categorias = [];
+    let filter = false;
+
     let cursos;
     let data;
 
@@ -742,6 +808,30 @@ controllers.getCursoInscritos = async (req, res) => {
         req.user.idutilizador == idUtilizador || 
         ( req.user.roles && req.user.roles.map((roleEntry) => roleEntry.role).includes("admin") ) 
     ){
+
+        const queryOptions = 
+
+            {
+
+                attributes: [
+                    "idcurso",
+                    "nome",
+                    "disponivel",
+                    "iniciodeinscricoes",
+                    "fimdeinscricoes",
+                    "planocurricular",
+                    "maxinscricoes",
+                    "thumbnail"
+                ],
+
+                where: {}
+            }
+
+        if(req.query.search){
+            queryOptions.where.nome = {
+                [Sequelize.Op.iLike]: `%${req.query.search}%`
+            };
+        }
 
         try {
             
@@ -764,25 +854,13 @@ controllers.getCursoInscritos = async (req, res) => {
 
             const cursosIndexes = data.map( (inscricao) => inscricao.curso );
 
-            cursos = await models.curso.findAll({
+            queryOptions.where.idcurso = {
+                [Sequelize.Op.in]: cursosIndexes
+            };
 
-                attributes: [
-                    "idcurso",
-                    "nome",
-                    "disponivel",
-                    "iniciodeinscricoes",
-                    "fimdeinscricoes",
-                    "planocurricular",
-                    "maxinscricoes",
-                    "thumbnail"
-                ],
+            console.log(queryOptions);
 
-                where: {
-                    idcurso: {
-                        [Sequelize.Op.in]: cursosIndexes
-                    }
-                }
-            });
+            cursos = await models.curso.findAll(queryOptions);
 
             cursos = await Promise.all(
                 cursos.map(async (curso) => {
@@ -793,6 +871,28 @@ controllers.getCursoInscritos = async (req, res) => {
                 })
             );
 
+
+            if (req.query.area) {
+                areas = Array.isArray(req.query.area) ? req.query.area : [req.query.area];
+                areas = [...new Set(areas)];
+                filter = true;
+            }
+
+            if (req.query.categoria) {
+                categorias = Array.isArray(req.query.categoria) ? req.query.categoria : [req.query.categoria];
+                categorias = [...new Set(categorias)];
+                filter = true;
+            }
+
+            if (req.query.topico) {
+                topicos = Array.isArray(req.query.topico) ? req.query.topico : [req.query.topico];
+                topicos = [...new Set(topicos)];
+                filter = true;
+            }
+
+            if(filter){
+                cursos = await filterCursos(cursos,topicos,areas,categorias);
+            }
 
             return res.status(200).json(await addTipo(cursos));
 
