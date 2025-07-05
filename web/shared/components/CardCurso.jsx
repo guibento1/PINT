@@ -1,7 +1,11 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 
-function CardCurso({ id, nome, thumbnail, disponivel = null }) {
+function CardCurso({ curso, disponivel=null, inscrito=null }) {
+
+  const { nome, thumbnail } = curso;
+  const id = curso.idcurso;
+
   return (
     <Link to={`/curso/${id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
       <div className="card h-100 card-sm">
@@ -15,9 +19,19 @@ function CardCurso({ id, nome, thumbnail, disponivel = null }) {
         <div className="card-body">
           <h5 className="card-title">{nome}</h5>
 
-          {disponivel !== null && disponivel !== undefined && (
-            <p className="card-text">Disponível: {disponivel ? 'Sim' : 'Não'}</p>
-          )}
+
+          <div className="d-flex flex-wrap gap-2">
+
+            {disponivel !== null && disponivel !== undefined && !disponivel &&(
+              <div className="btn btn-primary static-button">Arquivado</div>
+            )}
+
+
+            {inscrito !== null && inscrito !== undefined && inscrito && (
+              <div className="btn btn-primary static-button">Inscrito</div>
+            )}
+
+          </div>
 
         </div>
       </div>

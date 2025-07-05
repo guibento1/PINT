@@ -85,6 +85,27 @@ async function addTipo(cursosIn) {
 }
 
 
+async function addInscrito(cursosIn,idFormando) {
+
+    if(! (typeof cursosIn[Symbol.iterator] === 'function' )) cursosIn = [cursosIn];
+
+    const cursosOut = await Promise.all(
+
+        cursosIn.map(async (curso) => {
+            const data = await models.inscricao.findOne({
+                where: { curso: curso.idcurso, formando: idFormando },
+            });
+
+            curso.dataValues.inscrito = !!data;
+            return curso;
+        })
+
+    );
+
+    return cursosOut;
+}
+
+
 async function filterCursoResults(roles,cursos) {
 
     let data;
@@ -279,18 +300,18 @@ async function getCursosByAreas(areas) {
         });
 
 
-        if (data.length > 0){
+        if (data && data.length > 0){
 
             topicos = data.map((entry) => entry.topico);
             cursos = await getCursosByTopicos(topicos)
             return cursos;
         }
 
-        return null;
+        return [];
 
     } catch (error) {
         console.log(error);
-        return null;
+        return [];
     }
 
 }
@@ -322,11 +343,11 @@ async function getCursosByCategorias(categorias) {
             return cursos;
         }
 
-        return null;
+        return [];
 
     } catch (error) {
         console.log(error);
-        return null;
+        return [];
     }
 
 }
@@ -505,6 +526,7 @@ controllers.list = async (req, res) => {
     let filter = [];
 
     const filterFlag = req.query.area || req.query.categoria || req.query.topico;
+    const formando = req.user.roles.find((roleEntry) => roleEntry.role === "formando")?.id || 0;
 
     const queryOptions = {
 
@@ -567,6 +589,8 @@ controllers.list = async (req, res) => {
         if (req.query.sincrono) {
             cursos = cursos.filter((curso) => curso.dataValues.sincrono == (req.query.sincrono == "true"));
         }
+
+        if(formando) cursos = await addInscrito(cursos,formando);
 
         return res.status(200).json(cursos);
 
@@ -780,6 +804,9 @@ controllers.getCurso = async (req, res) => {
 
         }
 
+        curso = await addTipo(curso);
+        if(formando) curso = await addInscrito(curso,formando);
+
         return res.status(200).json(curso);
         
     } catch (error) {
@@ -958,110 +985,122 @@ controllers.getInscricoes = async (req, res) => {
 
 
 controllers.inscreverCurso = async (req, res) => {
+    const { utilizador: utilizadorIdDoBody } = req.body || {};
+    const cursoId = req.params.id;
 
-    const id = req.params.id;
-    let { utilizador } = req.body;
-    let cursos;
-    let data;
-
-    if (
-      utilizador &&
-      !(
-        (req.user.roles && req.user.roles.map(roleEntry => roleEntry.role).includes("admin")) ||
-        req.user.idutilizador == utilizador
-      )
-    ) {
-      return res.status(403).json({ message: 'Forbidden: insufficient permissions' });
-    }
-
-    utilizador = utilizador || req.user.idutilizador;
+    let formandoId; 
+    let cursoEncontrado;
 
     try {
-
-        data = await models.formando.findOne({ where: { utilizador : utilizador } });
-
-        if (!data){
-
-            return res.status(404).json({message:"User does not have formando role, no formando has found with the provided userId"})
-
+        if (utilizadorIdDoBody &&
+            !req.user.roles?.map(roleEntry => roleEntry.role).includes("admin") && 
+            req.user.idutilizador != utilizadorIdDoBody) 
+        {
+            return res.status(403).json({ message: 'Acesso Proibido: Permissões insuficientes para inscrever outro utilizador.' });
         }
 
-        const formando = data.idformando;
+        const idDoUtilizadorParaInscricao = utilizadorIdDoBody || req.user.idutilizador;
 
-        data = await models.curso.findByPk(id);
+        const formandoData = await models.formando.findOne({
+            where: { utilizador: idDoUtilizadorParaInscricao }
+        });
 
+        if (!formandoData) {
+            return res.status(404).json({
+                message: "Utilizador não é um formando ou formando não encontrado com o ID fornecido."
+            });
+        }
+        formandoId = formandoData.idformando; 
 
-        if (!data){
-            return res.status(404).json({message:"Course not found"})
+        cursoEncontrado = await models.curso.findByPk(cursoId);
+
+        if (!cursoEncontrado) {
+            return res.status(404).json({ message: "Curso não encontrado." });
         }
 
-        const maxInscricoes = data.maxinscricoes;
-        const nInscricoes = await models.inscricao.count({ where: { curso : id } });
-        const curso = data;
+        const maxInscricoes = cursoEncontrado.maxinscricoes;
+        const nInscricoes = await models.inscricao.count({ where: { curso: cursoId } });
 
-        if(curso.disponivel && (!maxInscricoes || nInscricoes+1 < maxInscricoes)){
+        const inscricaoExistente = await models.inscricao.findOne({
+            where: {
+                formando: formandoId,
+                curso: cursoId
+            }
+        });
 
-            const insertData = { formando, curso:id, registo: new Date() };
+        if (inscricaoExistente) {
+            return res.status(409).json({ message: 'Já se encontra inscrito neste curso.' }); // 409 Conflict
+        }
+
+
+        if (cursoEncontrado.disponivel && (!maxInscricoes || nInscricoes < maxInscricoes)) {
+            const insertData = {
+                formando: formandoId,
+                curso: cursoId,
+                registo: new Date()
+            };
             await models.inscricao.create(insertData);
-            return res.status(200).json({ message: 'Subscription done sucessfully' });
-
+            return res.status(200).json({ message: 'Inscrição realizada com sucesso!' }); 
+        } else {
+            return res.status(400).json({ message: 'Vagas esgotadas ou curso não disponível para inscrição.' });
         }
 
-        return res.status(400).json({ message: 'No positions or course avaiable' });
-        
     } catch (error) {
-        console.log(error);
-        return res.status(500).json({ message: 'Could not subscribe to the course' });
+        console.error("Erro na inscrição do curso:", error);
+        return res.status(500).json({ message: 'Erro interno do servidor ao tentar inscrever no curso.' });
     }
-
 };
 
 
 controllers.sairCurso = async (req, res) => {
 
     const id = req.params.id;
-    let { utilizador } = req.body;
-    let cursos;
+    
+    const { utilizador: utilizadorIdDoBody } = req.body || {}; 
+    
     let data;
 
     if (
-      utilizador &&
+      utilizadorIdDoBody &&
       !(
-        (req.user.roles && req.user.roles.map(roleEntry => roleEntry.role).includes("admin")) ||
-        req.user.idutilizador == utilizador
+        (req.user.roles?.map(roleEntry => roleEntry.role).includes("admin")) ||
+        req.user.idutilizador == utilizadorIdDoBody
       )
     ) {
-      return res.status(403).json({ message: 'Forbidden: insufficient permissions' });
+      return res.status(403).json({ message: 'Acesso Proibido: Permissões insuficientes para desinscrever outro utilizador.' });
     }
 
-    utilizador = utilizador || req.user.idutilizador;
+    const idDoUtilizadorParaDesinscricao = utilizadorIdDoBody || req.user.idutilizador;
 
     try {
+        const formandoData = await models.formando.findOne({ 
+            where: { utilizador: idDoUtilizadorParaDesinscricao } 
+        });
 
-        data = await models.formando.findOne({ where: { utilizador : utilizador } });
-
-        if (!data){
-
-            return res.status(404).json({message:"User does not have formando role, no formando has found with the provided userId"})
-
+        if (!formandoData){
+            return res.status(404).json({message:"Utilizador não é um formando ou formando não encontrado com o ID fornecido."});
         }
 
-        const formando = data.idformando;
-        await models.inscricao.destroy(
-            { 
-                where : { formando, curso : id }
-            }
-        );
+        const formando = formandoData.idformando;
 
-        return res.status(200).json({ message: 'Unsubscribe done sucessfully' });
+        const inscricaoExistente = await models.inscricao.findOne({
+            where: { formando, curso: id }
+        });
 
-
+        if (!inscricaoExistente) {
+            return res.status(404).json({ message: 'Inscrição não encontrada para este utilizador e curso.' });
+        }
         
-    } catch (error) {
-        console.log(error);
-        return res.status(500).json({ message: 'Could not subscribe to the course' });
-    }
+        await models.inscricao.destroy({
+            where : { formando, curso : id }
+        });
 
+        return res.status(200).json({ message: 'Inscrição removida com sucesso!' });
+
+    } catch (error) {
+        console.error("Erro ao tentar desinscrever do curso:", error);
+        return res.status(500).json({ message: 'Erro interno do servidor ao tentar sair do curso.' });
+    }
 };
 
 

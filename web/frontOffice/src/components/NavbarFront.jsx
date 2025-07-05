@@ -14,11 +14,10 @@ export default function NavbarFront() {
   const { isFormador, loading } = useUserRole();
 
   const user = JSON.parse(sessionStorage.getItem('user') || '{}');
-  const nomeUsuario = user?.nome || 'Utilizador'; 
-
+  const nomeUsuario = user?.nome || 'Utilizador';
 
   if (loading) {
-    return <div className="text-center mt-4">A carregar...</div>; // loading 
+    return <div className="text-center mt-4">A carregar...</div>;
   }
 
   const notificacoesAtivas = true;
@@ -33,29 +32,29 @@ export default function NavbarFront() {
   };
 
   return (
-    <nav className="navbar navbar-expand-lg navbar-light bg-white border-bottom px-3">
+    <nav className="navbar navbar-expand-lg border-bottom px-3">
       <div className="container-fluid d-flex justify-content-between align-items-center">
-        {/* Logos */}
-        <Link className="navbar-brand d-flex align-items-center gap-2" to={sessionStorage.getItem('user') ? "/home" : "/" }  >
-          <img src={logoSoftinsa} className="img-fluid" style={{ height: '30px' }} alt="Softinsa" />
-          <img src={logoSoftskills} className="img-fluid" style={{ height: '30px' }} alt="SoftSkills" />
+        {/* Logos - Agora com classes para controlo no CSS */}
+        <Link className="navbar-brand d-flex align-items-center gap-2" to={sessionStorage.getItem('user') ? "/home" : "/"}>
+          <img src={logoSoftinsa} className="softinsa-logo" alt="Softinsa" />
+          <img src={logoSoftskills} className="softskills-logo" alt="SoftSkills" />
         </Link>
 
         {/* Botão do menu (hambúrguer) */}
         <button className="navbar-toggler" type="button" onClick={toggleMenu}>
-          {menuAberto ? <i class="ri-close-line"></i> : <i className="ri-menu-line"></i>}
+          {menuAberto ? <i className="ri-close-line text-light"></i> : <i className="ri-menu-line text-light"></i>}
         </button>
 
         {/* Conteúdo da navbar */}
         <div className={`collapse navbar-collapse justify-content-end ${menuAberto ? 'show' : ''}`} id="navbarFrontContent">
           <ul className="navbar-nav align-items-center gap-2 flex-wrap flex-lg-nowrap">
 
-            { sessionStorage.getItem('user') ? (
+            {sessionStorage.getItem('user') ? (
               <>
                 <li className="nav-item">
                   <NavLink
                     to="/home"
-                    className={({ isActive }) => `nav-link fw-semibold ${isActive ? 'active' : ''}`}
+                    className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
                     onClick={fecharMenu}
                   >
                     Home
@@ -64,17 +63,16 @@ export default function NavbarFront() {
                 <li className="nav-item">
                   <NavLink
                     to="/cursos"
-                    className={({ isActive }) => `nav-link fw-semibold ${isActive ? 'active' : ''}`}
+                    className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
                     onClick={fecharMenu}
                   >
                     Cursos
                   </NavLink>
                 </li>
                 <li className="nav-item">
-                  
                   <NavLink
                     to="/forums"
-                    className={({ isActive }) => `nav-link fw-semibold ${isActive ? 'active' : ''}`}
+                    className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
                     onClick={fecharMenu}
                   >
                     Forums
@@ -98,22 +96,22 @@ export default function NavbarFront() {
                   <li className="nav-item">
                     <NavLink
                       to="/gerircursos"
-                      className={({ isActive }) => `nav-link fw-semibold ${isActive ? 'active' : ''}`}
+                      className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
                       onClick={fecharMenu}
                     >
                       Gerir Cursos
                     </NavLink>
                   </li>
                 )}
-                <li className="nav-item d-flex align-items-center">
+                <li className="nav-item">
                   <NavLink
                     to="/perfil"
                     className={({ isActive }) =>
-                      `nav-link fw-semibold d-flex align-items-center gap-1 ${isActive ? 'active' : ''}`
+                      `nav-link ${isActive ? 'active' : ''}`
                     }
                     onClick={fecharMenu}
                   >
-                    <i className="ri-account-circle-fill"></i> {nomeUsuario}
+                    <i class="ri-account-circle-line"></i> {nomeUsuario}
                   </NavLink>
                 </li>
                 <li className="nav-item">
@@ -124,18 +122,15 @@ export default function NavbarFront() {
               </>
             ) : (
               <li className="nav-item">
-
-                  <NavLink
-                    to={ location.pathname === '/login' ? '/registar' : '/login' }
-                    className={({ isActive }) =>
-                      `nav-link fw-semibold d-flex align-items-center gap-1 ${isActive ? 'active' : ''}`
-                    }
-                  >
-                    <button className="btn fw-semibold rounded-pill px-3">
-                      { location.pathname === '/login' ? 'Registar' : 'Login' }
-                    </button>
-                  </NavLink>
-
+                <NavLink
+                  to={location.pathname === '/login' ? '/registar' : '/login'}
+                  className="nav-link"
+                  onClick={fecharMenu}
+                >
+                  <button className="btn btn-soft fw-semibold rounded-pill px-3">
+                    {location.pathname === '/login' ? 'Registar' : 'Login'}
+                  </button>
+                </NavLink>
               </li>
             )}
 

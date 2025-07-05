@@ -164,7 +164,7 @@ controllers.byID = async (req, res) => {
 
             const data = await models.utilizadores.findOne({ 
                 where: { idutilizador: id },
-                attributes: ["idutilizador","email","nome","dataregisto","foto","ativo"]
+                attributes: ["idutilizador","email","nome","morada","telefone","dataregisto","foto","ativo"]
             });
 
             if (!data) {
@@ -248,7 +248,7 @@ controllers.update = async (req, res) => {
             }
 
 
-            if (roles !== undefined) {
+            if (roles !== undefined && req.user.roles.map((roleEntry) => roleEntry.role).includes("admin")) {
                 await updateRoles(id, roles);
             }
 

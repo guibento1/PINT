@@ -4,51 +4,67 @@
 
 body {
   color: var(--text-dark);
+  background-color: var(--background-light); /* Adicionado para um fundo geral mais claro */
 }
 
 :root {
-  --primary-blue: #00b0da;
-  --primary-blue-hover: #00c4f2;
-  --footer-bg: #007bff;
-  --text-light: #ffffff;
-  --text-muted: #6c757d;
-  --gray-light: #ced4da;
-  --gray-lighter: #f1f1f1;
-  --text-dark: #495057;
-  --gray-hover: #e9ecef; 
-  --gray-border: #adb5bd;
+  --primary-blue: #00b0da; /* Mantido como base */
+  --primary-blue-hover: #00c4f2; /* Mantido */
+  --softinsa-blue: #00b0da; /* Azul principal do logo e botões */
+  --softinsa-blue-dark: #007bff; /* Usado no footer e para hover em alguns botões */
+  --softinsa-blue-light: #00c4f2; /* Para hover mais suave */
+  --navbar-bg: #ffffff; /* Fundo da Navbar - cinza escuro do protótipo */
+  --text-dark: #495057; /* Texto principal escuro */
+  --text-muted: #6c757d; /* Texto secundário */
+  --text-light: #ffffff; /* Texto branco */
+
+  --background-light: #f8f9fa; /* Fundo geral claro */
+  --card-bg: #ffffff; /* Fundo de cartões e elementos brancos */
+  --border-light: #e0e0e0; /* Borda clara para elementos como cartões */
+  --border-medium: #ced4da; /* Borda um pouco mais escura (gray-light original) */
+  --shadow-light: rgba(0, 0, 0, 0.08); /* Sombra suave para os cartões */
 }
 
 .dark {
-  /* modo escuro futuro */
+  /* modo escuro futuro (ajustar conforme as novas variáveis) */
   --primary-blue: #00a0c4;
   --primary-blue-hover: #008db1;
-  --footer-bg: #003f73;
-  --text-light: #ffffff;
-  --text-muted: #a0a0a0;
-  --gray-light: #3a3a3a;
-  --gray-lighter: #2c2c2c;
+  --softinsa-blue: #00a0c4;
+  --softinsa-blue-dark: #003f73;
+  --softinsa-blue-light: #008db1;
+  --navbar-bg: #212529;
+  --header-text-light: #e0e0e0;
   --text-dark: #e0e0e0;
+  --text-muted: #a0a0a0;
+  --text-light: #ffffff;
+
+  --background-light: #2c2c2c;
+  --card-bg: #3a3a3a;
+  --border-light: #4c4c4c;
+  --border-medium: #5c5c5c;
+  --shadow-light: rgba(255, 255, 255, 0.08);
 }
 
 /* =======================================
    🧱 CONTAINERS PADRÃO COM BORDA E RAIO
 ========================================== */
 .card-rounded {
-  background-color: var(--text-light);
-  border: 1px solid var(--gray-light);
+  background-color: var(--card-bg); /* Usar nova variável */
+  border: 1px solid var(--border-light); /* Usar nova variável */
   border-radius: 15px;
   padding: 2rem;
   margin-bottom: 2rem;
+  box-shadow: 0 4px 8px var(--shadow-light); /* Adicionado sombra */
 }
 
 .card-rounded-sm {
-  background-color: var(--text-light);
-  border: 1px solid var(--gray-light);
+  background-color: var(--card-bg); /* Usar nova variável */
+  border: 1px solid var(--border-light); /* Usar nova variável */
   border-radius: 15px;
   padding: 1.5rem;
   margin-bottom: 1.5rem;
   text-align: center;
+  box-shadow: 0 2px 4px var(--shadow-light); /* Adicionado sombra */
 }
 
 
@@ -57,7 +73,7 @@ body {
 ================================== */
 
 .btn-soft {
-  background-color: var(--primary-blue);
+  background-color: var(--softinsa-blue); /* Usar nova variável */
   color: var(--text-light);
   border-radius: 50px;
   padding: 0.4rem 1.5rem;
@@ -68,28 +84,29 @@ body {
 }
 
 .btn-soft:hover {
-  background-color: var(--primary-blue-hover);
+  background-color: var(--softinsa-blue-light); /* Usar nova variável */
   color: var(--text-light);
 }
 
 .btn-outline-soft {
-  background-color: var(--text-light); 
+  background-color: var(--card-bg); /* Usar nova variável */
   color: var(--text-muted);
-  border: 2px solid var(--gray-light);
+  border: 2px solid var(--border-medium); /* Usar nova variável */
   border-radius: 50px;
   padding: 0.4rem 1.5rem;
   font-weight: 500;
   font-size: 1rem;
+  transition: all 0.2s ease; /* Adicionada transição para hover */
 }
 
 .btn-outline-soft:hover {
-  background-color: var(--gray-lighter);
+  background-color: var(--background-light); /* Mais suave */
   color: var(--text-dark);
-  border-color: var(--gray-border);
+  border-color: var(--softinsa-blue); /* Alinhar com o tema */
 }
 
 .footer-btn {
-  background-color: var(--primary-blue);
+  background-color: var(--softinsa-blue); /* Usar nova variável */
   color: var(--text-light);
   border-radius: 50px;
   padding: 0.2rem 0.8rem;
@@ -99,14 +116,14 @@ body {
 }
 
 .footer-btn:hover {
-  background-color: var(--primary-blue-hover);
+  background-color: var(--softinsa-blue-light); /* Usar nova variável */
   color: var(--text-light);
 }
 
 .btn-icon-sm {
   background-color: transparent;
   color: var(--text-muted);
-  border: 1px solid var(--gray-light);
+  border: 1px solid var(--border-medium); /* Usar nova variável */
   padding: 0.1rem 0.6rem;
   font-size: 0.85rem;
   border-radius: 30px;
@@ -117,9 +134,9 @@ body {
 }
 
 .btn-icon-sm:hover {
-  background-color: var(--gray-lighter);
+  background-color: var(--background-light); /* Mais suave */
   color: var(--text-dark);
-  border-color: var(--gray-border, var(--gray-light));
+  border-color: var(--softinsa-blue); /* Alinhar com o tema */
 }
 
 
@@ -136,8 +153,8 @@ a {
 ================================== */
 
 .navbar-nav .nav-link {
-  color: var(--text-muted);
-  border: 2px solid var(--gray-light);
+  color: var(--header-text-light); /* Texto branco na navbar escura */
+  border: 2px solid transparent; /* Inicialmente transparente */
   border-radius: 50px;
   padding: 0.3rem 1rem;
   font-weight: 600;
@@ -146,9 +163,9 @@ a {
 
 .navbar-nav .nav-link:hover,
 .navbar-nav .nav-link.active {
-  background-color: var(--primary-blue);
+  background-color: var(--softinsa-blue); /* Azul Softinsa para ativo/hover */
   color: white !important;
-  border-color: var(--primary-blue);
+  border-color: var(--softinsa-blue);
 }
 
 /* ================================
@@ -157,8 +174,21 @@ a {
 
 .navbar-brand img {
   height: 100%;
-  max-height: 48px;
+  max-height: 40px; /* Ajustado ligeiramente para caber melhor */
   object-fit: contain;
+  /* IMPORTANTE: TESTE REMOVENDO OU AJUSTANDO ESTE FILTRO SE O SEU LOGO JÁ FOR BRANCO OU TIVER O FUNDO AZUL */
+  /* filter: brightness(0) invert(1); */
+}
+
+/* Adicionar uma regra mais específica se precisar de inverter apenas um logo */
+.navbar-brand img.softinsa-logo {
+  /* Se o seu softinsaLogo.svg já é branco e só precisa de um fundo azul, pode não precisar de filtro */
+  /* Ou se ele é preto e precisa ser branco no fundo azul da marca, manter o filtro */
+}
+
+.navbar-brand img.softskills-logo {
+  /* Se o thesoftskillsLogo.svg é preto e precisa ser branco no fundo escuro, este filtro é útil */
+  /* filter: brightness(0) invert(1); */
 }
 
 
@@ -166,17 +196,26 @@ a {
    👤 USUÁRIO SEMPRE VISÍVEL
 ================================== */
 
-.navbar-user {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  white-space: nowrap;
-  font-weight: 500;
-  color: var(--text-muted);
+/* Ajuste para os ícones dentro dos NavLinks na Navbar para que fiquem bem */
+.navbar-nav .nav-link i {
+    font-size: 1.3rem; /* Tamanho ligeiramente maior para os ícones */
+    vertical-align: middle; /* Ajuda a alinhar o ícone com o texto */
+    line-height: 1; /* Para evitar problemas de altura da linha */
+    display: inline-block; /* Garante que as propriedades de alinhamento funcionem */
+    margin-right: 0.25rem; /* Pequena margem à direita do ícone */
+    color: var(--header-text-light); /* Cor branca para ícones normais na navbar */
 }
 
-.navbar-user .MuiSvgIcon-root {
-  font-size: 1.5rem;
+/* Para o ícone de notificação que tem um ponto, ajustar se necessário */
+.navbar-nav .nav-item .ri-notification-line {
+    color: var(--header-text-light); /* Ícone branco */
+}
+
+
+/* Estilo específico para o ícone de perfil */
+.navbar-nav .nav-link .ri-account-circle-fill {
+    color: var(--softinsa-blue); /* Ícone azul do perfil */
+    font-size: 1.5rem; /* Pode ser maior para o perfil */
 }
 
 /* ================================
@@ -184,8 +223,13 @@ a {
 ================================== */
 
 nav.navbar {
+  background-color: var(--navbar-bg); /* Fundo cinza escuro */
   border-bottom-left-radius: 15px;
   border-bottom-right-radius: 15px;
+  box-shadow: 0 2px 4px var(--shadow-light); /* Sombra suave para a navbar */
+  /* Adicione padding vertical para dar mais ar à navbar */
+  padding-top: 0.75rem;
+  padding-bottom: 0.75rem;
 }
 
 @media (max-width: 991.98px) {
@@ -196,8 +240,33 @@ nav.navbar {
     gap: 0.5rem;
     padding-top: 0.25rem;
     padding-bottom: 0.25rem;
-  } 
+  }
+}
 
+/* Alinhar verticalmente os itens da navbar */
+.navbar-nav {
+    align-items: center !important; /* Centraliza verticalmente os nav-items */
+}
+
+.navbar-nav .nav-item {
+    height: 100%; /* Garante que os itens ocupam a altura total para alinhamento */
+    display: flex; /* Permite alinhar conteúdo dentro do nav-item */
+    align-items: center; /* Centraliza o conteúdo (NavLink) dentro do nav-item */
+}
+
+.navbar-nav .nav-link {
+    /* ... (seu código nav-link anterior) ... */
+    display: flex; /* Para alinhar o texto e o ícone dentro do NavLink */
+    align-items: center; /* Alinha o texto e o ícone */
+    gap: 0.25rem; /* Pequeno espaçamento entre o ícone e o texto */
+}
+
+/* Ajustes para o botão "Sair" e "Login/Registar" na navbar */
+.navbar-nav .nav-item .btn {
+    /* Garantir que os botões na navbar não herdem estilos indesejados */
+    height: auto; /* Deixa o Bootstrap gerir a altura do botão */
+    padding-top: 0.4rem; /* Garante padding consistente */
+    padding-bottom: 0.4rem;
 }
 
 
@@ -207,10 +276,8 @@ nav.navbar {
 
 a {
   color: inherit;
-  text-decoration: none; 
+  text-decoration: none;
 }
-
-
 
 
 /* ================================
@@ -218,10 +285,12 @@ a {
 ================================== */
 
 footer {
-  background-color: var(--footer-bg);
+  background-color: var(--softinsa-blue-dark); /* Azul mais escuro para o footer */
   font-size: 0.85rem;
   border-top-left-radius: 15px;
   border-top-right-radius: 15px;
+  color: var(--text-light); /* Texto branco no footer */
+  padding: 1.5rem 0; /* Adicionado padding para mais espaço */
 }
 
 @media (max-width: 768px) {
@@ -245,7 +314,7 @@ footer {
    🎯 BOTÃO DE CURSO PADRONIZADO (estático)
 ========================================== */
 .btn-primary-blue {
-  background-color: var(--footer-bg);
+  background-color: var(--softinsa-blue-dark); /* Usar azul mais escuro */
   color: var(--text-light);
   border-radius: 12px;
   padding: 1rem;
@@ -256,10 +325,11 @@ footer {
   width: 100%;
   text-align: left;
   transition: background-color 0.2s ease;
+  box-shadow: 0 2px 4px var(--shadow-light); /* Sombra para o botão */
 }
 
 .btn-primary-blue:hover {
-  background-color: var(--primary-blue);
+  background-color: var(--softinsa-blue); /* Azul principal no hover */
   color: var(--text-light);
 }
 
@@ -291,8 +361,8 @@ footer {
    🔍 BOTÃO DE PESQUISA DE CURSOS
 ========================================== */
 .btn-search-curso {
-  background-color: var(--gray-lighter);
-  border: 1px solid var(--gray-light);
+  background-color: var(--background-light); /* Fundo claro */
+  border: 1px solid var(--border-light); /* Borda clara */
   border-radius: 12px;
   padding: 0.7rem;
   gap: 1rem;
@@ -301,10 +371,11 @@ footer {
   width: 100%;
   text-align: left;
   transition: background-color 0.2s ease;
+  box-shadow: 0 1px 2px var(--shadow-light); /* Sombra mais leve */
 }
 
 .btn-search-curso:hover {
-  background-color: var(--gray-hover); 
+  background-color: var(--border-light); /* Um pouco mais escuro no hover */
 }
 
 
@@ -312,7 +383,7 @@ footer {
    🛠️ BOTÃO QUE SE ADAPTA AO CONTEÚDO (SEM FORÇAR WIDTH)
 ========================================== */
 .btn-primary-blue-auto {
-  background-color: var(--footer-bg);
+  background-color: var(--softinsa-blue-dark); /* Usar azul mais escuro */
   color: var(--text-light);
   border-radius: 12px;
   padding: 1rem;
@@ -325,10 +396,11 @@ footer {
   white-space: nowrap;
   min-width: 280px;
   max-width: 100%;
+  box-shadow: 0 2px 4px var(--shadow-light); /* Sombra para o botão */
 }
 
 .btn-primary-blue-auto:hover {
-  background-color: var(--primary-blue);
+  background-color: var(--softinsa-blue); /* Azul principal no hover */
   color: var(--text-light);
 }
 
@@ -342,9 +414,9 @@ footer {
   position: fixed;
   top: 0;
   left: 0;
-  width: 100vw; 
+  width: 100vw;
   height: 100vh;
-  background-color: rgba(0, 0, 0, 0.6); 
+  background-color: rgba(0, 0, 0, 0.6);
   z-index: 1050;
   display: flex;
   justify-content: center;
@@ -352,20 +424,22 @@ footer {
 }
 
 .modal-content-box {
-  background-color: #fff;
+  background-color: var(--card-bg); /* Usar variável de cor */
   padding: 20px;
   border-radius: 8px;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3); max-width: 500px;  width: 90%; 
-  position: relative; 
-  z-index: 1051; 
-  animation-duration: 0.3s; 
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+  max-width: 500px;
+  width: 90%;
+  position: relative;
+  z-index: 1051;
+  animation-duration: 0.3s;
 }
 
 
 @media (max-width: 576px) {
   .modal-content-box {
-    width: 95%; 
-    margin: 10px; 
+    width: 95%;
+    margin: 10px;
   }
 }
 
@@ -382,7 +456,7 @@ footer {
   overflow: hidden;
   border-top-left-radius: 0.375rem;
   border-top-right-radius: 0.375rem;
-  background-color: #f0f0f0;
+  background-color: var(--background-light); /* Fundo claro para o placeholder */
 }
 
 .ratio-img {
@@ -394,8 +468,139 @@ footer {
   object-fit: cover;
 }
 
-
 /* =======================================
-   🛠️ Calendário
+   ✨ TOQUES DE FLARE ADICIONAIS (Novas Regras)
 ========================================== */
 
+/* Estilo para os "botões" de Tópicos */
+.btn.btn-primary { /* Alvo os botões com .btn e .btn-primary */
+    background-color: var(--softinsa-blue); /* Azul vibrante */
+    color: var(--text-light);
+    border-radius: 50px; /* Mais arredondado, estilo pílula */
+    padding: 0.3rem 1rem; /* Padding ajustado */
+    font-size: 0.9rem;
+    font-weight: 500;
+    border: none;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); /* Sombra suave */
+}
+
+.btn.btn-primary:hover {
+    background-color: var(--softinsa-blue-light);
+    transform: translateY(-1px); /* Pequeno efeito de elevação */
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15); /* Sombra mais proeminente */
+}
+
+/* Estilo para os links "Mostrar mais/menos" */
+.btn-link.mt-2 {
+    color: var(--softinsa-blue); /* Azul Softinsa para links */
+    font-weight: 500;
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+.btn-link.mt-2:hover {
+    color: var(--softinsa-blue-dark);
+    text-decoration: underline;
+}
+
+/* Estilo para as lições (list-group-item) */
+.list-group-item.list-group-item-action {
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-light);
+    border-radius: 15px; /* Bordas arredondadas */
+    padding: 1.25rem 1.5rem; /* Mais padding */
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 5px var(--shadow-light); /* Sombra sutil */
+}
+
+.list-group-item.list-group-item-action:hover {
+    background-color: var(--background-light); /* Levemente mais escuro no hover */
+    transform: translateY(-2px); /* Efeito de elevação */
+    box-shadow: 0 4px 8px var(--shadow-light);
+}
+
+/* Estilo para os ícones de expansão/colapso nas lições */
+.list-group-item small.text-muted i {
+    font-size: 1.2em; /* Tamanho do ícone */
+    color: var(--text-muted); /* Cor para ser discreto */
+    transition: transform 0.2s ease;
+}
+
+.list-group-item small.text-muted i.ri-arrow-up-s-line {
+    transform: rotate(0deg); /* Garante que a seta para cima não esteja rodada */
+}
+
+.list-group-item small.text-muted i.ri-arrow-down-s-line {
+    transform: rotate(0deg); /* Garante que a seta para baixo não esteja rodada */
+}
+
+
+/* Estilo para os títulos das lições */
+.list-group-item h5 {
+    color: var(--text-dark); /* Cor de texto principal */
+    font-weight: 600;
+}
+
+/* Estilo para os materiais da lição (sub-itens) */
+.list-group-item ul.list-unstyled {
+    margin-top: 1rem;
+    padding-left: 0; /* Remover padding padrão da lista */
+}
+
+.list-group-item ul.list-unstyled li {
+    display: flex;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.list-group-item ul.list-unstyled li i {
+    font-size: 1.1rem; /* Tamanho do ícone do material */
+    color: var(--softinsa-blue); /* Cor do ícone */
+    margin-right: 0.5rem;
+}
+
+.list-group-item ul.list-unstyled li a {
+    color: var(--text-dark); /* Cor do link */
+    font-weight: 500;
+    transition: color 0.2s ease;
+}
+
+.list-group-item ul.list-unstyled li a:hover {
+    color: var(--softinsa-blue); /* Cor no hover do link */
+}
+
+/* Ajustes gerais de padding e margem para consistência */
+.container.mt-5 {
+    padding-top: 3rem !important; /* Mais padding no topo para o conteúdo principal */
+    padding-bottom: 3rem !important; /* Padding na parte inferior */
+}
+
+.h1, .h2, .h3, .h4, .h5, .h6, h1, h2, h3, h4, h5, h6 {
+    color: var(--text-dark); /* Cores dos títulos */
+}
+
+.static-button {
+  /* Anula o comportamento padrão do botão no hover */
+  pointer-events: none; /* Desativa completamente eventos do rato nesta div */
+  cursor: default;     /* Define o cursor para o padrão */
+  opacity: 1 !important; /* Garante que a opacidade não muda se houver transições */
+  box-shadow: none !important; /* Remove qualquer sombra de foco/hover */
+  transform: none !important; /* Evita qualquer transição de transformação */
+
+  /* Opcional: Se quiser que ele se pareça sempre com o estado normal */
+  background-color: var(--bs-secondary); /* ou a cor do seu btn-secondary */
+  border-color: var(--bs-secondary);
+  color: var(--bs-white); /* ou a cor do texto do seu btn-secondary */
+}
+
+/* Opcional: Para ter certeza absoluta que não há efeitos de hover */
+.static-button:hover,
+.static-button:focus,
+.static-button:active {
+  background-color: var(--bs-secondary) !important;
+  border-color: var(--bs-secondary) !important;
+  color: var(--bs-white) !important;
+  box-shadow: none !important;
+  transform: none !important;
+}

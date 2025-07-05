@@ -120,9 +120,7 @@ export default function Home() {
               {cursos.map((curso) => (
                 <div className="col-sm-6 col-md-4 col-lg-3" key={curso.idcurso}>
                   <CardCurso
-                    id={curso.idcurso}
-                    nome={curso.nome}
-                    thumbnail={curso.thumbnail}
+                    curso={curso}
                   />
                 </div>
               ))}
