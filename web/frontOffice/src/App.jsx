@@ -4,17 +4,14 @@ import LayoutFront from './components/LayoutFront';
 
 import Index from './views/Index';
 import RegisterPage from './views/RegisterPage';
-import LoginPage from './views/LoginPage';
+import LoginPage from '../../shared/views/LoginPage.jsx';
 import ResetPassword from './views/ResetPassword';
 import Cursos from './views/Cursos';
 import Curso from './views/Curso';
-import Topicos from './views/Topicos';
-import Notificacoes from './views/Notificacoes';
 import Perfil from './views/Perfil';
 import Home from './views/Home';
 import NaoAutorizado from './views/NaoAutorizado';
 import ProtectedRoute from '../../shared/components/ProtectedRoute';
-import GerirCursos from './views/GerirCursos';
 
 function App() {
   return (
@@ -29,11 +26,7 @@ function App() {
           <Route path="/home" element={<ProtectedRoute allowedRoles={['formando', 'formador']}><Home /></ProtectedRoute>} />
           <Route path="/cursos" element={<ProtectedRoute allowedRoles={['formando', 'formador']}><Cursos /></ProtectedRoute>} />
           <Route path="/curso/:id" element={<ProtectedRoute allowedRoles={['formando', 'formador']}><Curso /></ProtectedRoute>} />
-          <Route path="/topicos" element={<ProtectedRoute allowedRoles={['formando', 'formador']}><Topicos /></ProtectedRoute>} />
-          <Route path="/notificacoes" element={<ProtectedRoute allowedRoles={['formando', 'formador']}><Notificacoes /></ProtectedRoute>} />
           <Route path="/perfil" element={<ProtectedRoute allowedRoles={['formando', 'formador']}><Perfil /></ProtectedRoute>} />
-          <Route path="/gerircursos" element={<ProtectedRoute allowedRoles={['formador']}><GerirCursos /></ProtectedRoute>} />
-          {/* ROTA DE ERRO */}
           <Route path="/nao-autorizado" element={<NaoAutorizado />} />
         </Routes>
     </LayoutFront>

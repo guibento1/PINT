@@ -19,4 +19,4 @@ EXECUTE FUNCTION remover_tipo();
 CREATE TRIGGER trigger_remover_topicos
 BEFORE DELETE ON curso
 FOR EACH ROW
-EXECUTE FUNCTION remover_topico();
+EXECUTE FUNCTION remover_topico_from_topico_curso();

@@ -291,7 +291,7 @@ const Curso = () => {
                             <>
                                 <button
                                     onClick={handleClickSair}
-                                    className={`mt-2 btn btn-sm btn-danger`} 
+                                    className={`mt-2 btn btn-sm btn-outline-danger fw-semibold rounded-pill px-3`} 
                                     disabled={loading}
                                 >
                                     {loading && operationStatus === null ? 'A sair...' : 'Sair do Curso'}

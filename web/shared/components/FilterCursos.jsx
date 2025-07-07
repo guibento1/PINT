@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import api from '../../../shared/services/axios.js';
+import api from '../services/axios.js';
 
 export const getCategorias = async () => {
   try {

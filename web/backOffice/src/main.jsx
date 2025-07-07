@@ -2,8 +2,6 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App.jsx';
-import 'bootstrap/dist/css/bootstrap.min.css';
-import 'bootstrap-icons/font/bootstrap-icons.css';
 import '../../shared/styles/global.css';
 
 const urlParams = new URLSearchParams(window.location.search);
@@ -12,7 +10,7 @@ const user = urlParams.get('user');
 
 if (token) {
   sessionStorage.setItem('token', token);
-  window.history.replaceState({}, document.title, '/'); // limpa a URL
+  window.history.replaceState({}, document.title, '/'); 
 }
 
 if (user) {

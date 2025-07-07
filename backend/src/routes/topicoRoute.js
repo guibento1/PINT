@@ -6,6 +6,7 @@ const topicoController = require('../controllers/topicoController.js');
 
 
 router.get('/id/:id',authenticateJWT,topicoController.byID);
+router.get('/id/:id/nobjetos',authenticateJWT,topicoController.getNobjetos);
 router.delete('/id/:id',authenticateJWT,authorizeRoles('admin'),topicoController.delete);
 router.put('/id/:id',authenticateJWT,authorizeRoles('admin'),topicoController.update);
 router.get('/list',authenticateJWT,topicoController.list);

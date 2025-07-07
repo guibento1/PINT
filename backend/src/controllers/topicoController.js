@@ -181,32 +181,63 @@ controllers.create = async (req, res) => {
 };
 
 
+controllers.getNobjetos = async (req, res) => {
+
+    const id = req.params.id;
+
+    try {
+
+        const nEntriesCursos = await models.cursotopico.count({
+          where: {
+            topico: id 
+          }
+        });
+
+
+        const nEntriesPosts = await models.post.count({
+          where: {
+            topico: id 
+          }
+        });
+
+
+        return res.status(200).json({ nCursos: nEntriesCursos, nPosts : nEntriesPosts});
+
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({ message: 'Something went wrong' });
+      }
+};
+
+
 controllers.delete = async (req,res) => {
 
   const id = req.params.id;
   var dependencies = {};
 
 
-  let data = await models.cursotopico.findAll({ 
-    where: { topico: id }
-    ,include: [{
-        model: models.curso,
-        as: 'curso_curso', 
-        attributes: ['idcurso', 'nome', 'disponivel', 'thumbnail'],
-    }],
-  });
-
-
-  dependencies.cursos = data.map(c => ({
-    idcurso: c.curso_curso.idcurso, 
-    nome: c.curso_curso.nome,
-    disponivel: c.curso_curso.disponivel
-  }));
-
-
-  dependencies.posts = await models.post.findAll({ where: { topico: id },attributes: ['idpost', 'titulo', 'pontuacao'] });
 
   try {
+
+
+    let data = await models.cursotopico.findAll({ 
+        where: { topico: id }
+        ,include: [{
+            model: models.curso,
+            as: 'curso_curso', 
+            attributes: ['idcurso', 'nome', 'disponivel', 'thumbnail'],
+        }],
+    });
+
+
+    dependencies.cursos = data.map(c => ({
+        idcurso: c.curso_curso.idcurso, 
+        nome: c.curso_curso.nome,
+        disponivel: c.curso_curso.disponivel
+    }));
+
+
+    dependencies.posts = await models.post.findAll({ where: { topico: id },attributes: ['idpost', 'titulo', 'pontuacao'] });
 
     if( dependencies.cursos.length > 0 || dependencies.posts.length > 0){
         return res.status(400).json({
@@ -219,6 +250,7 @@ controllers.delete = async (req,res) => {
     return res.status(200).json({message:"Topico deleted"});
 
   } catch (error) {
+    console.log(error);
     return res.status(401).json({ error: 'Something bad happened' });
   }
 
@@ -226,6 +258,7 @@ controllers.delete = async (req,res) => {
 
 
 controllers.update = async (req, res) => {
+
     const { id } = req.params;
     const { designacao, areas } = req.body;
 

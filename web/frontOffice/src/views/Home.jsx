@@ -1,7 +1,7 @@
 // web/frontend/frontOffice/src/views/Home.jsx
 import React, { useEffect, useState } from 'react';
 import api from '../../../shared/services/axios';
-import CardCurso from '../../../shared/components/CardCurso';
+import CardCurso from '../components/CardCurso.jsx';
 import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
 import '../../../shared/styles/calendar.css'

@@ -49,11 +49,11 @@ END;
 $$ LANGUAGE plpgsql;
 
 
-CREATE OR REPLACE FUNCTION remover_topico()
+CREATE OR REPLACE FUNCTION remover_topico_from_topico_curso()
 RETURNS TRIGGER AS $$
 BEGIN
 
-    DELETE FROM topicocurso
+    DELETE FROM cursotopico
     WHERE curso = OLD.idcurso; 
 
     RETURN OLD;

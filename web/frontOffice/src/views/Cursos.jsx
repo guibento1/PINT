@@ -1,9 +1,9 @@
 // src/pages/Cursos/CursosPage.jsx
 import React, { useState, useEffect, useCallback } from 'react';
 import api from '../../../shared/services/axios';
-import FiltrosCursos from '../components/FilterCursos.jsx';
+import FiltrosCursos from '../../../shared/components/FilterCursos.jsx';
 import { useSearchParams } from 'react-router-dom';
-import CardCurso from '../../../shared/components/CardCurso.jsx'
+import CardCurso from '../components/CardCurso.jsx';
 
 
 const getCursos = async (params) => {

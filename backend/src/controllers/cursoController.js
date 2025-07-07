@@ -737,13 +737,45 @@ controllers.getCurso = async (req, res) => {
             curso.dataValues.thumbnail = await generateSASUrl(curso.thumbnail, 'thumbnailscursos');
         }
 
-        if(curso.sincrono){
+        if(curso.dataValues.sincrono){
+
+
+            if(acessible) {
+
+
+                data = await models.cursosincrono.findOne({
+                   where: {
+                       curso : id
+                   },
+
+                   attributes: [
+                        "idcursosincrono"
+                   ]
+                });
+
+                curso.dataValues.idcrono = data.idcursosincrono; 
+
 
             //TODO
+            
+            }
 
         } else {
 
             if(acessible) {
+
+
+                data = await models.cursoassincrono.findOne({
+                   where: {
+                       curso : id
+                   },
+
+                   attributes: [
+                        "idcursoassincrono"
+                   ]
+                });
+
+                curso.dataValues.idcrono = data.idcursoassincrono; 
 
                 data = await models.licao.findAll({
                    where: {

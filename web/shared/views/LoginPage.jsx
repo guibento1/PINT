@@ -1,13 +1,13 @@
 // web/frontend/frontOffice/src/views/LoginPage.jsx
 
 import React, { useState, useEffect } from 'react';
-import Modal from '../../../shared/components/Modal';
-import logoSoftinsa from '../../../shared/assets/images/softinsaLogo.svg';
-import logoSoftSkills from '../../../shared/assets/images/thesoftskillsLogo.svg';
+import Modal from '../components/Modal.jsx';
+import logoSoftinsa from '../assets/images/softinsaLogo.svg';
+import logoSoftSkills from '../assets/images/thesoftskillsLogo.svg';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
-export default function LoginPage() {
+export default function LoginPage({admin=false}) {
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -32,6 +32,8 @@ export default function LoginPage() {
         return "Credenciais erradas";
       case 2:
         return "Campos em falta";
+      case 5:
+        return "Utilizador não Admin";
       default:
         return "Erro";
     }
@@ -39,6 +41,7 @@ export default function LoginPage() {
   };
 
   const getModalBody = () => {
+
     switch (loginStatus) {
       case 0:
         return <p>Bem-vindo/a de volta!</p>;
@@ -53,6 +56,16 @@ export default function LoginPage() {
 
       case 2:
         return <p>Palavra-passe ou email em falta.</p>;
+
+
+      case 5:
+        return (
+            <>
+                <p>Tentativa de acesso registada em anomalias.</p>
+                <p>Se por alugma razão devia ser admin e não o é, contacte a equipa de IT</p>
+            </>
+
+            )
 
       default:
         return (
@@ -70,7 +83,7 @@ export default function LoginPage() {
 
   const handleCloseModal = () => {
     setIsModalOpen(false);
-    navigate('/home');
+    if(!loginStatus) navigate('/home');
   };
 
   // Component functions
@@ -96,34 +109,53 @@ export default function LoginPage() {
         }
       );
 
-      const data = response.data;
+      if(admin && !response.data.roles.find((roleEntry) =>(roleEntry.role == "admin")) ) {
 
-      console.log(data);
+        setLoginStatus(5);
+        handleOpenModal();
 
-      if (!data.accessToken) {
+      } else {
+
+        const data = response.data;
+
+
+        if (!data.accessToken) {
+
+          setLoginStatus(1);
+          handleOpenModal();
+        }
+
+        const token = data.accessToken;
+
+        sessionStorage.setItem('token', token);
+        sessionStorage.setItem('user', JSON.stringify({
+          id: data.idutilizador,
+          email: data.email,
+          nome: data.nome,
+          roles: data.roles,
+        }));
+
+        setLoginStatus(0);
+        handleOpenModal();
+
+      }
+
+    } catch (error) {
+
+      console.log(error);
+
+      if(error.response?.data?.error == "Password mismatch") {
 
         setLoginStatus(1);
         handleOpenModal();
-        throw new Error("Token de acesso não retornado");
+
+      } else {
+
+        setLoginStatus(3);
+        handleOpenModal();
+
       }
 
-      const token = data.accessToken;
-
-      sessionStorage.setItem('token', token);
-      sessionStorage.setItem('user', JSON.stringify({
-        id: data.idutilizador,
-        email: data.email,
-        nome: data.nome,
-        roles: data.roles,
-      }));
-
-      setLoginStatus(0);
-      handleOpenModal();
-
-    } catch (error) {
-      console.log(error);
-      setLoginStatus(3);
-      handleOpenModal();
     }
 
   };
@@ -175,12 +207,17 @@ export default function LoginPage() {
               <label>Password</label>
             </div>
             <div className="d-flex gap-2 justify-content-between">
-              <button type="submit" className="btn-soft w-50 fw-bold">
+              <button type="submit" className={"btn-soft fw-bold "+ (admin? 'w-100':'w-50')}>
                 Login
               </button>
-              <a href="/registar" className="btn-outline-soft w-50 text-center">
-                Registar-se
-              </a>
+
+              {!admin && 
+
+                <a href="/registar" className="btn-outline-soft w-50 text-center">
+                  Registar-se
+                </a>
+
+              }
             </div>
           </form>
         </div>

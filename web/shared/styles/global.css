@@ -604,3 +604,14 @@ footer {
   box-shadow: none !important;
   transform: none !important;
 }
+
+
+.accordion-button:focus {
+    outline: 0;
+    box-shadow: none;
+}
+.accordion-button:not(.collapsed) {
+    background-color: transparent;
+    color: #212529;
+    box-shadow: none;
+}

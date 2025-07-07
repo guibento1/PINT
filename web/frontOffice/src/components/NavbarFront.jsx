@@ -28,7 +28,7 @@ export default function NavbarFront() {
   const handleLogout = () => {
     sessionStorage.clear();
     fecharMenu();
-    window.location.href = 'http://localhost:3001/';
+    navigate('/');
   };
 
   return (
