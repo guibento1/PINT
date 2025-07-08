@@ -9,14 +9,12 @@ backend/db/data
 # Node.js (Frontend - BackOffice)
 web/backOffice/node_modules/
 web/backOffice/package-lock.json
+web/backOffice/dist
 
 # Node.js (Frontend - FrontOffice)
 web/frontOffice/node_modules/
 web/frontOffice/package-lock.json
-
-# Node.js (Frontend - Raiz) ?
-web/frontend/node_modules/
-web/frontend/package-lock.json
+web/backOffice/dist
 
 
 # Flutter (Frontend - Mobile)
