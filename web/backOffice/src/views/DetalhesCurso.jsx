@@ -1,8 +1,8 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import React, { useEffect, useState } from 'react';
-import api from '../../../shared/services/axios';
-import '../../../shared/styles/curso.css';
-import Modal from '../../../shared/components/Modal'; 
+import React, { useEffect, useState, useCallback } from 'react';
+import api from '@shared/services/axios';
+import '@shared/styles/curso.css';
+import Modal from '@shared/components/Modal';
 
 const DetalhesCurso = () => {
     const { id } = useParams();
@@ -16,12 +16,18 @@ const DetalhesCurso = () => {
     const navigate = useNavigate();
 
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-    const [cursoToDelete, setCursoToDelete] = useState(null); 
+    const [cursoToDelete, setCursoToDelete] = useState(null);
     const [deleting, setDeleting] = useState(false);
 
-    const [operationStatus, setOperationStatus] = useState(null); // null: nenhum, 0: sucesso, 1: erro
+    const [operationStatus, setOperationStatus] = useState(null);
     const [operationMessage, setOperationMessage] = useState('');
     const [isResultModalOpen, setIsResultModalOpen] = useState(false);
+
+    const [enrolledUsers, setEnrolledUsers] = useState([]);
+    const [fetchingEnrolledUsers, setFetchingEnrolledUsers] = useState(true);
+    const [isUnenrollModalOpen, setIsUnenrollModalOpen] = useState(false);
+    const [userToUnenroll, setUserToUnenroll] = useState(null);
+    const [unenrollLoading, setUnenrollLoading] = useState(false);
 
     const handleShowMoreTopicos = () => {
         setShowAllTopicos(true);
@@ -36,8 +42,8 @@ const DetalhesCurso = () => {
     };
 
     const handleDeleteCurso = () => {
-        setCursoToDelete(curso); 
-        setIsDeleteModalOpen(true); 
+        setCursoToDelete(curso);
+        setIsDeleteModalOpen(true);
     };
 
     const confirmDeleteCurso = async () => {
@@ -61,6 +67,38 @@ const DetalhesCurso = () => {
         }
     };
 
+    const handleUnenrollUserClick = (user) => {
+        setUserToUnenroll(user);
+        setIsUnenrollModalOpen(true);
+    };
+
+    const confirmUnenrollUser = async () => {
+        if (!userToUnenroll || !curso) return;
+
+        setUnenrollLoading(true);
+        try {
+            await api.post(`/curso/${curso.idcurso}/sair`, { utilizador: userToUnenroll.idutilizador});
+            setOperationStatus(0);
+            setOperationMessage(`Utilizador "${userToUnenroll.nome}" desinscrito de "${curso.nome}" com sucesso!`);
+            fetchEnrolledUsers(); 
+        } catch (err) {
+            console.error("Erro ao desinscrever utilizador do curso:", err);
+            setOperationStatus(1);
+            setOperationMessage(err.response?.data?.message || `Erro ao desinscrever "${userToUnenroll.nome}" do curso "${curso.nome}".`);
+        } finally {
+            setUnenrollLoading(false);
+            setIsUnenrollModalOpen(false);
+            setUserToUnenroll(null);
+            openResultModal(); 
+        }
+    };
+
+    const closeUnenrollModal = () => {
+        setIsUnenrollModalOpen(false);
+        setUserToUnenroll(null);
+    };
+
+    // Funções do modal de resultado genérico
     const getResultModalTitle = () => {
         switch (operationStatus) {
             case 0: return "Sucesso";
@@ -89,13 +127,13 @@ const DetalhesCurso = () => {
         setOperationMessage('');
     };
 
-
+    // Fetch principal do curso
     useEffect(() => {
         const fetchCurso = async () => {
             setLoading(true);
             try {
                 const res = await api.get(`/curso/${id}`);
-                setCurso(res.data[0] || res.data);
+                setCurso(res.data[0] || res.data); // Assegura que é um objeto
             } catch (err) {
                 console.error("Erro ao carregar dados do curso:", err);
                 setCurso(null);
@@ -105,6 +143,26 @@ const DetalhesCurso = () => {
         };
         fetchCurso();
     }, [id]);
+
+    const fetchEnrolledUsers = useCallback(async () => {
+        setFetchingEnrolledUsers(true);
+        try {
+            const response = await api.get(`/curso/inscricoes/${id}`);
+            setEnrolledUsers(response.data);
+        } catch (err) {
+            console.error("Erro ao carregar utilizadores inscritos:", err);
+            setEnrolledUsers([]);
+        } finally {
+            setFetchingEnrolledUsers(false);
+        }
+    }, [id]);
+
+    useEffect(() => {
+        if (id) {
+            fetchEnrolledUsers();
+        }
+    }, [id, fetchEnrolledUsers]);
+
 
     const formatData = (dataStr) => {
         if (!dataStr) return "N/A";
@@ -168,6 +226,75 @@ const DetalhesCurso = () => {
 
     return (
         <div className="container mt-5">
+            <Modal
+                isOpen={isDeleteModalOpen}
+                onClose={() => setIsDeleteModalOpen(false)}
+                title="Confirmar Eliminação"
+            >
+                {cursoToDelete && (
+                    <p>Tem a certeza que deseja eliminar o curso <strong>"{cursoToDelete.nome}"</strong>?</p>
+                )}
+                <div className="d-flex justify-content-end gap-2 mt-4">
+                    <button
+                        type="button"
+                        className="btn btn-secondary"
+                        onClick={() => setIsDeleteModalOpen(false)}
+                        disabled={deleting}
+                    >
+                        Cancelar
+                    </button>
+                    <button
+                        type="button"
+                        className="btn btn-danger"
+                        onClick={confirmDeleteCurso}
+                        disabled={deleting}
+                    >
+                        {deleting ? 'A Eliminar...' : 'Eliminar'}
+                    </button>
+                </div>
+            </Modal>
+
+            <Modal
+                isOpen={isUnenrollModalOpen}
+                onClose={closeUnenrollModal}
+                title="Confirmar Desinscrição do Utilizador"
+            >
+                {userToUnenroll && curso && (
+                    <p>Tem a certeza que deseja desinscrever o utilizador <strong>"{userToUnenroll.nome}"</strong> do curso <strong>"{curso.nome}"</strong>?</p>
+                )}
+                <div className="d-flex justify-content-end gap-2 mt-4">
+                    <button
+                        type="button"
+                        className="btn btn-secondary"
+                        onClick={closeUnenrollModal}
+                        disabled={unenrollLoading}
+                    >
+                        Cancelar
+                    </button>
+                    <button
+                        type="button"
+                        className="btn btn-danger"
+                        onClick={confirmUnenrollUser}
+                        disabled={unenrollLoading}
+                    >
+                        {unenrollLoading ? 'A desinscrever...' : 'Desinscrever'}
+                    </button>
+                </div>
+            </Modal>
+
+            <Modal
+                isOpen={isResultModalOpen}
+                onClose={closeResultModal}
+                title={getResultModalTitle()}
+            >
+                {getResultModalBody()}
+                <div className="d-flex justify-content-end mt-4">
+                    <button type="button" className="btn btn-primary" onClick={closeResultModal}>
+                        OK
+                    </button>
+                </div>
+            </Modal>
+
             <div className="d-flex justify-content-between align-items-center mb-4">
                 <h1 className="h3 mb-0">{curso?.nome}</h1>
                 <div>
@@ -256,6 +383,49 @@ const DetalhesCurso = () => {
                 )}
             </div>
 
+            <div className="mt-5 card shadow-sm p-4">
+                <h2 className="h4 card-title mb-4">Utilizadores Inscritos neste Curso</h2>
+                {fetchingEnrolledUsers ? (
+                    <div className="text-center">
+                        <div className="spinner-border text-info" role="status">
+                            <span className="visually-hidden">A carregar inscritos...</span>
+                        </div>
+                        <p className="mt-2 text-muted">A carregar utilizadores inscritos...</p>
+                    </div>
+                ) : enrolledUsers.length > 0 ? (
+                    <div className="table-responsive" style={{ maxHeight: '400px', overflowY: 'auto' }}>
+                        <table className="table table-hover table-striped table-bordered align-middle">
+                            <thead className="table-light sticky-top" style={{ top: 0 }}>
+                                <tr>
+                                    <th>Nome do Utilizador</th>
+                                    <th>Email</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {enrolledUsers.map((user) => (
+                                    <tr key={user.idutilizador}>
+                                        <td>{user.nome}</td>
+                                        <td>{user.email}</td>
+                                        <td>
+                                            <button
+                                                className="btn btn-sm btn-danger"
+                                                onClick={() => handleUnenrollUserClick(user)}
+                                                disabled={unenrollLoading}
+                                            >
+                                                <i className="ri-prohibit-line"></i> Desinscrever
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                ) : (
+                    <p className="text-center text-muted">Não existem utilizadores inscritos neste curso.</p>
+                )}
+            </div>
+
             <div className="mt-5">
                 <h2 className="h4">Lições e Materiais do Curso</h2>
                 {curso?.licoes?.length > 0 ? (
@@ -290,7 +460,7 @@ const DetalhesCurso = () => {
                                                 </ul>
                                             </div>
                                         ) : (
-                                            <p>Nenhum material disponível para esta lição.</p>
+                                            <p className="text-muted">Nenhum material disponível para esta lição.</p>
                                         )}
                                     </div>
                                 )}
@@ -303,47 +473,6 @@ const DetalhesCurso = () => {
                     </div>
                 )}
             </div>
-
-            <Modal
-                isOpen={isDeleteModalOpen}
-                onClose={() => setIsDeleteModalOpen(false)}
-                title="Confirmar Eliminação"
-            >
-                {cursoToDelete && (
-                    <p>Tem a certeza que deseja eliminar o curso <strong>"{cursoToDelete.nome}"</strong>?</p>
-                )}
-                <div className="d-flex justify-content-end gap-2 mt-4">
-                    <button
-                        type="button"
-                        className="btn btn-secondary"
-                        onClick={() => setIsDeleteModalOpen(false)}
-                        disabled={deleting}
-                    >
-                        Cancelar
-                    </button>
-                    <button
-                        type="button"
-                        className="btn btn-danger"
-                        onClick={confirmDeleteCurso}
-                        disabled={deleting}
-                    >
-                        {deleting ? 'A Eliminar...' : 'Eliminar'}
-                    </button>
-                </div>
-            </Modal>
-
-            <Modal
-                isOpen={isResultModalOpen}
-                onClose={closeResultModal}
-                title={getResultModalTitle()}
-            >
-                {getResultModalBody()}
-                <div className="d-flex justify-content-end mt-4">
-                    <button type="button" className="btn btn-primary" onClick={closeResultModal}>
-                        OK
-                    </button>
-                </div>
-            </Modal>
         </div>
     );
 };

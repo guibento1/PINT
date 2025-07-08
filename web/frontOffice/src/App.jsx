@@ -4,14 +4,14 @@ import LayoutFront from './components/LayoutFront';
 
 import Index from './views/Index';
 import RegisterPage from './views/RegisterPage';
-import LoginPage from '../../shared/views/LoginPage.jsx';
+import LoginPage from '@shared/views/LoginPage.jsx';
 import ResetPassword from './views/ResetPassword';
 import Cursos from './views/Cursos';
 import Curso from './views/Curso';
 import Perfil from './views/Perfil';
 import Home from './views/Home';
 import NaoAutorizado from './views/NaoAutorizado';
-import ProtectedRoute from '../../shared/components/ProtectedRoute';
+import ProtectedRoute from '@shared/components/ProtectedRoute';
 
 function App() {
   return (

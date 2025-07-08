@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../../../../shared/services/axios.js';
-import Modal from '../../../../shared/components/Modal'; // Assumindo que este Modal é reutilizável
+import Modal from '../../../../shared/components/Modal';
 
 const EditarCurso = () => {
     const { id } = useParams(); // id do curso
@@ -11,7 +11,6 @@ const EditarCurso = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
-    // Estados para o formulário de edição do curso
     const [formData, setFormData] = useState({
         nome: '',
         disponivel: false,
@@ -19,35 +18,30 @@ const EditarCurso = () => {
         fimdeinscricoes: '',
         maxinscricoes: '',
         planocurricular: '',
-        topicos: [],     // Array de IDs de tópicos selecionados
+        topicos: [],     
     });
     const [thumbnailFile, setThumbnailFile] = useState(null);
-    const [currentThumbnail, setCurrentThumbnail] = useState(''); // Para exibir a thumbnail atual
+    const [currentThumbnail, setCurrentThumbnail] = useState('');
 
-    // Listas para dropdowns (apenas tópicos, já que categoria e área foram removidos do form de edição)
     const [allTopicos, setAllTopicos] = useState([]);
 
-    // Estados para o modal de adicionar lição
     const [isAddLessonModalOpen, setIsAddLessonModalOpen] = useState(false);
     const [newLessonTitle, setNewLessonTitle] = useState('');
     const [newLessonDescription, setNewLessonDescription] = useState('');
     const [addingLesson, setAddingLesson] = useState(false);
 
-    // Estados para o modal de adicionar conteúdo à lição
     const [isAddContentModalOpen, setIsAddContentModalOpen] = useState(false);
-    const [lessonToAddTo, setLessonToAddTo] = useState(null); // Lição à qual adicionar conteúdo
+    const [lessonToAddTo, setLessonToAddTo] = useState(null); 
     const [newContentTitle, setNewContentTitle] = useState('');
-    const [newContentType, setNewContentType] = useState(''); // 1: Apresentação, 2: Documento, 3: Link, etc.
+    const [newContentType, setNewContentType] = useState('');
     const [newContentLink, setNewContentLink] = useState('');
     const [newContentFile, setNewContentFile] = useState(null);
     const [addingContent, setAddingContent] = useState(false);
 
-    // Estados para o modal de confirmação de eliminação de lição
     const [isDeleteLessonModalOpen, setIsDeleteLessonModalOpen] = useState(false);
     const [lessonToDelete, setLessonToDelete] = useState(null);
     const [deletingLesson, setDeletingLesson] = useState(false);
 
-    // Estados para o modal de confirmação de eliminação de material
     const [isDeleteMaterialModalOpen, setIsDeleteMaterialModalOpen] = useState(false);
     const [materialToDelete, setMaterialToDelete] = useState(null);
     const [deletingMaterial, setDeletingMaterial] = useState(false);

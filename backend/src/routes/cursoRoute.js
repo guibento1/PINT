@@ -13,7 +13,7 @@ router.get('/:id', authenticateJWT, cursoController.getCurso);
 router.get('/inscricoes/utilizador/:idutilizador', authenticateJWT, cursoController.getCursoInscritos);
 router.get('/inscricoes/:id', authenticateJWT, authorizeRoles('admin'), cursoController.getInscricoes);
 router.post('/:id/inscrever', authenticateJWT, authorizeRoles('admin','formando'), cursoController.inscreverCurso );
-router.delete('/:id/sair', authenticateJWT, authorizeRoles('admin','formando'), cursoController.sairCurso );
+router.post('/:id/sair', authenticateJWT, authorizeRoles('admin','formando'), cursoController.sairCurso );
 router.post('/cursoassincrono', authenticateJWT, authorizeRoles('admin'), upload.single('thumbnail'), cursoController.createCursoAssincrono);
 router.post('/licao/:idcursoassinc', authenticateJWT, authorizeRoles('admin'), cursoController.addLicao);
 router.post('/licao/:idlicao/addContent', authenticateJWT, authorizeRoles('admin'), upload.single('ficheiro'), cursoController.addLicaoContent);

@@ -10,10 +10,11 @@ import NaoAutorizado from "./views/NaoAutorizado";
 import Home from './views/Home';
 import GerirEstrutura from './views/GerirEstrutura';
 import Cursos from './views/Cursos';
-import DetalhesCurso from './views/DetalhesCurso.jsx';
-// import DetalhesCurso from './views/DetalhesCurso';
+import DetalhesCurso from './views/DetalhesCurso';
+import Utilizadores from './views/Utilizadores';
+import EditarUtilizador from './views/editar/EditarUtilizador.jsx';
 import CriarEstrutura from './views/criar/CriarEstrutura';
-import CriarCurso from './views/criar/CriarCurso.jsx';
+import CriarCurso from './views/criar/CriarCurso';
 import EditarArea from './views/editar/EditarArea'
 import EditarCategoria from './views/editar/EditarCategoria'
 import EditarTopico from './views/editar/EditarTopico'
@@ -37,17 +38,15 @@ function App() {
         <Route path="/editar/categoria/:id" element={<ProtectedRoute allowedRoles={['admin']}><EditarCategoria /></ProtectedRoute>} />
         <Route path="/editar/area/:id" element={<ProtectedRoute allowedRoles={['admin']}><EditarArea /></ProtectedRoute>} />
         <Route path="/editar/topico/:id" element={<ProtectedRoute allowedRoles={['admin']}><EditarTopico /></ProtectedRoute>} />
+        <Route path="/editar/curso/:id" element={<ProtectedRoute allowedRoles={['admin']}><EditarCurso /></ProtectedRoute>} />
         <Route path="/cursos" element={<ProtectedRoute allowedRoles={['admin']}><Cursos /></ProtectedRoute>} />
 
         <Route path="/curso/:id" element={<ProtectedRoute allowedRoles={['admin']}><DetalhesCurso /></ProtectedRoute>} />
-        {/*
-          <Route path="/gerir-estrutura" element={<ProtectedRoute allowedRoles={['admin']}><GerirEstrutura /></ProtectedRoute>} />
-          <Route path="/pesquisar" element={<ProtectedRoute allowedRoles={['admin']}><PesquisarCursos /></ProtectedRoute>} />
-          <Route path="/usuarios" element={<ProtectedRoute allowedRoles={['admin']}><Usuarios /></ProtectedRoute>} />
-          <Route path="/topicos" element={<ProtectedRoute allowedRoles={['admin']}><Topicos /></ProtectedRoute>} />
-          <Route path="/notificacoes" element={<ProtectedRoute allowedRoles={['admin']}><Notificacoes /></ProtectedRoute>} />
-          <Route path="/perfil" element={<ProtectedRoute allowedRoles={['admin']}><Perfil /></ProtectedRoute>} />
-        */}
+
+        <Route path="/utilizadores" element={<ProtectedRoute allowedRoles={['admin']}><Utilizadores /></ProtectedRoute>} />
+
+        <Route path="/editar/utilizador/:id" element={<ProtectedRoute allowedRoles={['admin']}><EditarUtilizador /></ProtectedRoute>} />
+
       </Routes>
   </LayoutBack>
     </Router>

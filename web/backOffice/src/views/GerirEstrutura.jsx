@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import api from '../../../shared/services/axios';
-import Modal from '../../../shared/components/Modal';
+import api from '@shared/services/axios';
+import Modal from '@shared/components/Modal';
 
 export default function GerirEstrutura() {
 

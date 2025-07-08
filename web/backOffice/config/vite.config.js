@@ -1,4 +1,3 @@
-// web\frontend\backOffice\config\vite.config.js
 import path from "path";
 import { fileURLToPath } from "url";
 import { defineConfig } from "vite";
@@ -11,9 +10,9 @@ export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
-      "@shared": path.resolve(__dirname, "../../../shared"),
-      "axios": path.resolve(__dirname, "../node_modules/axios"),
+      "@shared": path.resolve(__dirname, "../../shared"), 
     },
+    dedupe: ['react', 'react-dom','axios', 'react-router-dom']
   },
   server: {
     port: 3002,

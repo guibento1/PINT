@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import api from '../../../../shared/services/axios.js';
-import Modal from '../../../../shared/components/Modal'; 
+import api from '@shared/services/axios.js';
+import Modal from '@shared/components/Modal'; 
 
 const CriarCurso = () => {
     const navigate = useNavigate();

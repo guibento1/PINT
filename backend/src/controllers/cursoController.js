@@ -1061,7 +1061,7 @@ controllers.inscreverCurso = async (req, res) => {
         });
 
         if (inscricaoExistente) {
-            return res.status(409).json({ message: 'Já se encontra inscrito neste curso.' }); // 409 Conflict
+            return res.status(409).json({ message: 'Já se encontra inscrito neste curso.' }); 
         }
 
 
@@ -1087,7 +1087,6 @@ controllers.inscreverCurso = async (req, res) => {
 controllers.sairCurso = async (req, res) => {
 
     const id = req.params.id;
-    
     const { utilizador: utilizadorIdDoBody } = req.body || {}; 
     
     let data;
@@ -1102,14 +1101,18 @@ controllers.sairCurso = async (req, res) => {
       return res.status(403).json({ message: 'Acesso Proibido: Permissões insuficientes para desinscrever outro utilizador.' });
     }
 
+    console.log({utilizadorIdDoBody, user : req.user.idutilizador});
+
     const idDoUtilizadorParaDesinscricao = utilizadorIdDoBody || req.user.idutilizador;
 
     try {
+        console.log(idDoUtilizadorParaDesinscricao);
         const formandoData = await models.formando.findOne({ 
             where: { utilizador: idDoUtilizadorParaDesinscricao } 
         });
 
         if (!formandoData){
+
             return res.status(404).json({message:"Utilizador não é um formando ou formando não encontrado com o ID fornecido."});
         }
 
@@ -1120,6 +1123,7 @@ controllers.sairCurso = async (req, res) => {
         });
 
         if (!inscricaoExistente) {
+            console.log({ formando, curso: id });
             return res.status(404).json({ message: 'Inscrição não encontrada para este utilizador e curso.' });
         }
         

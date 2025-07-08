@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate,useLocation } from 'react-router-dom';
-import api from '../../../../shared/services/axios.js';
-import Modal from '../../../../shared/components/Modal.jsx'; 
+import api from '@shared/services/axios.js';
+import Modal from '@shared/components/Modal.jsx'; 
 
 export default function CriarEstrutura() {
 

@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Link } from 'react-router-dom';
-import FiltrosCursos from '../../../shared/components/FilterCursos.jsx'; 
-import api from '../../../shared/services/axios';
-import Modal from '../../../shared/components/Modal';
+import FiltrosCursos from '@shared/components/FilterCursos.jsx'; 
+import api from '@shared/services/axios';
+import Modal from '@shared/components/Modal';
 
 const getCursos = async (params) => {
     try {

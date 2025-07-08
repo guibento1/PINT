@@ -1,4 +1,4 @@
-import Footer from '../../../shared/components/Footer';
+import Footer from '@shared/components/Footer';
 
 export default function NaoAutorizado() {
   return (

@@ -1,9 +1,9 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import api from '../../../shared/services/axios';
-import Modal from '../../../shared/components/Modal';
+import api from '@shared/services/axios';
+import Modal from '@shared/components/Modal';
 
-import '../../../shared/styles/curso.css';
+import '@shared/styles/curso.css';
 
 const Perfil = () => {
 

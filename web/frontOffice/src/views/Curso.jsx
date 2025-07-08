@@ -1,8 +1,8 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import React, { useEffect, useState, useCallback } from 'react';
-import api from '../../../shared/services/axios';
-import '../../../shared/styles/curso.css';
-import Modal from '../../../shared/components/Modal';
+import api from '@shared/services/axios';
+import '@shared/styles/curso.css';
+import Modal from '@shared/components/Modal';
 
 const Curso = () => {
     const { id } = useParams();
@@ -134,7 +134,7 @@ const Curso = () => {
         setIsResultModalOpen(false); 
 
         try {
-            const res = await api.delete(`/curso/${id}/sair`); 
+            const res = await api.post(`/curso/${id}/sair`); 
             setOperationStatus(0); 
             setOperationMessage(res.data.message || "Saída do curso realizada com sucesso!");
         } catch (err) {

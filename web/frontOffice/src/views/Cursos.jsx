@@ -1,7 +1,7 @@
 // src/pages/Cursos/CursosPage.jsx
 import React, { useState, useEffect, useCallback } from 'react';
-import api from '../../../shared/services/axios';
-import FiltrosCursos from '../../../shared/components/FilterCursos.jsx';
+import api from '@shared/services/axios';
+import FiltrosCursos from '@shared/components/FilterCursos.jsx';
 import { useSearchParams } from 'react-router-dom';
 import CardCurso from '../components/CardCurso.jsx';
 
@@ -27,7 +27,9 @@ export default function CursosPage() {
     setLoading(true);
     setError(null);
     try {
-      const apiParams = {};
+      const apiParams = {
+          sincrono: false,
+      };
       if (currentFilters.search) apiParams.search = currentFilters.search;
       if (currentFilters.categoria) apiParams.categoria = currentFilters.categoria;
       if (currentFilters.area) apiParams.area = currentFilters.area;

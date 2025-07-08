@@ -1,6 +1,7 @@
 const { uploadFile, deleteFile, updateFile, generateSASUrl, sendEmail, isLink } = require('../utils.js');
 const { generateAccessToken } = require('../middleware.js');
 const crypto = require('crypto');
+const Sequelize = require('sequelize');
 
 var initModels = require("../models/init-models.js");
 var db = require("../database.js");
@@ -267,7 +268,7 @@ controllers.update = async (req, res) => {
             return res.status(200).json(result);
         } catch (error) {
             console.log(error);
-            res.status(500).json({ message: 'Error updating User' });
+            return res.status(500).json({ message: 'Error updating User' });
         }
     }
 
@@ -277,10 +278,17 @@ controllers.update = async (req, res) => {
 
 controllers.list = async (req,res) => {
 
+    const id  = req.user.idutilizador;
+
     try {
 
         const data = await models.utilizadores.findAll({ 
-            attributes: ["idutilizador","email","nome","dataregisto","foto","ativo"]
+            attributes: ["idutilizador","email","nome","dataregisto","foto","ativo"],
+            where: {
+                idutilizador: {
+                    [Sequelize.Op.ne]: id
+                }
+            }
         });
 
         for (let user of data) {
@@ -291,6 +299,7 @@ controllers.list = async (req,res) => {
         res.status(200).json(data);
 
     } catch (error) {
+        console.log(error);
         return res.status(400).json({ error: 'Something bad happened' });
     }
 };

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import Modal from '../../../shared/components/Modal';
+import Modal from '@shared/components/Modal';
 
 export default function RegisterPage() {
 

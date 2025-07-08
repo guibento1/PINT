@@ -1,9 +1,9 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import Calendar from 'react-calendar';
-import '../../../shared/styles/calendar.css';
+import '@shared/styles/calendar.css';
 import NavbarBack from '../components/NavbarBack';
-import Footer from '../../../shared/components/Footer';
+import Footer from '@shared/components/Footer';
 
 export default function HomeBackOffice() {
 
@@ -38,20 +38,7 @@ export default function HomeBackOffice() {
                       <i className="ri-group-line"></i>
                       <h5 className="card-title">Utilizadores</h5>
                       <p className="card-text">Gerir utilizadores</p>
-                      <Link to="/usuarios" className="btn">
-                        Aceder <i className="ri-arrow-right-line"></i>
-                      </Link>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="col-md-6 col-lg-6">
-                  <div className="card h-100">
-                    <div className="card-body d-flex flex-column align-items-center justify-content-center">
-                      <i className="ri-chat-3-line"></i>
-                      <h5 className="card-title">Fóruns</h5>
-                      <p className="card-text">Gerir e avaliar denúncias</p>
-                      <Link to="/topicos" className="btn">
+                      <Link to="/utilizadores" className="btn">
                         Aceder <i className="ri-arrow-right-line"></i>
                       </Link>
                     </div>

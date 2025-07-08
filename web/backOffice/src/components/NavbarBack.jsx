@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { NavLink, Link } from 'react-router-dom';
 import { useNavigate } from 'react-router-dom';
-import logoSoftinsa from '../../../shared/assets/images/softinsaLogo.svg';
-import logoSoftskills from '../../../shared/assets/images/thesoftskillsLogo.svg';
+import logoSoftinsa from '@shared/assets/images/softinsaLogo.svg';
+import logoSoftskills from '@shared/assets/images/thesoftskillsLogo.svg';
 
 export default function NavbarBack() {
   const [menuAberto, setMenuAberto] = useState(false);
@@ -76,20 +76,11 @@ export default function NavbarBack() {
             </li>
             <li className="nav-item">
               <NavLink
-                to="/usuarios"
+                to="/utilizadores"
                 className={({ isActive }) => `nav-link fw-semibold ${isActive ? 'active' : ''}`}
                 onClick={fecharMenu}
               >
-                Usuários
-              </NavLink>
-            </li>
-            <li className="nav-item">
-              <NavLink
-                to="/topicos"
-                className={({ isActive }) => `nav-link fw-semibold ${isActive ? 'active' : ''}`}
-                onClick={fecharMenu}
-              >
-                Fóruns
+                Utilizadores
               </NavLink>
             </li>
             <li className="nav-item position-relative">

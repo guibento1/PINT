@@ -1,7 +1,7 @@
 // web/frontend/frontOffice/src/views/LoginPage.jsx
 
 import React, { useState, useEffect } from 'react';
-import Modal from '../components/Modal.jsx';
+import Modal from '@shared/components/Modal.jsx';
 import logoSoftinsa from '../assets/images/softinsaLogo.svg';
 import logoSoftSkills from '../assets/images/thesoftskillsLogo.svg';
 import { useNavigate } from 'react-router-dom';

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import Modal from '../../../shared/components/Modal';
+import Modal from '@shared/components/Modal';
 
 export default function ResetPassword() {
   const [searchParams] = useSearchParams();
