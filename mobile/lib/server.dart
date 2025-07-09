@@ -24,7 +24,7 @@ class Servidor {
   Future<Map<String, dynamic>?> login(String email, String password) async {
     try {
       final response = await http.post(
-        Uri.parse('$urlAPI/login'),
+        Uri.parse('$urlAPI/utilizador/login'),
         headers: <String, String>{
           'Content-Type': 'application/json; charset=UTF-8',
         },
@@ -253,35 +253,3 @@ class Servidor {
   }
 }
 
-void main() async {
-
-  WidgetsFlutterBinding.ensureInitialized();
-
-  final servidor = Servidor();
-
-  print('Attempting a simple login and then a GET request...');
-
-  try {
-    final loginResult = await servidor.login("pedro.martins@email.com", "pedromartinspm");
-
-    if (loginResult != null) {
-      print('\nLogin successful! Now attempting a GET request for a protected resource...');
-
-      final protectedData = await servidor.getData('users/me'); 
-
-      if (protectedData != null) {
-        print('GET request for protected data successful!');
-        print('Received protected data:');
-        print(protectedData);
-      } else {
-        print('GET request for protected data failed or returned null.');
-      }
-    } else {
-      print('Login failed. Cannot proceed with authenticated GET request.');
-    }
-  } catch (e) {
-    print('An unexpected error occurred during the test: $e');
-  }
-
-  print('\nTest finished.');
-}

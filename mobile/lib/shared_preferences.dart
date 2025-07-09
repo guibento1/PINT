@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
 // Guardar token de sessão
@@ -46,4 +47,24 @@ Future<String?> getLanguage() async {
 Future<bool> isLoggedIn() async {
   final prefs = await SharedPreferences.getInstance();
   return prefs.getString('token') != null;
+}
+
+// Guardar dados do utilizador
+Future<void> saveUser(Map<String, dynamic> user) async {
+  final prefs = await SharedPreferences.getInstance();
+  await prefs.setString('user', jsonEncode(user));
+}
+
+// Ler dados do utilizador
+Future<Map<String, dynamic>?> getUser() async {
+  final prefs = await SharedPreferences.getInstance();
+  final userString = prefs.getString('user');
+  if (userString == null) return null;
+  return jsonDecode(userString) as Map<String, dynamic>;
+}
+
+// Remover dados do utilizador
+Future<void> removeUser() async {
+  final prefs = await SharedPreferences.getInstance();
+  await prefs.remove('user');
 }
