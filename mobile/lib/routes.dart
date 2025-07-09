@@ -1,6 +1,6 @@
 import 'package:go_router/go_router.dart';
 import 'course_details_page.dart';
-import 'course_page.dart';
+import 'courses_page.dart';
 import 'home_page.dart';
 import 'login_page.dart';
 import 'profile_page.dart';
@@ -22,9 +22,9 @@ final rotas = GoRouter(
       builder: (context, state) => CourseDetailsPage(),
     ),
     GoRoute(
-      path: '/course',
-      name: 'course',
-      builder: (context, state) => CoursePage(),
+      path: '/courses',
+      name: 'courses',
+      builder: (context, state) => CoursesPage(),
     ),
     GoRoute(
       path: '/home',
