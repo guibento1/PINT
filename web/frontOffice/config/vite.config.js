@@ -12,9 +12,21 @@ export default defineConfig({
     alias: {
       "@shared": path.resolve(__dirname, "../../shared"), 
     },
-    dedupe: ['react', 'react-dom','axios', 'react-router-dom']
+    dedupe: ['react', 'react-dom','axios','react-router-dom']
   },
   server: {
     port: 3001,
   },
+  
+  // Producao
+
+  // server: {
+  //   host: '0.0.0.0', 
+  //   port: 8001, 
+  //   allowedHosts: ["thesoftskills.xyz"], 
+  //   hmr: {
+  //     protocol: 'wss', 
+  //     host: 'thesoftskills.xyz', 
+  //   },
+  // },
 });

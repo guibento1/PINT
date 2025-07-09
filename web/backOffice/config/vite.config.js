@@ -17,4 +17,17 @@ export default defineConfig({
   server: {
     port: 3002,
   },
+
+
+  // Producao
+
+  // server: {
+  //   host: '0.0.0.0', 
+  //   port: 8002, 
+  //   allowedHosts: ["thesoftskills.xyz"], 
+  //   hmr: {
+  //     protocol: 'wss', 
+  //     host: 'thesoftskills.xyz', 
+  //   },
+  // },
 });

@@ -46,13 +46,11 @@ const EditarCurso = () => {
     const [materialToDelete, setMaterialToDelete] = useState(null);
     const [deletingMaterial, setDeletingMaterial] = useState(false);
 
-    // Estados para modais de resultado (sucesso/erro)
     const [operationStatus, setOperationStatus] = useState(null); // null: nenhum, 0: sucesso, 1: erro
     const [operationMessage, setOperationMessage] = useState('');
     const [isResultModalOpen, setIsResultModalOpen] = useState(false);
 
 
-    // Funções para Modais de Resultado
     const getResultModalTitle = () => {
         switch (operationStatus) {
             case 0: return "Sucesso";
@@ -79,20 +77,17 @@ const EditarCurso = () => {
         setIsResultModalOpen(false);
         setOperationStatus(null);
         setOperationMessage('');
-        // Recarregar os dados do curso após uma operação bem-sucedida (exceto na eliminação do curso inteiro)
         if (operationStatus === 0) {
             fetchCursoAndRelatedData();
         }
     };
 
-    // --- Funções de Fetch de Dados Iniciais ---
     const fetchCursoAndRelatedData = useCallback(async () => {
         setLoading(true);
         setError(null);
         try {
-            // Fetch do curso
             const cursoRes = await api.get(`/curso/${id}`);
-            const cursoData = cursoRes.data[0] || cursoRes.data; // Adapta para caso retorne array ou objeto
+            const cursoData = cursoRes.data[0] || cursoRes.data; 
 
             if (cursoData) {
                 setCurso(cursoData);
@@ -103,7 +98,6 @@ const EditarCurso = () => {
                     fimdeinscricoes: cursoData.fimdeinscricoes ? new Date(cursoData.fimdeinscricoes).toISOString().slice(0, 16) : '',
                     maxinscricoes: cursoData.maxinscricoes || '',
                     planocurricular: cursoData.planocurricular || '',
-                    // GARANTIR QUE OS ID's DOS TÓPICOS SÃO SEMPRE NÚMEROS
                     topicos: cursoData.topicos?.map(t => parseInt(t.idtopico)) || [],
                 });
                 setCurrentThumbnail(cursoData.thumbnail || '');
@@ -111,9 +105,7 @@ const EditarCurso = () => {
                 setError("Curso não encontrado.");
             }
 
-            // Fetch de tópicos para os checkboxes
             const topicosRes = await api.get('/topico/list');
-            // GARANTIR QUE OS ID's DE TODOS OS TÓPICOS SÃO SEMPRE NÚMEROS
             setAllTopicos(topicosRes.data.map(topico => ({
                 ...topico,
                 idtopico: parseInt(topico.idtopico)
@@ -131,7 +123,6 @@ const EditarCurso = () => {
         fetchCursoAndRelatedData();
     }, [fetchCursoAndRelatedData]);
 
-    // --- Funções de Manipulação do Formulário de Curso ---
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
         setFormData(prev => ({
@@ -150,7 +141,6 @@ const EditarCurso = () => {
     };
 
     const handleTopicChange = (e) => {
-        // e.target.value é sempre uma string, então é crucial o parseInt aqui
         const topicId = parseInt(e.target.value);
         setFormData(prev => {
             const updatedTopicos = prev.topicos.includes(topicId)
@@ -203,7 +193,6 @@ const EditarCurso = () => {
         }
     };
 
-    // --- Funções para Gerir Lições ---
     const handleAddLessonClick = () => {
         setNewLessonTitle('');
         setNewLessonDescription('');
@@ -219,7 +208,7 @@ const EditarCurso = () => {
             });
             setOperationStatus(0);
             setOperationMessage(res.data.message || "Lição adicionada com sucesso!");
-            setIsAddLessonModalOpen(false); // Fecha o modal
+            setIsAddLessonModalOpen(false); 
         } catch (err) {
             console.error("Erro ao adicionar lição:", err);
             setOperationStatus(1);
@@ -314,7 +303,7 @@ const EditarCurso = () => {
         if (!materialToDelete) return;
         setDeletingMaterial(true);
         try {
-            const res = await api.delete(`/curso/licao/material/${materialToDelete.idmaterial}`); // Assumindo este endpoint
+            const res = await api.delete(`/curso/licao/material/${materialToDelete.idmaterial}`); 
             setOperationStatus(0);
             setOperationMessage(res.data.message || "Material eliminado com sucesso!");
             setIsDeleteMaterialModalOpen(false); // Fecha o modal
@@ -333,7 +322,7 @@ const EditarCurso = () => {
         if (!isoString) return '';
         try {
             const date = new Date(isoString);
-            date.setMinutes(date.getMinutes() - date.getTimezoneOffset()); // Adjust for timezone offset
+            date.setMinutes(date.getMinutes() - date.getTimezoneOffset()); 
             return date.toISOString().slice(0, 16);
         } catch {
             return '';
@@ -513,7 +502,7 @@ const EditarCurso = () => {
                                         className="form-check-input"
                                         type="checkbox"
                                         id={`topico-${topico.idtopico}`}
-                                        value={topico.idtopico} // Este value será uma string ao ser lido pelo onChange
+                                        value={topico.idtopico} 
                                         checked={formData.topicos.includes(topico.idtopico)}
                                         onChange={handleTopicChange}
                                     />

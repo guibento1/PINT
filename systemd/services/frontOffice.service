@@ -1,0 +1,18 @@
+[Unit]
+Description=FrontOffice Application
+After=network.target backend.service
+Requires=backend.service             
+
+[Service]
+User=grupo
+Group=grupo
+
+WorkingDirectory=/data/PINT/web/frontOffice
+ExecStart=/usr/local/node/bin/node /usr/local/node/bin/npm startInProd
+
+StandardOutput=syslog 
+StandardError=syslog 
+SyslogIdentifier=backend
+
+[Install]
+WantedBy=multi-user.target 

@@ -1,0 +1,12 @@
+[Unit]
+Description=Contentor de Base de Dados
+
+[Container]
+ContainerName=DB
+Environment=POSTGRES_USER=xxxx POSTGRES_DB=xxxxxx POSTGRES_PASSWORD=xxxxx PGDATA=/var/lib/postgresql/data/pgdata
+Image=postgres
+PublishPort=5432:5432
+Volume=/data/postgres/data:/var/lib/postgresql/data:z
+
+[Install]
+WantedBy=multi-user.target default.target

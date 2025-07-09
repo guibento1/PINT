@@ -1,0 +1,17 @@
+[Unit]
+Description=Backend API
+After=network.target
+
+[Service]
+User=grupo
+Group=grupo
+
+WorkingDirectory=/data/PINT/backend
+ExecStart=/usr/local/node/bin/node /usr/local/node/bin/npm startInProd
+
+StandardOutput=syslog 
+StandardError=syslog 
+SyslogIdentifier=backend
+
+[Install]
+WantedBy=multi-user.target

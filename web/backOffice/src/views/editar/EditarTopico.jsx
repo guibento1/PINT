@@ -54,13 +54,10 @@ export default function EditarTopico() {
         const fetchTopicoData = async () => {
             setLoading(true);
             try {
-                // Fetch do Tópico específico
                 const resTopico = await api.get(`/topico/id/${id}`);
                 if (resTopico.data) {
                     const topicoData = resTopico.data;
                     setDesignacao(topicoData.designacao);
-                    // Assumindo que topicoData.areas é um array de objetos de área,
-                    // precisamos mapear para um array de IDs de string para o estado do checkbox
                     if (topicoData.areas) {
                         setAreasSelecionadas(topicoData.areas.map(area => area.idarea.toString()));
                     }
@@ -68,7 +65,6 @@ export default function EditarTopico() {
                     setError('Tópico não encontrado.');
                 }
 
-                // Fetch de todas as Áreas
                 const resAreas = await api.get('/area/list');
                 setAreasDisponiveis(resAreas.data);
 

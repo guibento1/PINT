@@ -42,7 +42,7 @@ export default function NavbarFront() {
 
         {/* Botão do menu (hambúrguer) */}
         <button className="navbar-toggler" type="button" onClick={toggleMenu}>
-          {menuAberto ? <i className="ri-close-line text-light"></i> : <i className="ri-menu-line text-light"></i>}
+          {menuAberto ? <i className="ri-close-line"></i> : <i className="ri-menu-line"></i>}
         </button>
 
         {/* Conteúdo da navbar */}

@@ -1,0 +1,28 @@
+[Unit]
+Description=Nginx Proxy Manager
+
+# Defaults #
+# - user:admin@example.com
+# - password:changeme
+
+[Container]
+Image=jc21/nginx-proxy-manager:2.12.3
+ContainerName=nginx-proxy-manager
+
+# Reverse proxy ports
+PublishPort=80:80
+PublishPort=81:81
+PublishPort=443:443
+
+Network=host
+
+#127.0.0.1:3000 -> backend
+#127.0.0.1:3001 -> frontOffice
+#127.0.0.1:3002 -> backOffice
+
+Volume=/containers/nginx-reverse-proxy/data:/data:z
+Volume=/containers/nginx-reverse-proxy/letsencrypt:/etc/letsencrypt:z
+
+
+[Install]
+WantedBy=multi-user.target default.target
