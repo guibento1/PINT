@@ -1,10 +1,10 @@
 import 'package:go_router/go_router.dart';
-import 'course_details_page.dart';
-import 'courses_page.dart';
-import 'home_page.dart';
-import 'login_page.dart';
-import 'profile_page.dart';
-import 'shared_preferences.dart' as my_prefs;
+import 'views/course_details_page.dart';
+import 'views/courses_page.dart';
+import 'views/home_page.dart';
+import 'views/login_page.dart';
+import 'views/profile_page.dart';
+import 'backend/shared_preferences.dart' as my_prefs;
 
 final rotas = GoRouter(
   initialLocation: '/',

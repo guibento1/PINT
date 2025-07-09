@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'server.dart';
-import 'database_helper.dart';
-import 'shared_preferences.dart';
+import '../backend/server.dart';
+import '../backend/database_helper.dart';
+import '../backend/shared_preferences.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});

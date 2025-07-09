@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'server.dart';
-import 'shared_preferences.dart';
+import '../backend/server.dart';
+import '../backend/shared_preferences.dart';
 import 'package:go_router/go_router.dart';
 
 class LoginPage extends StatefulWidget {
