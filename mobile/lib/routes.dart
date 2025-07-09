@@ -7,7 +7,21 @@ import 'profile_page.dart';
 import 'shared_preferences.dart' as my_prefs;
 
 final rotas = GoRouter(
-  initialLocation: '/home',
+  initialLocation: '/',
+  redirect: (context, state) async {
+    final token = await my_prefs.getToken();
+    final loc = state.uri.toString();
+    if (token == null || token.isEmpty) {
+      if (loc != '/login') {
+        return '/login';
+      }
+    } else {
+      if (loc == '/login' || loc == '/') {
+        return '/home';
+      }
+    }
+    return null;
+  },
 
   routes: [
     GoRoute(
