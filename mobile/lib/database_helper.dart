@@ -53,7 +53,23 @@ class DatabaseHelper {
   // Métodos para cursos
   Future<int> guardarCurso(Map<String, dynamic> curso) async {
     var dbClient = await db;
-    return await dbClient.insert('cursos', curso, conflictAlgorithm: ConflictAlgorithm.replace);
+    return await dbClient.rawInsert(
+      'INSERT INTO cursos (idcurso, nome, disponivel, iniciodeinscricoes, fimdeinscricoes, maxinscricoes, thumbnail, sincrono, inscrito, canal, planocurricular) '
+      'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [
+        curso['idcurso'],
+        curso['nome'],
+        curso['disponivel'],
+        curso['iniciodeinscricoes'],
+        curso['fimdeinscricoes'],
+        curso['maxinscricoes'],
+        curso['thumbnail'],
+        curso['sincrono'],
+        curso['inscrito'],
+        curso['canal'],
+        curso['planocurricular'],
+      ],
+    );
   }
   Future<List<Map<String, dynamic>>> listarCursos() async {
     var dbClient = await db;
@@ -63,7 +79,14 @@ class DatabaseHelper {
   // Métodos para tópicos
   Future<int> guardarTopico(Map<String, dynamic> topico) async {
     var dbClient = await db;
-    return await dbClient.insert('topicos', topico, conflictAlgorithm: ConflictAlgorithm.replace);
+    return await dbClient.rawInsert(
+      'INSERT INTO topicos (idtopico, idcurso, designacao) VALUES (?, ?, ?)',
+      [
+        topico['idtopico'],
+        topico['idcurso'],
+        topico['designacao'],
+      ],
+    );
   }
   Future<List<Map<String, dynamic>>> listarTopicosDoCurso(int idcurso) async {
     var dbClient = await db;
@@ -73,7 +96,17 @@ class DatabaseHelper {
   // Métodos para perfil
   Future<int> guardarPerfil(Map<String, dynamic> perfil) async {
     var dbClient = await db;
-    return await dbClient.insert('perfil', perfil, conflictAlgorithm: ConflictAlgorithm.replace);
+    return await dbClient.rawInsert(
+      'INSERT INTO perfil (idutilizador, nome, email, foto, telefone, morada) VALUES (?, ?, ?, ?, ?, ?)',
+      [
+        perfil['idutilizador'],
+        perfil['nome'],
+        perfil['email'],
+        perfil['foto'],
+        perfil['telefone'],
+        perfil['morada'],
+      ],
+    );
   }
   Future<Map<String, dynamic>?> obterPerfil(int idutilizador) async {
     var dbClient = await db;
