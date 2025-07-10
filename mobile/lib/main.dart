@@ -13,7 +13,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp.router(
       title: 'Projeto Prático PDM',
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        scaffoldBackgroundColor: const Color(0xFFF6F9FB),
       ),
       routerConfig: rotas,
     );

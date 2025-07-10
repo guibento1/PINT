@@ -42,8 +42,7 @@ final rotas = GoRouter(
     ShellRoute(
       builder: (context, state, child) {
         return Scaffold(
-          backgroundColor: const Color(0xFFF0F4FD), 
-          body: SafeArea( 
+          body: SafeArea(
             child: Column( 
               children: [
                 const TopHeaderBar(),

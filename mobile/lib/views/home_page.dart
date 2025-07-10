@@ -60,7 +60,8 @@ class _HomePageState extends State<HomePage> {
         borderRadius: BorderRadius.circular(30.0),
       ),
       child: RefreshIndicator(
-        color: const Color(0xFF007BFF), // azul igual ao nav bar
+        color: const Color(0xFF007BFF),
+        backgroundColor: Colors.white,
         onRefresh: () async {
           setState(() {
             _dataFuture = _loadData();
@@ -97,7 +98,7 @@ class _HomePageState extends State<HomePage> {
                   child: TextField(
                     decoration: InputDecoration(
                       hintText: 'Procurar cursos em que estás inscrito ',
-                      hintStyle: TextStyle(color: Colors.grey[500]),
+                      hintStyle: TextStyle(color: Color(0xFF8F9BB3)),
                       suffixIcon: Padding(
                         padding: const EdgeInsets.only(right: 10),
                         child: SizedBox(
@@ -106,7 +107,7 @@ class _HomePageState extends State<HomePage> {
                           child: Container(
                             margin: const EdgeInsets.all(6),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF00C4B4),
+                              color: const Color(0xFF00B0DA),
                               borderRadius: BorderRadius.circular(13),
                               boxShadow: [
                                 BoxShadow(
@@ -117,7 +118,7 @@ class _HomePageState extends State<HomePage> {
                                 ),
                               ],
                             ),
-                            child: const Icon(Icons.search, color: Colors.white, size: 28),
+                            child: const Icon(Icons.search, color: Colors.white, size: 25),
                           ),
                         ),
                       ),
@@ -137,9 +138,9 @@ class _HomePageState extends State<HomePage> {
                   children: [
                     const Text('Cursos Inscritos',
                         style: TextStyle(
-                            fontSize: 20,
+                            fontSize: 25,
                             fontWeight: FontWeight.bold,
-                            color: Color(0xFF007BFF))),
+                            color: Color(0xFF007BFF))), // azul escuro para títulos
                   ],
                 ),
                 const SizedBox(height: 15),
@@ -175,31 +176,38 @@ class _HomePageState extends State<HomePage> {
                         margin: const EdgeInsets.only(bottom: 15),
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFE0F7FA),
+                          color: const Color(0xFFFFFFFF),
                           borderRadius: BorderRadius.circular(20),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.grey.withOpacity(0.3),
+                              spreadRadius: 1,
+                              blurRadius: 1,
+                              offset: const Offset(1, 3),
+                            ),
+                          ],
                         ),
                         child: Row(
                           children: [
                             Container(
-                              padding: const EdgeInsets.all(16),
+                              padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
                                 color: Colors.white,
                                 borderRadius: BorderRadius.circular(15),
                               ),
                               child: hasThumbnail
-                                  ? Image.network(
-                                      curso['thumbnail'],
-                                      width: 32,
-                                      height: 32,
-                                      fit: BoxFit.cover,
-                                      errorBuilder:
-                                          (context, error, stackTrace) =>
-                                              const Icon(Icons.code,
-                                                  color: Color(0xFFFD7E14),
-                                                  size: 32),
+                                  ? ClipRRect(
+                                      borderRadius: BorderRadius.circular(15),
+                                      child: Image.network(
+                                        curso['thumbnail'],
+                                        width: 72, // imagem maior
+                                        height: 72, // imagem maior
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (context, error, stackTrace) =>
+                                            const Icon(Icons.code, color: Color(0xFFFD7E14), size: 48),
+                                      ),
                                     )
-                                  : const Icon(Icons.code,
-                                      color: Color(0xFFFD7E14), size: 32),
+                                  : const Icon(Icons.code, color: Color(0xFFFD7E14), size: 48),
                             ),
                             const SizedBox(width: 15),
                             Expanded(
@@ -211,7 +219,7 @@ class _HomePageState extends State<HomePage> {
                                     style: const TextStyle(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 16,
-                                      color: Color(0xFF0D47A1),
+                                      color: Color(0xFF222B45), // texto principal
                                     ),
                                   ),
                                   const SizedBox(height: 5),
@@ -219,7 +227,7 @@ class _HomePageState extends State<HomePage> {
                                     'Toque para ver os detalhes do curso.',
                                     style: TextStyle(
                                       fontSize: 14,
-                                      color: Colors.grey[700],
+                                      color: Color(0xFF8F9BB3), // texto secundário
                                     ),
                                   ),
                                 ],

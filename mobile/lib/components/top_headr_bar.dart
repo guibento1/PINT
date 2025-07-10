@@ -59,74 +59,83 @@ class _TopHeaderBarState extends State<TopHeaderBar> {
       padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10.0),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        crossAxisAlignment: CrossAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.center, // Garante alinhamento pelo centro
         children: [
           // Avatar com sombra
-          Container(
-            padding: const EdgeInsets.all(3),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.grey.withOpacity(0.2),
-                  blurRadius: 8,
-                  offset: Offset(0, 2),
-                ),
-              ],
-            ),
-            child: CircleAvatar(
-              radius: 24,
-              backgroundColor: Colors.transparent,
-              key: ValueKey(_avatarUrl),
-              backgroundImage: NetworkImage(_avatarUrl),
-              onBackgroundImageError: (exception, stackTrace) {
-                setState(() {
-                  _avatarUrl = 'https://i.pravatar.cc/150?img=32';
-                });
-              },
+          Align(
+            alignment: Alignment.center,
+            child: Container(
+              padding: const EdgeInsets.all(3),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.grey.withOpacity(0.2),
+                    blurRadius: 8,
+                    offset: Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: CircleAvatar(
+                radius: 24,
+                backgroundColor: Colors.transparent,
+                key: ValueKey(_avatarUrl),
+                backgroundImage: NetworkImage(_avatarUrl),
+                onBackgroundImageError: (exception, stackTrace) {
+                  setState(() {
+                    _avatarUrl = 'https://i.pravatar.cc/150?img=32';
+                  });
+                },
+              ),
             ),
           ),
           // Logo SVG com sombra
-          Container(
-            height: 52,
-            width: 162,
+          Align(
             alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: Colors.transparent,
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.grey.withOpacity(0.2),
-                  blurRadius: 8,
-                  offset: Offset(0, 2),
-                ),
-              ],
-            ),
-            child: SvgPicture.asset(
-              'lib/assets/thesoftskillsLogo.svg',
+            child: Container(
               height: 52,
               width: 162,
-              fit: BoxFit.contain,
               alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: Colors.transparent,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.grey.withOpacity(0.2),
+                    blurRadius: 8,
+                    offset: Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: SvgPicture.asset(
+                'lib/assets/thesoftskillsLogo.svg',
+                height: 52,
+                width: 162,
+                fit: BoxFit.contain,
+                alignment: Alignment.center,
+              ),
             ),
           ),
           // Botão de settings com sombra
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(25),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.grey.withOpacity(0.2),
-                  blurRadius: 8,
-                  offset: Offset(0, 2),
-                ),
-              ],
-            ),
-            child: IconButton(
-              icon: const Icon(Icons.settings, color: Color(0xFF00B0DA), size: 28),
-              onPressed: () => context.go('/profile'),
+          Align(
+            alignment: Alignment.center,
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(25),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.grey.withOpacity(0.2),
+                    blurRadius: 8,
+                    offset: Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: IconButton(
+                icon: const Icon(Icons.settings, color: Color(0xFF00B0DA), size: 28),
+                onPressed: () => context.go('/profile'),
+              ),
             ),
           ),
         ],

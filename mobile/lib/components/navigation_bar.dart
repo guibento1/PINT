@@ -26,9 +26,9 @@ class _NavigationBarClassState extends State<NavigationBarClass> {
           Icon(Icons.notifications_active, size: 33, color: Colors.white),
           Icon(Icons.account_circle, size: 33, color: Colors.white),
         ],
-        color: Color(0xFF00B0DA),
+        color: Color(0xFF00B0DA), // azul nav bar
         buttonBackgroundColor: Color(0xFF00B0DA),
-        backgroundColor: Colors.white,
+        backgroundColor: Color(0xFFF6F9FB), // fundo claro sugerido
         animationCurve: Curves.easeInOut,
         animationDuration: const Duration(milliseconds: 600),
         onTap: (index) {
