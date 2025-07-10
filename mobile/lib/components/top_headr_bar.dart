@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import '../backend/shared_preferences.dart' as my_prefs;
 
 class TopHeaderBar extends StatefulWidget {
@@ -33,9 +34,7 @@ class _TopHeaderBarState extends State<TopHeaderBar> {
   }
 
   Future<void> _updateAvatarFromPrefs() async {
-    print('TopHeaderBar: Attempting to update avatar from prefs...'); 
-    final user = my_prefs.currentUserNotifier.value; 
-    print('TopHeaderBar: User data from notifier: $user'); 
+    final user = my_prefs.currentUserNotifier.value;
 
     final perfil = user?['perfil'];
     String? foto;
@@ -45,42 +44,74 @@ class _TopHeaderBarState extends State<TopHeaderBar> {
           ? perfil['foto'] as String
           : null;
     }
-    print('TopHeaderBar: Extracted foto URL: $foto'); 
 
     if (mounted) {
       setState(() {
         _avatarUrl = foto ?? 'https://i.pravatar.cc/150?img=32';
-        print('TopHeaderBar: Avatar URL set to: $_avatarUrl'); 
       });
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 20.0),
+    return Container(
+      height: 72,
+      padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10.0),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          CircleAvatar(
-            radius: 24,
-            key: ValueKey(_avatarUrl), 
-            backgroundImage: NetworkImage(_avatarUrl),
-            onBackgroundImageError: (exception, stackTrace) {
-              print('Erro ao carregar imagem do avatar: $exception');
-              setState(() {
-                _avatarUrl = 'https://i.pravatar.cc/150?img=32'; 
-              });
-            },
-          ),
-          const Text(
-            'THE SOFTSKILLS',
-            style: TextStyle(
-              color: Color(0xFF007BFF),
-              fontWeight: FontWeight.bold,
-              fontSize: 16,
+          // Avatar com sombra
+          Container(
+            padding: const EdgeInsets.all(3),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.grey.withOpacity(0.2),
+                  blurRadius: 8,
+                  offset: Offset(0, 2),
+                ),
+              ],
+            ),
+            child: CircleAvatar(
+              radius: 24,
+              backgroundColor: Colors.transparent,
+              key: ValueKey(_avatarUrl),
+              backgroundImage: NetworkImage(_avatarUrl),
+              onBackgroundImageError: (exception, stackTrace) {
+                setState(() {
+                  _avatarUrl = 'https://i.pravatar.cc/150?img=32';
+                });
+              },
             ),
           ),
+          // Logo SVG com sombra
+          Container(
+            height: 52,
+            width: 162,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: Colors.transparent,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.grey.withOpacity(0.2),
+                  blurRadius: 8,
+                  offset: Offset(0, 2),
+                ),
+              ],
+            ),
+            child: SvgPicture.asset(
+              'lib/assets/thesoftskillsLogo.svg',
+              height: 52,
+              width: 162,
+              fit: BoxFit.contain,
+              alignment: Alignment.center,
+            ),
+          ),
+          // Botão de settings com sombra
           Container(
             decoration: BoxDecoration(
               color: Colors.white,
