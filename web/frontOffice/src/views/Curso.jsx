@@ -165,8 +165,8 @@ const Curso = () => {
             setLoading(true);
             try {
                 const res = await api.get(`/curso/${id}`);
-                setCurso(res.data[0]);
-                setInscrito(!!res.data[0]?.inscrito); 
+                setCurso(res.data);
+                setInscrito(!!res.data?.inscrito); 
             } catch (err) {
                 console.error("Erro ao carregar dados do curso:", err);
                 setCurso(null);

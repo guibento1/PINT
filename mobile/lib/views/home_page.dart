@@ -1,10 +1,9 @@
-// lib/views/home_page.dart
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../backend/server.dart';
 import '../backend/database_helper.dart';
 import '../backend/shared_preferences.dart' as my_prefs;
-import '../components/course_card.dart'; // Uses the simplified CourseCard
+import '../components/course_card.dart'; // Updated import path to components
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -143,7 +142,7 @@ class _HomePageState extends State<HomePage> {
                         style: TextStyle(
                             fontSize: 25,
                             fontWeight: FontWeight.bold,
-                            color: Color(0xFF007BFF))), // azul escuro para títulos
+                            color: Color(0xFF00B0DA))),
                   ],
                 ),
                 const SizedBox(height: 15),
@@ -160,7 +159,7 @@ class _HomePageState extends State<HomePage> {
                     } else if (rawIdcurso is String) {
                       idcurso = int.tryParse(rawIdcurso);
                     }
-                    return CourseCard(
+                    return CourseCard( // CourseCard now handles its own styling
                       curso: curso,
                       isSubscribed: true,
                       onTap: () {
@@ -174,7 +173,6 @@ class _HomePageState extends State<HomePage> {
                           );
                         }
                       },
-                      // No displayType needed, CourseCard is now always a list item
                     );
                   }).toList(),
                 const SizedBox(height: 20),

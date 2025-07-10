@@ -10,7 +10,7 @@ import 'views/profile_page.dart';
 import 'backend/shared_preferences.dart' as my_prefs;
 
 import 'components/navigation_bar.dart';
-import 'components/top_headr_bar.dart';
+import 'components/top_headr_bar.dart'; // Assuming this is your AppBar-like widget
 
 final rotas = GoRouter(
   initialLocation: '/',
@@ -22,12 +22,12 @@ final rotas = GoRouter(
     final bool isPublicRoute = isLoggingIn;
 
     if (token == null || token.isEmpty) {
-      if (!isPublicRoute) { 
+      if (!isPublicRoute) {
         return '/login';
       }
     } else {
-      if (isLoggingIn || loc == '/') { 
-        return '/home'; 
+      if (isLoggingIn || loc == '/') {
+        return '/home';
       }
     }
     return null;
@@ -36,30 +36,41 @@ final rotas = GoRouter(
     GoRoute(
       path: '/login',
       name: 'login',
-      builder: (context, state) => LoginPage(),
+      builder: (context, state) => LoginPage(), // No TopHeaderBar here
     ),
 
+    // ShellRoute for authenticated routes with shared layout
     ShellRoute(
       builder: (context, state, child) {
+        // Get the current route's URI to determine if TopHeaderBar should be shown
+        // state.uri gives you the full URI of the current location
+        final String currentPath = state.uri.path;
+
+        // Define routes where TopHeaderBar (and possibly NavigationBar) should NOT appear
+        final bool hideTopBar = currentPath == '/course_details' || currentPath.startsWith('/course_details/');
+        // You can add more conditions here: || currentPath == '/another_route_without_topbar'
+
         return Scaffold(
           body: SafeArea(
-            child: Column( 
+            child: Column(
               children: [
-                const TopHeaderBar(),
+                // Conditionally render TopHeaderBar
+                if (!hideTopBar) const TopHeaderBar(), // Only show if hideTopBar is false
                 Expanded(
-                  child: child,
+                  child: child, // This is the actual page content
                 ),
               ],
             ),
           ),
-          bottomNavigationBar: NavigationBarClass(),
+          // Conditionally render NavigationBarClass if it also needs to be hidden on specific routes
+          bottomNavigationBar: !hideTopBar ? NavigationBarClass() : null, // Assuming NavigationBarClass is a StatelessWidget
         );
       },
       routes: [
         GoRoute(
           path: '/home',
           name: 'home',
-          builder: (context, state) => const HomePage(), 
+          builder: (context, state) => const HomePage(),
         ),
         GoRoute(
           path: '/search_courses',
@@ -82,7 +93,7 @@ final rotas = GoRouter(
           builder: (context, state) => ProfilePage(),
         ),
         GoRoute(
-          path: '/course_details/:id',
+          path: '/course_details/:id', // This route should NOT have TopHeaderBar
           name: 'course_details',
           builder: (context, state) {
             final String? idString = state.pathParameters['id'];

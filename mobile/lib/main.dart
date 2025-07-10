@@ -16,6 +16,7 @@ class MyApp extends StatelessWidget {
         scaffoldBackgroundColor: const Color(0xFFF6F9FB),
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFFF6F9FB)),
       ),
+      debugShowCheckedModeBanner: false,
       routerConfig: rotas,
     );
   }
