@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:flutter/widgets.dart'; // Provides WidgetsFlutterBinding.ensureInitialized()
+import 'package:flutter/widgets.dart';
 
 class Servidor {
   final String urlAPI = 'https://api.thesoftskills.xyz';
@@ -10,7 +10,9 @@ class Servidor {
 
   Future<void> _saveToken(String token) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_jwtTokenKey, token); }
+    await prefs.setString(_jwtTokenKey, token);
+  }
+
   Future<String?> _getToken() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString(_jwtTokenKey);
@@ -67,7 +69,7 @@ class Servidor {
   }
 
   // --- GET Method ---
-  Future<Map<String, dynamic>?> getData(String endpoint) async {
+  Future<dynamic> getData(String endpoint) async {
     try {
       final headers = await _getAuthHeaders();
       headers['Content-Type'] = 'application/json; charset=UTF-8';
@@ -77,10 +79,16 @@ class Servidor {
         headers: headers,
       );
 
+      print('$urlAPI/$endpoint');
+      print(response.statusCode);
+      print(response.body);
+
       if (response.statusCode == 200) {
-        return json.decode(response.body);
+        final decodedResponse = json.decode(response.body);
+        return decodedResponse;
       } else if (response.statusCode == 401 || response.statusCode == 403) {
-        print('Authentication error: Token might be invalid or expired. Status: ${response.statusCode}');
+        print(
+            'Authentication error: Token might be invalid or expired. Status: ${response.statusCode}');
         return null;
       } else {
         print('Failed to load data: ${response.statusCode}');
@@ -93,9 +101,9 @@ class Servidor {
     }
   }
 
-  // ... (rest of your Servidor class methods: postData, putData, deleteData, postMultipartData, putMultipartData) ...
   // Keep all other methods as they are.
-  Future<Map<String, dynamic>?> postData(String endpoint, Map<String, dynamic> data) async {
+  Future<Map<String, dynamic>?> postData(
+      String endpoint, Map<String, dynamic> data) async {
     try {
       final headers = await _getAuthHeaders();
       headers['Content-Type'] = 'application/json; charset=UTF-8';
@@ -109,7 +117,8 @@ class Servidor {
       if (response.statusCode == 201 || response.statusCode == 200) {
         return json.decode(response.body);
       } else if (response.statusCode == 401 || response.statusCode == 403) {
-        print('Authentication error: Token might be invalid or expired. Status: ${response.statusCode}');
+        print(
+            'Authentication error: Token might be invalid or expired. Status: ${response.statusCode}');
         return null;
       } else {
         print('Failed to post data: ${response.statusCode}');
@@ -122,7 +131,8 @@ class Servidor {
     }
   }
 
-  Future<Map<String, dynamic>?> putData(String endpoint, Map<String, dynamic> data) async {
+  Future<Map<String, dynamic>?> putData(
+      String endpoint, Map<String, dynamic> data) async {
     try {
       final headers = await _getAuthHeaders();
       headers['Content-Type'] = 'application/json; charset=UTF-8';
@@ -136,7 +146,8 @@ class Servidor {
       if (response.statusCode == 200) {
         return json.decode(response.body);
       } else if (response.statusCode == 401 || response.statusCode == 403) {
-        print('Authentication error: Token might be invalid or expired. Status: ${response.statusCode}');
+        print(
+            'Authentication error: Token might be invalid or expired. Status: ${response.statusCode}');
         return null;
       } else {
         print('Failed to update data: ${response.statusCode}');
@@ -161,7 +172,8 @@ class Servidor {
       if (response.statusCode == 200 || response.statusCode == 204) {
         return true;
       } else if (response.statusCode == 401 || response.statusCode == 403) {
-        print('Authentication error: Token might be invalid or expired. Status: ${response.statusCode}');
+        print(
+            'Authentication error: Token might be invalid or expired. Status: ${response.statusCode}');
         return false;
       } else {
         print('Failed to delete data: ${response.statusCode}');
@@ -200,7 +212,8 @@ class Servidor {
       if (response.statusCode == 200 || response.statusCode == 201) {
         return json.decode(response.body);
       } else if (response.statusCode == 401 || response.statusCode == 403) {
-        print('Authentication error: Token might be invalid or expired. Status: ${response.statusCode}');
+        print(
+            'Authentication error: Token might be invalid or expired. Status: ${response.statusCode}');
         return null;
       } else {
         print('Failed to send multipart data: ${response.statusCode}');
@@ -239,7 +252,8 @@ class Servidor {
       if (response.statusCode == 200) {
         return json.decode(response.body);
       } else if (response.statusCode == 401 || response.statusCode == 403) {
-        print('Authentication error: Token might be invalid or expired. Status: ${response.statusCode}');
+        print(
+            'Authentication error: Token might be invalid or expired. Status: ${response.statusCode}');
         return null;
       } else {
         print('Failed to send multipart data: ${response.statusCode}');
@@ -252,4 +266,3 @@ class Servidor {
     }
   }
 }
-

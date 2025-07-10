@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../backend/server.dart';
-import '../backend/database_helper.dart';
+import '../backend/database_helper.dart'; 
 import '../backend/shared_preferences.dart';
 
 class HomePage extends StatefulWidget {
@@ -27,12 +27,25 @@ class _HomePageState extends State<HomePage> {
   Future<Map<String, dynamic>> _loadData() async {
     final user = await getUser();
     final userId = user?['idutilizador']?.toString();
-    if (userId == null) throw Exception('Utilizador não encontrado');
-    final perfil = await servidor.getData('utilizador/id/$userId') ?? {};
-    final cursosResp = await servidor.getData('utilizador/$userId/cursos');
-    final cursos = (cursosResp != null && cursosResp['data'] is List)
-        ? List<Map<String, dynamic>>.from(cursosResp['data'])
-        : <Map<String, dynamic>>[];
+    if (userId == null) {
+      throw Exception('Utilizador não encontrado');
+    }
+
+    final dynamic perfilResp = await servidor.getData('utilizador/id/$userId');
+    final Map<String, dynamic> perfil = (perfilResp is Map<String, dynamic>)
+        ? perfilResp
+        : {}; 
+
+    final dynamic cursosResp =
+        await servidor.getData('curso/inscricoes/utilizador/$userId');
+    print('curso/inscricoes/utilizador/$userId');
+    print(cursosResp);
+
+    final List<Map<String, dynamic>> cursos = (cursosResp is List)
+        ? List<Map<String, dynamic>>.from(
+            cursosResp.whereType<Map<String, dynamic>>()) 
+        : <Map<String, dynamic>>[]; 
+
     return {'perfil': perfil, 'cursos': cursos};
   }
 
@@ -78,20 +91,28 @@ class _HomePageState extends State<HomePage> {
               }
               final perfil = snapshot.data?['perfil'] ?? {};
               final cursos = snapshot.data?['cursos'] ?? [];
-              final avatarUrl = (perfil['foto'] != null && perfil['foto'].toString().isNotEmpty)
-                  ? perfil['foto']
-                  : 'https://i.pravatar.cc/150?img=32';
+              final avatarUrl =
+                  (perfil['foto'] != null && perfil['foto'].toString().isNotEmpty)
+                      ? perfil['foto']
+                      : 'https://i.pravatar.cc/150?img=32';
               return ListView(
-                padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 20.0),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20.0, vertical: 20.0),
                 children: [
                   // Top Bar
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      CircleAvatar(radius: 24, backgroundImage: NetworkImage(avatarUrl)),
-                      const Text('THE SOFTSKILLS', style: TextStyle(color: Color(0xFF007BFF), fontWeight: FontWeight.bold, fontSize: 16)),
+                      CircleAvatar(
+                          radius: 24, backgroundImage: NetworkImage(avatarUrl)),
+                      const Text('THE SOFTSKILLS',
+                          style: TextStyle(
+                              color: Color(0xFF007BFF),
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16)),
                       IconButton(
-                        icon: const Icon(Icons.settings, color: Color(0xFF6C757D), size: 28),
+                        icon: const Icon(Icons.settings,
+                            color: Color(0xFF6C757D), size: 28),
                         onPressed: () => context.go('/profile'),
                       ),
                     ],
@@ -108,7 +129,8 @@ class _HomePageState extends State<HomePage> {
                           color: const Color(0xFF00C4B4),
                           borderRadius: BorderRadius.circular(20),
                         ),
-                        child: const Icon(Icons.search, color: Colors.white, size: 24),
+                        child: const Icon(Icons.search,
+                            color: Colors.white, size: 24),
                       ),
                       filled: true,
                       fillColor: Colors.white,
@@ -116,7 +138,8 @@ class _HomePageState extends State<HomePage> {
                         borderRadius: BorderRadius.circular(30.0),
                         borderSide: BorderSide.none,
                       ),
-                      contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 25),
+                      contentPadding:
+                          const EdgeInsets.symmetric(vertical: 16, horizontal: 25),
                     ),
                   ),
                   const SizedBox(height: 30),
@@ -124,9 +147,14 @@ class _HomePageState extends State<HomePage> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text('Cursos Inscritos', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF007BFF))),
+                      const Text('Cursos Inscritos',
+                          style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF007BFF))),
                       IconButton(
-                        icon: const Icon(Icons.arrow_forward, color: Color(0xFF007BFF)),
+                        icon: const Icon(Icons.arrow_forward,
+                            color: Color(0xFF007BFF)),
                         onPressed: () => context.go('/courses'),
                       ),
                     ],
@@ -137,9 +165,11 @@ class _HomePageState extends State<HomePage> {
                     const Center(child: Text('Nenhum curso inscrito.'))
                   else
                     ...cursos.map<Widget>((curso) {
-                      final hasThumbnail = curso['thumbnail'] != null && (curso['thumbnail'] as String).isNotEmpty;
+                      final hasThumbnail = curso['thumbnail'] != null &&
+                          (curso['thumbnail'] as String).isNotEmpty;
                       return GestureDetector(
-                        onTap: () => context.go('/course_details', extra: curso['idcurso']),
+                        onTap: () =>
+                            context.go('/course_details', extra: curso['idcurso']),
                         child: Container(
                           margin: const EdgeInsets.only(bottom: 15),
                           padding: const EdgeInsets.all(16),
@@ -162,9 +192,12 @@ class _HomePageState extends State<HomePage> {
                                         height: 32,
                                         fit: BoxFit.cover,
                                         errorBuilder: (context, error, stackTrace) =>
-                                            const Icon(Icons.code, color: Color(0xFFFD7E14), size: 32),
+                                            const Icon(Icons.code,
+                                                color: Color(0xFFFD7E14),
+                                                size: 32),
                                       )
-                                    : const Icon(Icons.code, color: Color(0xFFFD7E14), size: 32),
+                                    : const Icon(Icons.code,
+                                        color: Color(0xFFFD7E14), size: 32),
                               ),
                               const SizedBox(width: 15),
                               Expanded(

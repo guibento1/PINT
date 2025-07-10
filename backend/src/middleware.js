@@ -5,8 +5,8 @@ const jwt = require('jsonwebtoken');
 require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
 const SECRET = process.env.JWTSECRET;
 
-function generateAccessToken(roles) {
-  return jwt.sign(roles, SECRET, { expiresIn: '1d' });
+function generateAccessToken(user) {
+  return jwt.sign(user, SECRET, { expiresIn: '15d' });
 }
 
 function authenticateJWT(req, res, next) {
