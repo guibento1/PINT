@@ -81,9 +81,22 @@ class _TopHeaderBarState extends State<TopHeaderBar> {
               fontSize: 16,
             ),
           ),
-          IconButton(
-            icon: const Icon(Icons.settings, color: Color(0xFF6C757D), size: 28),
-            onPressed: () => context.go('/profile'),
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(25),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.grey.withOpacity(0.2),
+                  blurRadius: 8,
+                  offset: Offset(0, 2),
+                ),
+              ],
+            ),
+            child: IconButton(
+              icon: const Icon(Icons.settings, color: Color(0xFF00B0DA), size: 28),
+              onPressed: () => context.go('/profile'),
+            ),
           ),
         ],
       ),
