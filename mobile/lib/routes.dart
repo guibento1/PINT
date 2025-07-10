@@ -2,14 +2,14 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter/material.dart';
 
 import 'views/course_details_page.dart';
-import 'views/courses_page.dart';
+import 'views/search_courses_page.dart';
 import 'views/home_page.dart';
 import 'views/login_page.dart';
 import 'views/profile_page.dart';
 
 import 'backend/shared_preferences.dart' as my_prefs;
 
-import 'components/navigation_bar.dart'; 
+import 'components/navigation_bar.dart';
 import 'components/top_headr_bar.dart';
 
 final rotas = GoRouter(
@@ -53,7 +53,7 @@ final rotas = GoRouter(
               ],
             ),
           ),
-          bottomNavigationBar: const Navigationbar(),
+          bottomNavigationBar: NavigationBarClass(),
         );
       },
       routes: [
@@ -63,9 +63,9 @@ final rotas = GoRouter(
           builder: (context, state) => const HomePage(), 
         ),
         GoRoute(
-          path: '/courses', 
-          name: 'courses',
-          builder: (context, state) => CoursesPage(),
+          path: '/search_courses',
+          name: 'search_courses',
+          builder: (context, state) => SearchCoursesPage(),
         ),
         GoRoute(
           path: '/groups',

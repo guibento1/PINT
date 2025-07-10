@@ -79,16 +79,26 @@ class _HomePageState extends State<HomePage> {
               const SizedBox(height: 30),
               TextField(
                 decoration: InputDecoration(
-                  hintText: 'Procurar curso',
+                  hintText: 'Procurar cursos em que estás inscrito ',
                   hintStyle: TextStyle(color: Colors.grey[500]),
                   suffixIcon: Container(
                     margin: const EdgeInsets.all(4),
                     decoration: BoxDecoration(
                       color: const Color(0xFF00C4B4),
                       borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.grey.withOpacity(0.3),
+                          spreadRadius: 1,
+                          blurRadius: 1,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
                     ),
-                    child: const Icon(Icons.search,
-                        color: Colors.white, size: 24),
+                    child: const Padding(
+                      padding: EdgeInsets.only(right: 12, left: 8),
+                      child: Icon(Icons.search, color: Colors.white, size: 24),
+                    ),
                   ),
                   filled: true,
                   fillColor: Colors.white,
@@ -96,8 +106,7 @@ class _HomePageState extends State<HomePage> {
                     borderRadius: BorderRadius.circular(30.0),
                     borderSide: BorderSide.none,
                   ),
-                  contentPadding:
-                      const EdgeInsets.symmetric(vertical: 16, horizontal: 25),
+                  contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 25),
                 ),
               ),
               const SizedBox(height: 30),

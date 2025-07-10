@@ -1,66 +1,57 @@
 import 'package:flutter/material.dart';
+import 'package:curved_navigation_bar/curved_navigation_bar.dart';
 import 'package:go_router/go_router.dart';
 
-
-class Navigationbar extends StatefulWidget {
-  const Navigationbar({super.key});
+class NavigationBarClass extends StatefulWidget {
+  const NavigationBarClass({super.key});
 
   @override
-  State<Navigationbar> createState() => _NavigationBarState();
+  State<NavigationBarClass> createState() => _NavigationBarClassState();
 }
 
-class _NavigationBarState extends State<Navigationbar> {
-
-  int _selectedIndex = 0;
+class _NavigationBarClassState extends State<NavigationBarClass> {
+  final GlobalKey<CurvedNavigationBarState> _bottomNavigationKey = GlobalKey();
+  int page = 0;
 
   @override
-    Widget build(BuildContext context) {
+  Widget build(BuildContext context) {
+    return
+      CurvedNavigationBar(
+        key: _bottomNavigationKey,
+        index: page,
+        height: 75.0,
+        items: const <Widget>[
+          Icon(Icons.home, size: 33, color: Colors.white),
+          Icon(Icons.school, size: 33, color: Colors.white),
+          Icon(Icons.notifications_active, size: 33, color: Colors.white),
+          Icon(Icons.account_circle, size: 33, color: Colors.white),
+        ],
+        color: Color(0xFF00B0DA),
+        buttonBackgroundColor: Color(0xFF00B0DA),
+        backgroundColor: Colors.white,
+        animationCurve: Curves.easeInOut,
+        animationDuration: const Duration(milliseconds: 600),
+        onTap: (index) {
 
-      void _onItemTapped(int index) {
-        setState(() {
-          _selectedIndex = index;
-        });
-        switch (index) {
-          case 0:
-            context.go('/home');
-            break;
-          case 1:
-            context.go('/groups');
-            break;
-          case 2:
-            context.go('/notifications');
-            break;
-          case 3:
-            context.go('/profile');
-            break;
-        }
-      }
+          setState(() {
+            page = index;
+          });
 
-      return BottomNavigationBar(
-              currentIndex: _selectedIndex,
-              onTap: _onItemTapped,
-              selectedItemColor: Colors.blue,
-              unselectedItemColor: Colors.grey,
-              items: const [
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.home),
-                  label: 'Início',
-                ),
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.groups),
-                  label: 'Grupos',
-                ),
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.notifications),
-                  label: 'Notificações',
-                ),
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.person),
-                  label: 'Perfil',
-                ),
-              ],
-      );
-
-    }
-  
+          switch (index) {
+            case 0:
+              context.go('/home');
+              break;
+            case 1:
+              context.go('/search_courses');
+              break;
+            case 2:
+              context.go('/notifications');
+              break;
+            case 3:
+              context.go('/profile');
+              break;
+          }
+        },
+    );
+  }
 }
