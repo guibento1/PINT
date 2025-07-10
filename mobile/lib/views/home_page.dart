@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../backend/server.dart';
-import '../backend/database_helper.dart';
+import '../backend/database_helper.dart'; // Ensure this is needed, or remove if not
 import '../backend/shared_preferences.dart' as my_prefs;
-import '../components/course_card.dart'; // Updated import path to components
+import '../components/course_card.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -14,27 +14,64 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   final Servidor servidor = Servidor();
-  final DatabaseHelper dbHelper = DatabaseHelper();
+  final DatabaseHelper dbHelper = DatabaseHelper(); // Keep if actively used
   late Future<Map<String, dynamic>> _dataFuture;
+
+  String _termoPesquisa = '';
+  List<Map<String, dynamic>> _todasCategorias = [];
+  List<int> _categoriasAtivasIds = []; // Stores only the IDs of active categories
+
+  final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
+    _loadAllCategories();
     _dataFuture = _loadData();
   }
 
-  Future<Map<String, dynamic>> _loadData() async {
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  // Fetches all categories from the backend
+  Future<void> _loadAllCategories() async {
+    try {
+      final dynamic categoriasResp = await servidor.getData('categoria/list');
+      if (categoriasResp is List) {
+        setState(() {
+          _todasCategorias = List<Map<String, dynamic>>.from(
+              categoriasResp.whereType<Map<String, dynamic>>());
+        });
+      }
+    } catch (e) {
+      // Handle error, e.g., show a snackbar
+      _showSnackBar('Erro ao carregar categorias: $e', isError: true);
+    }
+  }
+
+  // Loads user data and courses, now with optional search and category filters
+  Future<Map<String, dynamic>> _loadData({
+    String? searchTerm,
+    List<int>? categoryIds,
+  }) async {
     final user = await my_prefs.getUser();
     final userId = user?['idutilizador']?.toString();
     if (userId == null) {
+      // If user ID is null, navigate to login
+      if (mounted) {
+        context.go('/login');
+      }
       throw Exception('Utilizador não encontrado');
     }
 
     final dynamic perfilResp = await servidor.getData('utilizador/id/$userId');
-    final Map<String, dynamic> perfil = (perfilResp is Map<String, dynamic>)
-        ? perfilResp
-        : {};
+    final Map<String, dynamic> perfil =
+        (perfilResp is Map<String, dynamic>) ? perfilResp : {};
 
+    // Update SharedPreferences with profile data
     if (user != null) {
       final Map<String, dynamic> updatedUser = Map<String, dynamic>.from(user);
       updatedUser['perfil'] = perfil;
@@ -43,8 +80,24 @@ class _HomePageState extends State<HomePage> {
       await my_prefs.saveUser({'idutilizador': userId, 'perfil': perfil});
     }
 
-    final dynamic cursosResp =
-        await servidor.getData('curso/inscricoes/utilizador/$userId');
+    // Construct the URL for fetching courses with filters
+    String coursesUrl = 'curso/inscricoes/utilizador/$userId';
+    List<String> queryParams = [];
+
+    if (searchTerm != null && searchTerm.isNotEmpty) {
+      queryParams.add('search=${Uri.encodeComponent(searchTerm)}');
+    }
+    if (categoryIds != null && categoryIds.isNotEmpty) {
+      for (int id in categoryIds) {
+        queryParams.add('categoria=$id');
+      }
+    }
+
+    if (queryParams.isNotEmpty) {
+      coursesUrl += '?${queryParams.join('&')}';
+    }
+
+    final dynamic cursosResp = await servidor.getData(coursesUrl);
 
     final List<Map<String, dynamic>> cursos = (cursosResp is List)
         ? List<Map<String, dynamic>>.from(
@@ -52,6 +105,39 @@ class _HomePageState extends State<HomePage> {
         : <Map<String, dynamic>>[];
 
     return {'perfil': perfil, 'cursos': cursos};
+  }
+
+  // Triggers a reload of courses based on current filters
+  void _filterCourses() {
+    setState(() {
+      _dataFuture = _loadData(
+        searchTerm: _termoPesquisa, // Use the current value in _termoPesquisa
+        categoryIds: _categoriasAtivasIds,
+      );
+    });
+  }
+
+  // Toggles the active state of a category
+  void _toggleCategory(int categoryId) {
+    setState(() {
+      if (_categoriasAtivasIds.contains(categoryId)) {
+        _categoriasAtivasIds.remove(categoryId);
+      } else {
+        _categoriasAtivasIds.add(categoryId);
+      }
+      _filterCourses(); // Categories still filter immediately
+    });
+  }
+
+  void _showSnackBar(String message, {bool isError = false}) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: isError ? Colors.red : Colors.green,
+        ),
+      );
+    }
   }
 
   @override
@@ -65,7 +151,10 @@ class _HomePageState extends State<HomePage> {
         backgroundColor: Colors.white,
         onRefresh: () async {
           setState(() {
-            _dataFuture = _loadData();
+            _termoPesquisa = '';
+            _searchController.clear();
+            _categoriasAtivasIds = [];
+            _dataFuture = _loadData(); // Reload without filters
           });
           await _dataFuture;
         },
@@ -77,14 +166,13 @@ class _HomePageState extends State<HomePage> {
             } else if (snapshot.hasError) {
               return Center(child: Text('Erro: ${snapshot.error}'));
             }
-            final perfil = snapshot.data?['perfil'] ?? {};
             final cursos = snapshot.data?['cursos'] ?? [];
 
             return ListView(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 0.0),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 20.0, vertical: 0.0),
               children: [
                 const SizedBox(height: 30),
-                // Your search text field remains the same
                 Container(
                   decoration: BoxDecoration(
                     boxShadow: [
@@ -98,29 +186,36 @@ class _HomePageState extends State<HomePage> {
                     borderRadius: BorderRadius.circular(30.1),
                   ),
                   child: TextField(
+                    controller: _searchController,
                     decoration: InputDecoration(
                       hintText: 'Procurar cursos em que estás inscrito ',
-                      hintStyle: TextStyle(color: Color(0xFF8F9BB3)),
+                      hintStyle: const TextStyle(color: Color(0xFF8F9BB3)),
                       suffixIcon: Padding(
                         padding: const EdgeInsets.only(right: 10),
                         child: SizedBox(
                           width: 50,
                           height: 50,
-                          child: Container(
-                            margin: const EdgeInsets.all(6),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF00B0DA),
-                              borderRadius: BorderRadius.circular(13),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.grey.withOpacity(0.3),
-                                  spreadRadius: 1,
-                                  blurRadius: 1,
-                                  offset: const Offset(1, 3),
-                                ),
-                              ],
+                          child: GestureDetector( // Use GestureDetector for tap event
+                            onTap: () {
+                              _filterCourses(); // Trigger search on icon tap
+                            },
+                            child: Container(
+                              margin: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF00B0DA),
+                                borderRadius: BorderRadius.circular(13),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.grey.withOpacity(0.3),
+                                    spreadRadius: 1,
+                                    blurRadius: 1,
+                                    offset: const Offset(1, 3),
+                                  ),
+                                ],
+                              ),
+                              child:
+                                  const Icon(Icons.search, color: Colors.white, size: 25),
                             ),
-                            child: const Icon(Icons.search, color: Colors.white, size: 25),
                           ),
                         ),
                       ),
@@ -130,11 +225,53 @@ class _HomePageState extends State<HomePage> {
                         borderRadius: BorderRadius.circular(30.0),
                         borderSide: BorderSide.none,
                       ),
-                      contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 25),
+                      contentPadding:
+                          const EdgeInsets.symmetric(vertical: 16, horizontal: 25),
                     ),
+                    onChanged: (value) {
+                      // Only update the search term, do not trigger filtering yet
+                      _termoPesquisa = value;
+                    },
+                    onSubmitted: (value) {
+                      // Optionally, also trigger search when user presses 'Done'/'Enter' on keyboard
+                      _filterCourses();
+                    },
                   ),
                 ),
-                const SizedBox(height: 30),
+                const SizedBox(height: 20),
+                // Category buttons
+                if (_todasCategorias.isNotEmpty)
+                  Wrap(
+                    spacing: 8.0, // Space between buttons
+                    runSpacing: 4.0, // Space between rows of buttons
+                    children: _todasCategorias.map((categoria) {
+                      final int? categoryId = int.tryParse(categoria['idcategoria'].toString());
+                      final String categoryName =
+                          categoria['designacao'] as String? ?? 'Desconhecida';
+
+                      if (categoryId == null) {
+                        return const SizedBox.shrink();
+                      }
+
+                      final bool isActive =
+                          _categoriasAtivasIds.contains(categoryId);
+                      return ChoiceChip(
+                        label: Text(categoryName),
+                        selected: isActive,
+                        selectedColor: const Color(0xFF007BFF),
+                        onSelected: (selected) {
+                          _toggleCategory(categoryId); // Categories still filter immediately
+                        },
+                        labelStyle: TextStyle(
+                          color: isActive ? Colors.white : Colors.black87,
+                        ),
+                        side: BorderSide(
+                          color: isActive ? const Color(0xFF007BFF) : Colors.grey,
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                const SizedBox(height: 20),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -147,7 +284,36 @@ class _HomePageState extends State<HomePage> {
                 ),
                 const SizedBox(height: 15),
                 if (cursos.isEmpty)
-                  const Center(child: Text('Nenhum curso inscrito.'))
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Text(
+                            'Nenhum curso encontrado...',
+                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 8),
+                          GestureDetector(
+                            onTap: () {
+                              context.go('/cursos');
+                            },
+                            child: const Text(
+                              'Explora a página de cursos para te inscreveres.',
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Color(0xFF007BFF),
+                                decoration: TextDecoration.underline,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
                 else
                   ...cursos.map<Widget>((curso) {
                     final dynamic rawIdcurso = curso['idcurso'];
@@ -159,7 +325,7 @@ class _HomePageState extends State<HomePage> {
                     } else if (rawIdcurso is String) {
                       idcurso = int.tryParse(rawIdcurso);
                     }
-                    return CourseCard( // CourseCard now handles its own styling
+                    return CourseCard(
                       curso: curso,
                       isSubscribed: true,
                       onTap: () {
