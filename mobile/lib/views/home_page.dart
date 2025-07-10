@@ -3,7 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../backend/server.dart';
 import '../backend/database_helper.dart';
-import '../backend/shared_preferences.dart' as my_prefs; // Alias para evitar conflitos
+import '../backend/shared_preferences.dart' as my_prefs;
+import '../components/course_card.dart'; // Uses the simplified CourseCard
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -36,10 +37,11 @@ class _HomePageState extends State<HomePage> {
         : {};
 
     if (user != null) {
-      final Map<String, dynamic> updatedUser = Map<String, dynamic>.from(user); updatedUser['perfil'] = perfil;
-      await my_prefs.saveUser(updatedUser); // CORRIGIDO: de setUser para saveUser
+      final Map<String, dynamic> updatedUser = Map<String, dynamic>.from(user);
+      updatedUser['perfil'] = perfil;
+      await my_prefs.saveUser(updatedUser);
     } else {
-      await my_prefs.saveUser({'idutilizador': userId, 'perfil': perfil}); // CORRIGIDO: de setUser para saveUser
+      await my_prefs.saveUser({'idutilizador': userId, 'perfil': perfil});
     }
 
     final dynamic cursosResp =
@@ -83,6 +85,7 @@ class _HomePageState extends State<HomePage> {
               padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 0.0),
               children: [
                 const SizedBox(height: 30),
+                // Your search text field remains the same
                 Container(
                   decoration: BoxDecoration(
                     boxShadow: [
@@ -148,20 +151,19 @@ class _HomePageState extends State<HomePage> {
                   const Center(child: Text('Nenhum curso inscrito.'))
                 else
                   ...cursos.map<Widget>((curso) {
-                    final hasThumbnail = curso['thumbnail'] != null &&
-                        (curso['thumbnail'] as String).isNotEmpty;
-                    return GestureDetector(
+                    final dynamic rawIdcurso = curso['idcurso'];
+                    int? idcurso;
+                    if (rawIdcurso is int) {
+                      idcurso = rawIdcurso;
+                    } else if (rawIdcurso is double) {
+                      idcurso = rawIdcurso.toInt();
+                    } else if (rawIdcurso is String) {
+                      idcurso = int.tryParse(rawIdcurso);
+                    }
+                    return CourseCard(
+                      curso: curso,
+                      isSubscribed: true,
                       onTap: () {
-                        final dynamic rawIdcurso = curso['idcurso'];
-                        int? idcurso;
-                        if (rawIdcurso is int) {
-                          idcurso = rawIdcurso;
-                        } else if (rawIdcurso is double) {
-                          idcurso = rawIdcurso.toInt();
-                        } else if (rawIdcurso is String) {
-                          idcurso = int.tryParse(rawIdcurso);
-                        }
-
                         if (idcurso != null) {
                           context.go('/course_details/$idcurso');
                         } else {
@@ -172,72 +174,10 @@ class _HomePageState extends State<HomePage> {
                           );
                         }
                       },
-                      child: Container(
-                        margin: const EdgeInsets.only(bottom: 15),
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFFFFFF),
-                          borderRadius: BorderRadius.circular(20),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.grey.withOpacity(0.3),
-                              spreadRadius: 1,
-                              blurRadius: 1,
-                              offset: const Offset(1, 3),
-                            ),
-                          ],
-                        ),
-                        child: Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(15),
-                              ),
-                              child: hasThumbnail
-                                  ? ClipRRect(
-                                      borderRadius: BorderRadius.circular(15),
-                                      child: Image.network(
-                                        curso['thumbnail'],
-                                        width: 72, // imagem maior
-                                        height: 72, // imagem maior
-                                        fit: BoxFit.cover,
-                                        errorBuilder: (context, error, stackTrace) =>
-                                            const Icon(Icons.code, color: Color(0xFFFD7E14), size: 48),
-                                      ),
-                                    )
-                                  : const Icon(Icons.code, color: Color(0xFFFD7E14), size: 48),
-                            ),
-                            const SizedBox(width: 15),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    curso['nome'] ?? '',
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 16,
-                                      color: Color(0xFF222B45), // texto principal
-                                    ),
-                                  ),
-                                  const SizedBox(height: 5),
-                                  Text(
-                                    'Toque para ver os detalhes do curso.',
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      color: Color(0xFF8F9BB3), // texto secundário
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+                      // No displayType needed, CourseCard is now always a list item
                     );
                   }).toList(),
+                const SizedBox(height: 20),
               ],
             );
           },

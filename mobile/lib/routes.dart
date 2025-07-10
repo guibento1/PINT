@@ -2,7 +2,7 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter/material.dart';
 
 import 'views/course_details_page.dart';
-import 'views/search_courses_page.dart';
+import 'views/explore_courses_page.dart';
 import 'views/home_page.dart';
 import 'views/login_page.dart';
 import 'views/profile_page.dart';
@@ -64,7 +64,7 @@ final rotas = GoRouter(
         GoRoute(
           path: '/search_courses',
           name: 'search_courses',
-          builder: (context, state) => SearchCoursesPage(),
+          builder: (context, state) => ExploreCoursesPage(),
         ),
         GoRoute(
           path: '/groups',

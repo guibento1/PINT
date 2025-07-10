@@ -14,6 +14,7 @@ class MyApp extends StatelessWidget {
       title: 'Projeto Prático PDM',
       theme: ThemeData(
         scaffoldBackgroundColor: const Color(0xFFF6F9FB),
+        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFFF6F9FB)),
       ),
       routerConfig: rotas,
     );

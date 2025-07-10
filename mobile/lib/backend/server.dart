@@ -1,3 +1,5 @@
+// lib/backend/server.dart (Modified getData method)
+
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
@@ -68,19 +70,24 @@ class Servidor {
     return headers;
   }
 
-  // --- GET Method ---
-  Future<dynamic> getData(String endpoint) async {
+  // --- GET Method with queryParameters ---
+  Future<dynamic> getData(String endpoint, {Map<String, dynamic>? queryParameters}) async {
     try {
       final headers = await _getAuthHeaders();
       headers['Content-Type'] = 'application/json; charset=UTF-8';
 
+      Uri uri = Uri.parse('$urlAPI/$endpoint');
+      if (queryParameters != null && queryParameters.isNotEmpty) {
+        uri = uri.replace(queryParameters: queryParameters.map((key, value) => MapEntry(key, value.toString())));
+      }
+
       final response = await http.get(
-        Uri.parse('$urlAPI/$endpoint'),
+        uri,
         headers: headers,
       );
 
-      print('$urlAPI/$endpoint');
-      print(response.statusCode);
+      print('GET request URL: $uri'); 
+      print('Response Status Code: ${response.statusCode}');
 
       if (response.statusCode == 200) {
         final decodedResponse = json.decode(response.body);
