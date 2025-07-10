@@ -109,14 +109,6 @@ class _HomePageState extends State<HomePage> {
                             decoration: BoxDecoration(
                               color: const Color(0xFF00B0DA),
                               borderRadius: BorderRadius.circular(13),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.grey.withOpacity(0.3),
-                                  spreadRadius: 1,
-                                  blurRadius: 1,
-                                  offset: const Offset(1, 3),
-                                ),
-                              ],
                             ),
                             child: const Icon(Icons.search, color: Colors.white, size: 25),
                           ),
@@ -197,7 +189,7 @@ class _HomePageState extends State<HomePage> {
                               ),
                               child: hasThumbnail
                                   ? ClipRRect(
-                                      borderRadius: BorderRadius.circular(15),
+                                      borderRadius: BorderRadius.circular(10),
                                       child: Image.network(
                                         curso['thumbnail'],
                                         width: 72, // imagem maior
