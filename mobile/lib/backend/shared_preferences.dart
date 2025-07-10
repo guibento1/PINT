@@ -1,70 +1,87 @@
+// lib/backend/shared_preferences.dart
+
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter/foundation.dart';
 
-// Guardar token de sessão
-Future<void> saveToken(String token) async {
+const String _tokenKey = 'token';
+const String _userKey = 'user';
+const String _themeModeKey = 'darkMode';
+const String _languageKey = 'language';
+
+final ValueNotifier<Map<String, dynamic>?> currentUserNotifier = ValueNotifier(null);
+
+Future<void> setToken(String token) async {
   final prefs = await SharedPreferences.getInstance();
-  await prefs.setString('token', token);
+  await prefs.setString(_tokenKey, token);
 }
 
-// Ler token de sessão
 Future<String?> getToken() async {
   final prefs = await SharedPreferences.getInstance();
-  return prefs.getString('token');
+  return prefs.getString(_tokenKey);
 }
 
-// Remover token de sessão (logout)
 Future<void> removeToken() async {
   final prefs = await SharedPreferences.getInstance();
-  await prefs.remove('token');
+  await prefs.remove(_tokenKey);
+  await prefs.remove(_userKey);
+  currentUserNotifier.value = null;
 }
 
-// Guardar preferência de tema (ex: dark mode)
-Future<void> saveThemeMode(bool isDarkMode) async {
-  final prefs = await SharedPreferences.getInstance();
-  await prefs.setBool('darkMode', isDarkMode);
-}
-
-// Ler preferência de tema
-Future<bool> getThemeMode() async {
-  final prefs = await SharedPreferences.getInstance();
-  return prefs.getBool('darkMode') ?? false;
-}
-
-// Guardar preferência de idioma
-Future<void> saveLanguage(String languageCode) async {
-  final prefs = await SharedPreferences.getInstance();
-  await prefs.setString('language', languageCode);
-}
-
-// Ler preferência de idioma
-Future<String?> getLanguage() async {
-  final prefs = await SharedPreferences.getInstance();
-  return prefs.getString('language');
-}
-
-// Verificar se o utilizador está autenticado
-Future<bool> isLoggedIn() async {
-  final prefs = await SharedPreferences.getInstance();
-  return prefs.getString('token') != null;
-}
-
-// Guardar dados do utilizador
 Future<void> saveUser(Map<String, dynamic> user) async {
   final prefs = await SharedPreferences.getInstance();
-  await prefs.setString('user', jsonEncode(user));
+  await prefs.setString(_userKey, jsonEncode(user));
+  currentUserNotifier.value = user;
 }
 
-// Ler dados do utilizador
 Future<Map<String, dynamic>?> getUser() async {
+  if (currentUserNotifier.value != null) {
+    return currentUserNotifier.value;
+  }
+
   final prefs = await SharedPreferences.getInstance();
-  final userString = prefs.getString('user');
-  if (userString == null) return null;
-  return jsonDecode(userString) as Map<String, dynamic>;
+  final userString = prefs.getString(_userKey);
+  if (userString == null || userString.isEmpty) {
+    currentUserNotifier.value = null;
+    return null;
+  }
+  try {
+    final Map<String, dynamic> userData = jsonDecode(userString) as Map<String, dynamic>;
+    currentUserNotifier.value = userData;
+    return userData;
+  } catch (e) {
+    currentUserNotifier.value = null;
+    return null;
+  }
 }
 
-// Remover dados do utilizador
 Future<void> removeUser() async {
   final prefs = await SharedPreferences.getInstance();
-  await prefs.remove('user');
+  await prefs.remove(_userKey);
+  currentUserNotifier.value = null;
+}
+
+Future<bool> isLoggedIn() async {
+  final prefs = await SharedPreferences.getInstance();
+  return prefs.getString(_tokenKey) != null && prefs.getString(_tokenKey)!.isNotEmpty;
+}
+
+Future<void> saveThemeMode(bool isDarkMode) async {
+  final prefs = await SharedPreferences.getInstance();
+  await prefs.setBool(_themeModeKey, isDarkMode);
+}
+
+Future<bool> getThemeMode() async {
+  final prefs = await SharedPreferences.getInstance();
+  return prefs.getBool(_themeModeKey) ?? false;
+}
+
+Future<void> saveLanguage(String languageCode) async {
+  final prefs = await SharedPreferences.getInstance();
+  await prefs.setString(_languageKey, languageCode);
+}
+
+Future<String?> getLanguage() async {
+  final prefs = await SharedPreferences.getInstance();
+  return prefs.getString(_languageKey);
 }

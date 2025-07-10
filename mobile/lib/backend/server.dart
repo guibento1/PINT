@@ -81,7 +81,6 @@ class Servidor {
 
       print('$urlAPI/$endpoint');
       print(response.statusCode);
-      print(response.body);
 
       if (response.statusCode == 200) {
         final decodedResponse = json.decode(response.body);
