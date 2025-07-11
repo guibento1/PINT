@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:intl/intl.dart'; // Adiciona o pacote 'intl' ao pubspec.yaml
+import 'package:intl/intl.dart';
 
 // Modelo para representar uma mensagem de notificação
 class NotificationMessage {
@@ -13,6 +13,19 @@ class NotificationMessage {
     required this.body,
     required this.receivedTime,
   });
+
+  // A adição destes operadores é uma boa prática para comparar objetos
+  // e evitar duplicados na lista de forma eficaz.
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+          other is NotificationMessage &&
+              runtimeType == other.runtimeType &&
+              title == other.title &&
+              body == other.body;
+
+  @override
+  int get hashCode => title.hashCode ^ body.hashCode;
 }
 
 class NotificationsPage extends StatefulWidget {
@@ -24,7 +37,8 @@ class NotificationsPage extends StatefulWidget {
 
 class _NotificationsPageState extends State<NotificationsPage> {
   final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
-  final List<NotificationMessage> _notifications = [];
+  // A lista de notificações agora é estática para persistir entre as reconstruções da página
+  static final List<NotificationMessage> _notifications = [];
 
   @override
   void initState() {
@@ -58,7 +72,6 @@ class _NotificationsPageState extends State<NotificationsPage> {
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
       print("App aberta a partir de uma notificação em 2º plano!");
       _addNotification(message);
-      // Aqui podes navegar para um ecrã específico se quiseres
     });
 
     // 5. Verifica se a app foi aberta a partir de uma notificação (app fechada)
@@ -69,19 +82,26 @@ class _NotificationsPageState extends State<NotificationsPage> {
     }
   }
 
-  /// Adiciona uma notificação à lista e atualiza a UI
+  /// Adiciona uma notificação à lista e atualiza a UI se a página estiver visível
   void _addNotification(RemoteMessage message) {
     if (message.notification != null) {
-      setState(() {
-        _notifications.insert(
-          0, // Adiciona no início da lista
-          NotificationMessage(
-            title: message.notification!.title ?? 'Sem Título',
-            body: message.notification!.body ?? 'Sem Conteúdo',
-            receivedTime: DateTime.now(),
-          ),
-        );
-      });
+      final newNotification = NotificationMessage(
+        title: message.notification!.title ?? 'Sem Título',
+        body: message.notification!.body ?? 'Sem Conteúdo',
+        receivedTime: DateTime.now(),
+      );
+
+      // Apenas adiciona se a notificação não existir na lista
+      if (!_notifications.contains(newNotification)) {
+        // Adiciona no início da lista para que a mais recente apareça primeiro
+        _notifications.insert(0, newNotification);
+
+        // AQUI ESTÁ A CORREÇÃO:
+        // Só chamamos setState se a página estiver "montada" (visível no ecrã).
+        if (mounted) {
+          setState(() {});
+        }
+      }
     }
   }
 
@@ -100,7 +120,6 @@ class _NotificationsPageState extends State<NotificationsPage> {
         n.receivedTime.year == today.year)).toList();
 
     return Scaffold(
-      // A TopBar e a NavBar virão dos teus componentes, como pediste
       backgroundColor: const Color(0xFFF6F9FB),
       body: _notifications.isEmpty
           ? const Center(
@@ -139,7 +158,6 @@ class _NotificationsPageState extends State<NotificationsPage> {
       child: Text(
         title,
         style: const TextStyle(
-          // Usei uma fonte do teu design de exemplo
           fontFamily: 'ADLaM Display',
           fontSize: 19,
           fontWeight: FontWeight.bold,
@@ -158,7 +176,6 @@ class NotificationCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Formata a data e hora para mostrar no cartão
     final timeFormat = DateFormat('HH:mm');
     final dateFormat = DateFormat('dd/MM/yyyy');
     final String displayTime = timeFormat.format(notification.receivedTime);
@@ -168,26 +185,24 @@ class NotificationCard extends StatelessWidget {
       elevation: 2.0,
       margin: const EdgeInsets.only(bottom: 12.0),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      color: const Color(0xFFECECEC), // Cor de fundo do teu design
+      color: const Color(0xFFECECEC),
       child: Padding(
         padding: const EdgeInsets.all(12.0),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Ícone à esquerda
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.blue.shade100, // Cor de exemplo
+                color: Colors.blue.shade100,
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Icon(
+              child: const Icon(
                 Icons.notifications_active,
-                color: Colors.blue.shade800,
+                color: Colors.blue,
               ),
             ),
             const SizedBox(width: 16),
-            // Coluna com o texto e a data
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -206,10 +221,10 @@ class NotificationCard extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     notification.body,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontFamily: 'Roboto',
                       fontSize: 14,
-                      color: const Color(0xFF49454F),
+                      color: Color(0xFF49454F),
                     ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
@@ -219,9 +234,9 @@ class NotificationCard extends StatelessWidget {
                     alignment: Alignment.centerRight,
                     child: Text(
                       '$displayDate às $displayTime',
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 12,
-                        color: Colors.grey.shade600,
+                        color: Colors.grey,
                       ),
                     ),
                   ),

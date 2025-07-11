@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../backend/server.dart'; 
+import '../backend/notifications_service.dart';
+import '../backend/server.dart';
 
 class CourseDetailsPage extends StatefulWidget {
   final int id;
@@ -14,6 +15,8 @@ class CourseDetailsPage extends StatefulWidget {
 class _CourseDetailsPageState extends State<CourseDetailsPage> {
   late Future<Map<String, dynamic>?> _courseFuture;
   final Servidor servidor = Servidor();
+
+  final NotificationService _notificationService = NotificationService();
 
   bool _isInscrito = false;
   bool _isSubmittingAction = false;
@@ -30,9 +33,11 @@ class _CourseDetailsPageState extends State<CourseDetailsPage> {
     print('Resposta da API para curso/$id:');
     print(data);
     if (data is Map<String, dynamic>) {
-      setState(() {
-        _isInscrito = data['inscrito'] == true;
-      });
+      if (mounted) {
+        setState(() {
+          _isInscrito = data['inscrito'] == true;
+        });
+      }
       return data;
     }
     return null;
@@ -45,8 +50,11 @@ class _CourseDetailsPageState extends State<CourseDetailsPage> {
     try {
       final response = await servidor.postData('curso/${widget.id}/inscrever', {});
       if (response != null && response['success'] == true) {
+
+        await _notificationService.subscribeToCourseTopic(widget.id);
+
         _showSnackBar('Inscrição realizada com sucesso!', Colors.green);
-        if (mounted) { 
+        if (mounted) {
           context.go('/home');
         }
       } else {
@@ -56,9 +64,11 @@ class _CourseDetailsPageState extends State<CourseDetailsPage> {
       print('Error subscribing: $e');
       _showSnackBar('Ocorreu um erro ao inscrever-se.', Colors.red);
     } finally {
-      setState(() {
-        _isSubmittingAction = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isSubmittingAction = false;
+        });
+      }
     }
   }
 
@@ -92,8 +102,11 @@ class _CourseDetailsPageState extends State<CourseDetailsPage> {
         final response = await servidor.postData('curso/${widget.id}/sair', {});
         if (response != null && response['success'] == true) {
 
+          // 4. USAR O SERVIÇO PARA CANCELAR A INSCRIÇÃO NO TÓPICO
+          await _notificationService.unsubscribeFromCourseTopic(widget.id);
+
           _showSnackBar('Saída do curso realizada com sucesso!', Colors.green);
-          if (mounted) { 
+          if (mounted) {
             context.go('/home');
           }
 
@@ -104,9 +117,11 @@ class _CourseDetailsPageState extends State<CourseDetailsPage> {
         print('Error unsubscribing: $e');
         _showSnackBar('Ocorreu um erro ao sair do curso.', Colors.red);
       } finally {
-        setState(() {
-          _isSubmittingAction = false;
-        });
+        if (mounted) {
+          setState(() {
+            _isSubmittingAction = false;
+          });
+        }
       }
     }
   }
@@ -138,8 +153,9 @@ class _CourseDetailsPageState extends State<CourseDetailsPage> {
   }
 
   Future<void> _launchURL(String url) async {
-    if (await canLaunchUrl(Uri.parse(url))) {
-      await launchUrl(Uri.parse(url));
+    final uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri);
     } else {
       _showSnackBar('Não foi possível abrir: $url', Colors.red);
     }
@@ -201,7 +217,7 @@ class _CourseDetailsPageState extends State<CourseDetailsPage> {
                       height: 200,
                       fit: BoxFit.cover,
                       errorBuilder: (context, error, stackTrace) =>
-                          const Icon(Icons.code, color: Color(0xFFFD7E14), size: 80),
+                      const Icon(Icons.code, color: Color(0xFFFD7E14), size: 80),
                     ),
                   ),
                 ),
@@ -271,17 +287,17 @@ class _CourseDetailsPageState extends State<CourseDetailsPage> {
                         ),
                         child: _isSubmittingAction
                             ? const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                  color: Colors.white,
-                                  strokeWidth: 2,
-                                ),
-                              )
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
                             : const Text(
-                                'Inscrever',
-                                style: TextStyle(fontSize: 16, color: Colors.white),
-                              ),
+                          'Inscrever',
+                          style: TextStyle(fontSize: 16, color: Colors.white),
+                        ),
                       ),
                     ] else ...[
                       ElevatedButton(
@@ -293,17 +309,17 @@ class _CourseDetailsPageState extends State<CourseDetailsPage> {
                         ),
                         child: _isSubmittingAction
                             ? const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                  color: Colors.white,
-                                  strokeWidth: 2,
-                                ),
-                              )
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
                             : const Text(
-                                'Sair do Curso',
-                                style: TextStyle(fontSize: 16, color: Colors.white),
-                              ),
+                          'Sair do Curso',
+                          style: TextStyle(fontSize: 16, color: Colors.white),
+                        ),
                       ),
                       const SizedBox(height: 14),
                       Text(
@@ -403,28 +419,28 @@ class _CourseDetailsPageState extends State<CourseDetailsPage> {
                                     ),
                                     const SizedBox(height: 8),
                                     ...materiais.map((material) => Padding(
-                                          padding: const EdgeInsets.symmetric(vertical: 4),
-                                          child: InkWell(
-                                            onTap: () => _launchURL(material['referencia'] ?? ''),
-                                            child: Row(
-                                              children: [
-                                                Icon(_getMaterialIcon(material['tipo']), size: 20, color: const Color(0xFF007BFF)),
-                                                const SizedBox(width: 8),
-                                                Expanded(
-                                                  child: Text(
-                                                    material['titulo'] ?? '',
-                                                    style: const TextStyle(
-                                                      fontSize: 15,
-                                                      color: Color(0xFF007BFF),
-                                                      decoration: TextDecoration.underline,
-                                                    ),
-                                                    overflow: TextOverflow.ellipsis,
-                                                  ),
+                                      padding: const EdgeInsets.symmetric(vertical: 4),
+                                      child: InkWell(
+                                        onTap: () => _launchURL(material['referencia'] ?? ''),
+                                        child: Row(
+                                          children: [
+                                            Icon(_getMaterialIcon(material['tipo']), size: 20, color: const Color(0xFF007BFF)),
+                                            const SizedBox(width: 8),
+                                            Expanded(
+                                              child: Text(
+                                                material['titulo'] ?? '',
+                                                style: const TextStyle(
+                                                  fontSize: 15,
+                                                  color: Color(0xFF007BFF),
+                                                  decoration: TextDecoration.underline,
                                                 ),
-                                              ],
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
                                             ),
-                                          ),
-                                        )),
+                                          ],
+                                        ),
+                                      ),
+                                    )),
                                   ],
                                 )
                               else
