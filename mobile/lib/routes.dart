@@ -11,7 +11,7 @@ import 'views/notifications_page.dart';
 import 'backend/shared_preferences.dart' as my_prefs;
 
 import 'components/navigation_bar.dart';
-import 'components/top_headr_bar.dart'; // Assuming this is your AppBar-like widget
+import 'components/top_headr_bar.dart';
 
 final rotas = GoRouter(
   initialLocation: '/',
@@ -37,7 +37,7 @@ final rotas = GoRouter(
     GoRoute(
       path: '/login',
       name: 'login',
-      builder: (context, state) => LoginPage(), // No TopHeaderBar here
+      builder: (context, state) => LoginPage(), // Sem TopHeaderBar
     ),
 
     // ShellRoute for authenticated routes with shared layout
