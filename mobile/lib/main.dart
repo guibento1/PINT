@@ -3,7 +3,6 @@ import 'package:mobile/routes.dart';
 
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
-// 1. IMPORTAR O NOVO SERVIÇO
 import 'backend/notifications_service.dart';
 
 void main() async {
