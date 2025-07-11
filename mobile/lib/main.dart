@@ -3,7 +3,6 @@ import 'package:mobile/routes.dart';
 
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
-// 1. IMPORTAR O NOVO SERVIÇO
 import 'backend/notifications_service.dart';
 
 void main() async {
@@ -14,7 +13,6 @@ void main() async {
       options: DefaultFirebaseOptions.currentPlatform,
     );
 
-    // 2. ATIVAR OS LISTENERS DO FIREBASE ASSIM QUE A APP ARRANCA
     await NotificationService().setupListeners();
 
     runApp(const MyApp());

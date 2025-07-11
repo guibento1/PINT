@@ -117,4 +117,65 @@ controllers.criarNotificacaoCurso = async (req,res) => {
 }
 
 
+controllers.getCanaisInscritos = async (req, res) => {
+
+    const idUtilizador = req.params.idutilizador;
+
+    let canais = [1];
+    const admin = ( req.user.roles && req.user.roles.map((roleEntry) => roleEntry.role).includes("admin") );
+
+    if(admin) canais.push(2);
+
+    let cursos;
+    let data;
+
+
+    if( 
+        req.user.idutilizador == idUtilizador || admin
+    ){
+
+        try {
+
+            data = await models.formando.findOne({ where: { utilizador : idUtilizador } });
+            if (!data){
+
+                return res.status(404).json({message:"User does not have formando role, no formando has found with the provided userId"})
+
+            }
+
+            const idFormando = data.idformando;
+
+            data = await models.inscricao.findAll({ where: { formando : idFormando } });
+            
+            if( data.length == 0){
+                return res.status(200).json({message:"no courses were found"});
+            }
+
+            const cursosIndexes = data.map( (inscricao) => inscricao.curso );
+
+
+            cursosCanais = await models.curso.findAll({
+                atributtes:["canal"],
+                where : { 
+                    idcurso = { [Sequelize.Op.in]: cursosIndexes }
+                }
+            });
+
+            cursosCanais = cursosCanais.map((curso) => cursos.canal);
+            canais = [...canais,...cursosCanais]
+            return res.status(200).json(canais);
+
+        } catch (error) {
+            return res.status(500).json({message: "Something wrong happened"});
+        }
+
+    }
+
+
+    return res.status(403).json({ message: 'Forbidden: insufficient permissions' });
+
+
+};
+
+
 module.exports = controllers;
