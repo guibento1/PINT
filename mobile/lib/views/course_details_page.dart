@@ -20,6 +20,7 @@ class _CourseDetailsPageState extends State<CourseDetailsPage> {
 
   bool _isInscrito = false;
   bool _isSubmittingAction = false;
+  Map<String, dynamic>? _courseData;
 
   @override
   void initState() {
@@ -36,6 +37,7 @@ class _CourseDetailsPageState extends State<CourseDetailsPage> {
       if (mounted) {
         setState(() {
           _isInscrito = data['inscrito'] == true;
+          _courseData = data; // Store the fetched course data
         });
       }
       return data;
@@ -44,15 +46,25 @@ class _CourseDetailsPageState extends State<CourseDetailsPage> {
   }
 
   Future<void> _subscribeToCourse() async {
+    if (_courseData == null || _courseData!['canal'] == null) {
+      _showSnackBar('Não foi possível obter o canal do curso para inscrição.', Colors.red);
+      return;
+    }
+
     setState(() {
       _isSubmittingAction = true;
     });
     try {
       final response = await servidor.postData('curso/${widget.id}/inscrever', {});
       if (response != null && response['success'] == true) {
-
-        await _notificationService.subscribeToCourseTopic(widget.id);
-
+        // Ensure canalId is an int
+        final int? canalId = int.tryParse(_courseData!['canal'].toString());
+        if (canalId != null) {
+          print('DEBUG: Attempting to subscribe to Firebase topic: canal_$canalId');
+          await _notificationService.subscribeToCourseTopic(canalId);
+        } else {
+          print('ERROR: canalId is null or could not be parsed when trying to subscribe.');
+        }
         _showSnackBar('Inscrição realizada com sucesso!', Colors.green);
         if (mounted) {
           context.go('/home');
@@ -73,6 +85,13 @@ class _CourseDetailsPageState extends State<CourseDetailsPage> {
   }
 
   Future<void> _unsubscribeFromCourse() async {
+    print('DEBUG: _unsubscribeFromCourse called'); // Debug print 1
+
+    if (_courseData == null || _courseData!['canal'] == null) {
+      _showSnackBar('Não foi possível obter o canal do curso para cancelar a inscrição.', Colors.red);
+      return;
+    }
+
     final bool? confirm = await showDialog<bool>(
       context: context,
       builder: (BuildContext context) {
@@ -95,26 +114,38 @@ class _CourseDetailsPageState extends State<CourseDetailsPage> {
     );
 
     if (confirm == true) {
+      print('DEBUG: User confirmed unsubscription'); // Debug print 2
       setState(() {
         _isSubmittingAction = true;
       });
       try {
+        print('DEBUG: Attempting to call servidor.postData for unsubscription...'); // NEW DEBUG PRINT
         final response = await servidor.postData('curso/${widget.id}/sair', {});
-        if (response != null && response['success'] == true) {
+        print('DEBUG: Response from server for unsubscription: $response'); // NEW DEBUG PRINT
 
-          // 4. USAR O SERVIÇO PARA CANCELAR A INSCRIÇÃO NO TÓPICO
-          await _notificationService.unsubscribeFromCourseTopic(widget.id);
-
+        // Check if response is not null AND either 'success' is true,
+        // OR 'message' exists and contains "sucesso" (for your current backend response)
+        if (response != null && (response['success'] == true || (response['message'] as String?)?.contains('sucesso') == true)) {
+          // Ensure canalId is an int by parsing from String
+          final int? canalId = int.tryParse(_courseData!['canal'].toString());
+          if (canalId != null) {
+            print('DEBUG: Attempting to unsubscribe from Firebase topic: canal_$canalId'); // Debug print 3
+            await _notificationService.unsubscribeFromCourseTopic(canalId); // Use parsed canalId
+          } else {
+            print('ERROR: canalId is null or could not be parsed when trying to unsubscribe from topic.'); // Debug print if canalId is null
+            _showSnackBar('Não foi possível obter o canal do curso para cancelar a inscrição.', Colors.red);
+          }
           _showSnackBar('Saída do curso realizada com sucesso!', Colors.green);
           if (mounted) {
             context.go('/home');
           }
-
         } else {
+          // This block is executed if response is null or success is false AND message does not contain "sucesso"
           _showSnackBar(response?['message'] ?? 'Erro ao sair do curso.', Colors.red);
+          print('ERROR: Server unsubscription failed: ${response?['message']}'); // NEW DEBUG PRINT
         }
       } catch (e) {
-        print('Error unsubscribing: $e');
+        print('Error unsubscribing (caught exception): $e'); // Specific catch print
         _showSnackBar('Ocorreu um erro ao sair do curso.', Colors.red);
       } finally {
         if (mounted) {

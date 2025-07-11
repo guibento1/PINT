@@ -16,17 +16,15 @@ class NotificationMessage {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-          other is NotificationMessage &&
-              runtimeType == other.runtimeType &&
-              title == other.title &&
-              body == other.body;
+      other is NotificationMessage &&
+          runtimeType == other.runtimeType &&
+          title == other.title &&
+          body == other.body;
 
   @override
   int get hashCode => title.hashCode ^ body.hashCode;
 }
 
-/// Um serviço para gerir todas as operações relacionadas com
-/// as notificações push do Firebase.
 class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
   factory NotificationService() => _instance;
@@ -34,19 +32,15 @@ class NotificationService {
 
   final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
 
-  // A "fonte da verdade" para todas as notificações recebidas.
   final List<NotificationMessage> _notifications = [];
   List<NotificationMessage> get notifications => _notifications;
 
-  // Um "canal de rádio" que transmite novas notificações para quem estiver a ouvir.
   final StreamController<NotificationMessage> _notificationStreamController =
-  StreamController<NotificationMessage>.broadcast();
+      StreamController<NotificationMessage>.broadcast();
 
   Stream<NotificationMessage> get notificationStream => _notificationStreamController.stream;
 
 
-  /// Configura todos os listeners do Firebase Messaging.
-  /// Deve ser chamado uma vez quando a app inicia.
   Future<void> setupListeners() async {
     await _firebaseMessaging.requestPermission(
       alert: true,
@@ -89,9 +83,10 @@ class NotificationService {
     }
   }
 
-  Future<void> subscribeToCourseTopic(int courseId) async {
-    final String topicName = 'curso_$courseId';
+  Future<void> subscribeToCourseTopic(int canalId) async {
+    final String topicName = 'canal_$canalId';
     try {
+      print('DEBUG: Attempting to subscribe to Firebase topic: $topicName');
       await _firebaseMessaging.subscribeToTopic(topicName);
       print('SUCCESS: Subscribed to topic: $topicName');
     } catch (e) {
@@ -99,9 +94,11 @@ class NotificationService {
     }
   }
 
-  Future<void> unsubscribeFromCourseTopic(int courseId) async {
-    final String topicName = 'curso_$courseId';
+  Future<void> unsubscribeFromCourseTopic(int canalId) async {
+    final String topicName = 'canal_$canalId';
     try {
+      // DEBUG PRINT ADDED HERE
+      print('DEBUG: Calling FirebaseMessaging.unsubscribeFromTopic for topic: $topicName');
       await _firebaseMessaging.unsubscribeFromTopic(topicName);
       print('SUCCESS: Unsubscribed from topic: $topicName');
     } catch (e) {

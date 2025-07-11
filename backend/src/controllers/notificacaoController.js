@@ -1,3 +1,4 @@
+const Sequelize = require('sequelize');
 const { sendFCMNotification } = require('../utils.js');
 var initModels = require("../models/init-models.js");
 var db = require("../database.js");
@@ -157,15 +158,16 @@ controllers.getCanaisInscritos = async (req, res) => {
             cursosCanais = await models.curso.findAll({
                 atributtes:["canal"],
                 where : { 
-                    idcurso = { [Sequelize.Op.in]: cursosIndexes }
+                    idcurso : { [Sequelize.Op.in]: cursosIndexes }
                 }
             });
 
-            cursosCanais = cursosCanais.map((curso) => cursos.canal);
+            cursosCanais = cursosCanais.map((curso) => parseInt(curso.canal));
             canais = [...canais,...cursosCanais]
             return res.status(200).json(canais);
 
         } catch (error) {
+            console.log(error);
             return res.status(500).json({message: "Something wrong happened"});
         }
 

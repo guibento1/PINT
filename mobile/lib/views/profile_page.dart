@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
-
 import '../backend/server.dart';
 import '../backend/shared_preferences.dart' as my_prefs;
 

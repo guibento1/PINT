@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../backend/server.dart';
 import '../backend/shared_preferences.dart' as my_prefs;
 import 'package:go_router/go_router.dart';
+import '../backend/notifications_service.dart'; // Import the notification service
 
 class LoginPage extends StatefulWidget {
   @override
@@ -11,26 +12,27 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  bool _loading = false;
+  bool _loadingLogin = false; // Separate loading state for login button
+  bool _loadingSubscriptions = false; // New loading state for subscriptions
   String? _error;
+
+  final NotificationService _notificationService = NotificationService(); // Notification service instance
 
   Future<void> _login() async {
     setState(() {
-      _loading = true;
+      _loadingLogin = true; // Start loading for the login button
       _error = null;
     });
+
     final servidor = Servidor();
     final result = await servidor.login(
       _emailController.text.trim(),
       _passwordController.text,
     );
-    setState(() {
-      _loading = false;
-    });
 
-    // O 'result' do servidor.login deve conter o token e, idealmente,
-    // alguma informação do utilizador que pode ser usada para buscar o perfil completo.
-    // Vamos assumir que 'result' é o mapa do utilizador completo, ou que contém 'accessToken' e 'idutilizador'.
+    setState(() {
+      _loadingLogin = false; // Stop loading for the login button
+    });
 
     final String? token = result != null && result['accessToken'] != null
         ? result['accessToken'] as String // Certificar que é String
@@ -39,8 +41,6 @@ class _LoginPageState extends State<LoginPage> {
     if (token != null) {
       await my_prefs.setToken(token); // CORRIGIDO: Usar my_prefs.setToken
 
-      // Agora, vamos buscar o perfil completo do utilizador e salvá-lo.
-      // Assumindo que o 'result' do login já contém o 'idutilizador'
       final String? userId = result?['idutilizador']?.toString();
 
       if (userId != null) {
@@ -49,20 +49,35 @@ class _LoginPageState extends State<LoginPage> {
             ? perfilResp
             : {};
 
-        // Criar um mapa completo do utilizador para salvar, incluindo o perfil
         final Map<String, dynamic> userDataToSave = {
           'idutilizador': userId,
-          'perfil': perfil, // Incluir o perfil completo aqui
-          // Você pode adicionar outras chaves do 'result' do login aqui se necessário,
-          // como 'nome', 'email', etc., para ter tudo num só lugar.
-          'accessToken': token, // Também pode ser útil guardar o token aqui
+          'perfil': perfil,
+          'accessToken': token,
         };
 
         await my_prefs.saveUser(userDataToSave); // CORRIGIDO: Usar my_prefs.saveUser
+
+        if (mounted) {
+          setState(() {
+            _loadingSubscriptions = true; // Start loading for subscriptions
+          });
+        }
+
+        // Fetch subscriptions for the user after login
+        final subscriptions = await _fetchUserSubscriptions(userId);
+        if (subscriptions != null && subscriptions.isNotEmpty) {
+          for (var topicId in subscriptions) {
+            await _notificationService.subscribeToCourseTopic(topicId);
+          }
+        }
+
+        if (mounted) {
+          setState(() {
+            _loadingSubscriptions = false; // Stop loading for subscriptions
+          });
+        }
+
       } else {
-        // Se não houver userId na resposta de login, ainda salvamos o token.
-        // O perfil completo será carregado na HomePage ou TopHeaderBar.
-        // No entanto, é ideal que o login forneça um userId para buscar o perfil.
         print('Login: userId not found in login response. Profile might not load correctly.');
       }
 
@@ -75,6 +90,19 @@ class _LoginPageState extends State<LoginPage> {
             : 'Email ou password inválidos.';
       });
     }
+  }
+
+  // Function to fetch user subscriptions from the backend
+  Future<List<int>?> _fetchUserSubscriptions(String userId) async {
+    try {
+      final response = await Servidor().getData('notificacao/list/subscricoes/$userId');
+      if (response is List && response.isNotEmpty) {
+        return List<int>.from(response);
+      }
+    } catch (e) {
+      print('Error fetching subscriptions: $e');
+    }
+    return null;
   }
 
   @override
@@ -215,7 +243,7 @@ class _LoginPageState extends State<LoginPage> {
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: _loading ? null : _login,
+                    onPressed: (_loadingLogin || _loadingSubscriptions) ? null : _login,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF007BFF),
                       foregroundColor: Colors.white,
@@ -226,7 +254,7 @@ class _LoginPageState extends State<LoginPage> {
                       elevation: 5,
                       shadowColor: const Color(0xFF007BFF).withOpacity(0.4),
                     ),
-                    child: _loading
+                    child: (_loadingLogin || _loadingSubscriptions)
                         ? const SizedBox(
                             width: 24,
                             height: 24,
@@ -245,6 +273,24 @@ class _LoginPageState extends State<LoginPage> {
                           ),
                   ),
                 ),
+                // New spinning indicator specifically for subscriptions
+                if (_loadingSubscriptions)
+                  const Padding(
+                    padding: EdgeInsets.only(top: 20),
+                    child: Column(
+                      children: [
+                        CircularProgressIndicator(
+                          color: Color(0xFF007BFF),
+                          strokeWidth: 2,
+                        ),
+                        SizedBox(height: 10),
+                        Text(
+                          'A preparar aplicação...',
+                          style: TextStyle(color: Color(0xFF007BFF), fontSize: 14),
+                        ),
+                      ],
+                    ),
+                  ),
                 const SizedBox(height: 30),
                 TextButton(
                   onPressed: () {
@@ -259,7 +305,6 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 30),
                 const SizedBox(height: 50),
               ],
             ),
