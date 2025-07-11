@@ -6,6 +6,7 @@ import 'views/explore_courses_page.dart';
 import 'views/home_page.dart';
 import 'views/login_page.dart';
 import 'views/profile_page.dart';
+import 'views/notifications_page.dart';
 
 import 'backend/shared_preferences.dart' as my_prefs;
 
@@ -78,14 +79,9 @@ final rotas = GoRouter(
           builder: (context, state) => ExploreCoursesPage(),
         ),
         GoRoute(
-          path: '/groups',
-          name: 'groups',
-          builder: (context, state) => const Placeholder(child: Center(child: Text('Grupos Page'))),
-        ),
-        GoRoute(
           path: '/notifications',
           name: 'notifications',
-          builder: (context, state) => const Placeholder(child: Center(child: Text('Notificações Page'))),
+          builder: (context, state) => NotificationsPage(),
         ),
         GoRoute(
           path: '/profile',
@@ -93,7 +89,7 @@ final rotas = GoRouter(
           builder: (context, state) => ProfilePage(),
         ),
         GoRoute(
-          path: '/course_details/:id', // This route should NOT have TopHeaderBar
+          path: '/course_details/:id', // Sem TopHeaderBar
           name: 'course_details',
           builder: (context, state) {
             final String? idString = state.pathParameters['id'];

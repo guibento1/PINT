@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "336298599663",
+    "project_id": "thesoftskills-2025",
+    "storage_bucket": "thesoftskills-2025.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:336298599663:android:2782f5396c38a8f6c0e71a",
+        "android_client_info": {
+          "package_name": "com.example.mobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCfo_eg9NgMN9x6JVb4jymXZJeH01FX83g"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

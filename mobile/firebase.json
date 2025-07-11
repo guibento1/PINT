@@ -1,0 +1,22 @@
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "thesoftskills-2025",
+          "appId": "1:336298599663:android:2782f5396c38a8f6c0e71a",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "thesoftskills-2025",
+          "configurations": {
+            "android": "1:336298599663:android:2782f5396c38a8f6c0e71a",
+            "ios": "1:336298599663:ios:70ff11b9a3abcb2ac0e71a"
+          }
+        }
+      }
+    }
+  }
+}
