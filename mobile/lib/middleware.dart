@@ -1,4 +1,5 @@
 // lib/backend/middleware.dart
+import 'dart:convert';
 import 'dart:io'; // Required for SocketException
 import 'package:connectivity_plus/connectivity_plus.dart'; // Import connectivity_plus
 import 'backend/server.dart'; // Import your existing Servidor class
@@ -34,6 +35,7 @@ class AppMiddleware {
 
   Future<Map<String, dynamic>> fetchUserProfile(String userId) async {
     final cachedUser = await my_prefs.getUser();
+    print(cachedUser);
     if (cachedUser != null && cachedUser.isNotEmpty) {
       print('User profile fetched from SharedPreferences (cached data).');
       return cachedUser;
@@ -62,38 +64,66 @@ class AppMiddleware {
   }
 
   // Updates user profile data
-  Future<Map<String, dynamic>> updateUserProfile(String userId, Map<String, String> fields, {File? profileImage}) async {
+  Future<Map<String, dynamic>> updateUserProfile(
+    String userId,
+    Map<String, dynamic> userData, // This map contains all potential fields
+    {File? profileImage}
+  ) async {
     if (!await _isOnline()) {
       print('Offline: Returning empty response for profile update.');
-      return {}; 
+      return {};
     }
+
     try {
-      dynamic response;
-      if (profileImage != null) {
-        response = await _servidor.putMultipartData(
-          'utilizador/id/$userId',
-          fields,
-          'foto',
-          profileImage.path,
-        );
-      } else {
-        response = await _servidor.putData(
-          'utilizador/id/$userId',
-          fields,
-        );
+      final String endpoint = 'utilizador/id/$userId';
+      final Map<String, String> finalMultipartFields = {}; // This will hold all fields for the request
+      final Map<String, dynamic> infoData = {}; // This will hold data for the 'info' JSON field
+
+      // Define which keys from userData should go into the 'info' JSON object
+      // Add any other fields here that your backend expects inside 'info'
+      const List<String> infoKeys = ['nome', 'morada', 'telefone'];
+
+      userData.forEach((key, value) {
+        if (infoKeys.contains(key)) {
+          // If the key is one of the 'info' fields, add it to infoData
+          if (value != null) { // Only add if not null
+            // Handle lists specifically (like roles), ensure elements are strings
+            if (value is List) {
+              infoData[key] = value.map((e) => e.toString()).toList();
+            } else {
+              infoData[key] = value;
+            }
+          }
+        } else if (value != null) {
+          // If it's not an 'info' key and not null, add as a direct multipart field
+          finalMultipartFields[key] = value.toString();
+        }
+      });
+
+      // If there's any data for 'info', JSON encode it and add to finalMultipartFields
+      if (infoData.isNotEmpty) {
+        finalMultipartFields['info'] = jsonEncode(infoData);
       }
 
-
+      dynamic response = await _servidor.putMultipartData(
+        endpoint,
+        finalMultipartFields, // All text fields, including 'info' JSON string
+        'foto', // The file field name expected by the backend
+        profileImage?.path, // Pass null if no image. Servidor handles this.
+      );
 
       if (response is Map<String, dynamic>) {
-        await my_prefs.saveUser(response); 
+        await my_prefs.saveUser(response);
         return response;
+      } else if (response == null) {
+        print('Profile update request returned null. Check previous Servidor logs for details.');
+        return {};
       }
 
       throw Exception('Invalid response format for profile update.');
     } on SocketException catch (e) {
       print('SocketException in AppMiddleware.updateUserProfile: $e. Returning empty data.');
-      return {}; // Return empty map on network error
+      return {};
     } catch (e) {
       print('Error in AppMiddleware.updateUserProfile: $e');
       rethrow;

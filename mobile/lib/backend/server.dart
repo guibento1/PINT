@@ -252,8 +252,8 @@ class Servidor {
   Future<Map<String, dynamic>?> putMultipartData(
     String endpoint,
     Map<String, String> fields,
-    String fileField,
-    String filePath,
+    String fileField, // Name of the file field (e.g., 'foto')
+    String? filePath, // Make filePath nullable here
   ) async {
     try {
       final headers = await _getAuthHeaders();
@@ -265,14 +265,19 @@ class Servidor {
 
       request.fields.addAll(fields);
 
-      request.files.add(await http.MultipartFile.fromPath(fileField, filePath));
+      // --- CRITICAL CHANGE HERE ---
+      if (filePath != null && filePath.isNotEmpty) {
+        // Only add the file to the request if filePath is not null or empty
+        request.files.add(await http.MultipartFile.fromPath(fileField, filePath));
+      }
+      // --- END CRITICAL CHANGE ---
 
       request.headers.addAll(headers);
 
       final streamedResponse = await request.send();
       final response = await http.Response.fromStream(streamedResponse);
 
-      if (response.statusCode == 200) {
+      if (response.statusCode == 200 || response.statusCode == 201) {
         return json.decode(response.body);
       } else if (response.statusCode == 401 || response.statusCode == 403) {
         print(

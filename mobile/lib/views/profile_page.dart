@@ -14,7 +14,6 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
-  // Use AppMiddleware instead of Servidor directly
   final AppMiddleware _middleware = AppMiddleware();
   late Future<Map<String, dynamic>?> _userDataFuture;
 
