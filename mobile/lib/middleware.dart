@@ -34,7 +34,7 @@ class AppMiddleware {
   Future<Map<String, dynamic>> fetchUserProfile(String userId) async {
     if (!await _isOnline()) {
       print('Offline: Returning empty user profile.');
-      return {}; // Return empty map if offline
+      return {};
     }
     try {
       final dynamic response = await _servidor.getData('utilizador/id/$userId');
@@ -55,7 +55,7 @@ class AppMiddleware {
   Future<Map<String, dynamic>> updateUserProfile(String userId, Map<String, String> fields, {File? profileImage}) async {
     if (!await _isOnline()) {
       print('Offline: Returning empty response for profile update.');
-      return {}; // Return empty map if offline
+      return {}; 
     }
     try {
       dynamic response;
@@ -74,7 +74,7 @@ class AppMiddleware {
       }
 
       if (response is Map<String, dynamic>) {
-        return response;
+        await my_prefs.saveUser(response); 
       }
       throw Exception('Invalid response format for profile update.');
     } on SocketException catch (e) {

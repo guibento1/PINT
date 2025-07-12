@@ -49,13 +49,8 @@ class _LoginPageState extends State<LoginPage> {
             ? perfilResp
             : {};
 
-        final Map<String, dynamic> userDataToSave = {
-          'idutilizador': userId,
-          'perfil': perfil,
-          'accessToken': token,
-        };
-
-        await my_prefs.saveUser(userDataToSave); // CORRIGIDO: Usar my_prefs.saveUser
+        await my_prefs.saveUser(perfil); // CORRIGIDO: Usar my_prefs.saveUser
+        print(perfil);
 
         if (mounted) {
           setState(() {
