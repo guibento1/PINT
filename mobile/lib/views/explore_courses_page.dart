@@ -1,4 +1,3 @@
-// lib/views/explore_courses_page.dart
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../middleware.dart';
@@ -14,7 +13,6 @@ class ExploreCoursesPage extends StatefulWidget {
 }
 
 class _ExploreCoursesPageState extends State<ExploreCoursesPage> {
-  // Use AppMiddleware instead of Servidor directly
   final AppMiddleware _middleware = AppMiddleware();
   List<Map<String, dynamic>> _allCourses = [];
   List<Map<String, dynamic>> _filteredCourses = [];
@@ -43,8 +41,6 @@ class _ExploreCoursesPageState extends State<ExploreCoursesPage> {
         throw Exception('Utilizador não encontrado. Não é possível verificar inscrições.');
       }
 
-      // Fetch subscribed courses using middleware
-      // Assuming fetchUserCourses will handle the userId correctly and return a list
       final List<Map<String, dynamic>> subscribedCourses = await _middleware.fetchUserCourses(userId: userId);
 
       _subscribedCourseIds = subscribedCourses
@@ -64,7 +60,6 @@ class _ExploreCoursesPageState extends State<ExploreCoursesPage> {
           .cast<int>()
           .toSet();
 
-      // Fetch all courses with current filters using middleware
       await _fetchCourses(_currentFilters);
     } catch (e) {
       setState(() {
@@ -86,13 +81,11 @@ class _ExploreCoursesPageState extends State<ExploreCoursesPage> {
     });
 
     try {
-      // Extract filter parameters safely, defaulting to null if not present or empty
       final String? searchTerm = filters['search'] as String?;
       final String? categoriaId = filters['categoria'] as String?;
       final String? areaId = filters['area'] as String?;
       final String? topicoId = filters['topico'] as String?;
 
-      // Call the middleware's fetchAllCourses method with the extracted filters
       final List<Map<String, dynamic>> courses = await _middleware.fetchAllCourses(
         searchTerm: searchTerm?.isNotEmpty == true ? searchTerm : null,
         categoriaId: categoriaId?.isNotEmpty == true ? categoriaId : null,
@@ -102,7 +95,7 @@ class _ExploreCoursesPageState extends State<ExploreCoursesPage> {
 
       setState(() {
         _allCourses = courses;
-        _applyLocalFiltersAndSort(); // This will just assign _allCourses to _filteredCourses
+        _applyLocalFiltersAndSort();
       });
     } catch (e) {
       setState(() {
@@ -117,8 +110,6 @@ class _ExploreCoursesPageState extends State<ExploreCoursesPage> {
   }
 
   void _applyLocalFiltersAndSort() {
-    // With fetchAllCourses in middleware, filtering is done on the server.
-    // So _allCourses already contains the filtered results.
     _filteredCourses = List.from(_allCourses);
   }
 
@@ -133,7 +124,7 @@ class _ExploreCoursesPageState extends State<ExploreCoursesPage> {
     setState(() {
       _currentFilters = {};
     });
-    _fetchCourses({}); // Fetch all courses again without any filters
+    _fetchCourses({});
   }
 
   @override

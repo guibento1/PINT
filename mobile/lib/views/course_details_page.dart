@@ -32,7 +32,6 @@ class _CourseDetailsPageState extends State<CourseDetailsPage> {
   }
 
   Future<void> _fetchCourseDetails() async {
-    // Garante que o loading é mostrado sempre que esta função é chamada
     if (!_isLoading && mounted) {
       setState(() {
         _isLoading = true;
@@ -229,7 +228,6 @@ class _CourseDetailsPageState extends State<CourseDetailsPage> {
       return const Center(child: Text('Curso não encontrado.'));
     }
 
-    // A partir daqui, o teu ListView usa a variável de estado _courseData
     return ListView(
       padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 24.0),
       children: [

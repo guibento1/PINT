@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:curved_navigation_bar/curved_navigation_bar.dart';
 import 'package:go_router/go_router.dart';
 
+// Montagem da barra de navegação
 class NavigationBarClass extends StatefulWidget {
   const NavigationBarClass({super.key});
 
@@ -26,9 +27,9 @@ class _NavigationBarClassState extends State<NavigationBarClass> {
           Icon(Icons.notifications_active, size: 33, color: Colors.white),
           Icon(Icons.account_circle, size: 33, color: Colors.white),
         ],
-        color: Color(0xFF00B0DA), // azul nav bar
+        color: Color(0xFF00B0DA),
         buttonBackgroundColor: Color(0xFF00B0DA),
-        backgroundColor: Color(0xFFF6F9FB), // fundo claro sugerido
+        backgroundColor: Color(0xFFF6F9FB),
         animationCurve: Curves.easeInOut,
         animationDuration: const Duration(milliseconds: 600),
         onTap: (index) {

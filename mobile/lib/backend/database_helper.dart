@@ -189,8 +189,7 @@ class DatabaseHelper {
     await db.execute("CREATE INDEX IF NOT EXISTS idx_cursos_nome ON cursos(nome);");
   }
 
-  // --- Métodos para Utilizadores ---
-
+  // Métodos para Utilizadores
   Future<void> upsertUtilizador(Map<String, dynamic> utilizador) async {
     final dbClient = await db;
     print("[DB] A fazer upsert do utilizador: ${utilizador['idutilizador']}");
@@ -443,7 +442,7 @@ class DatabaseHelper {
     }
     return await dbClient.query('areas');
   }
-  
+
   Future<void> syncTopicosGlobaisFromApi(List<Map<String, dynamic>> topicos) async {
     var dbClient = await db;
     await dbClient.delete('topicosglobais');
@@ -470,7 +469,7 @@ class DatabaseHelper {
     return await dbClient.query('topicosglobais');
   }
 
-  // --- Métodos para Licoes ---
+  // Métodos para Licoes
   Future<void> syncLicoesFromApi(List<Map<String, dynamic>> licoes) async {
     var dbClient = await db;
     await dbClient.delete('licoes');
@@ -496,7 +495,7 @@ class DatabaseHelper {
     return await dbClient.query('licoes', where: 'idcurso = ?', whereArgs: [idcurso], orderBy: 'ordem ASC');
   }
 
-  // --- Métodos para Materiais ---
+  // Métodos para Materiais
   Future<void> syncMateriaisFromApi(List<Map<String, dynamic>> materiais) async {
     var dbClient = await db;
     await dbClient.delete('materiais');
@@ -522,18 +521,18 @@ class DatabaseHelper {
     return await dbClient.query('materiais', where: 'idlicao = ?', whereArgs: [idlicao]);
   }
 
-  // Sincroniza todos os dados essenciais da API para a base local
+  // Sincroniza todos os dados essenciais da API para a base de dados local
   Future<void> syncAllFromApi(Servidor servidor, int userId) async {
     print("[DB] A iniciar sincronização completa a partir da API para o utilizador $userId...");
-    // Cursos
+
     final cursos = await servidor.getData('curso/list');
     print('SYNCALL: cursos: ' + cursos.toString());
     if (cursos is List) await syncCursosFromApi(List<Map<String, dynamic>>.from(cursos));
-    // Licoes
+
     final licoes = await servidor.getData('licao/list');
     print('SYNCALL: licoes: ' + licoes.toString());
     if (licoes is List) await syncLicoesFromApi(List<Map<String, dynamic>>.from(licoes));
-    // Materiais
+
     final materiais = await servidor.getData('material/list');
     print('SYNCALL: materiais: ' + materiais.toString());
     if (materiais is List) {
@@ -541,19 +540,19 @@ class DatabaseHelper {
         materiais.map((e) => Map<String, dynamic>.from(e as Map)).toList()
       );
     }
-    // Perfil do utilizador
+
     final perfil = await servidor.getData('utilizador/id/$userId');
     if (perfil is Map) await upsertUtilizador(Map<String, dynamic>.from(perfil));
-    // Categorias
+
     final categorias = await servidor.getData('categoria/list');
     if (categorias is List) await syncCategoriasFromApi(List<Map<String, dynamic>>.from(categorias));
-    // Areas
+
     final areas = await servidor.getData('area/list');
     if (areas is List) await syncAreasFromApi(List<Map<String, dynamic>>.from(areas));
-    // Topicos globais
+
     final topicos = await servidor.getData('topico/list');
     if (topicos is List) await syncTopicosGlobaisFromApi(List<Map<String, dynamic>>.from(topicos));
-    // Inscricoes do utilizador
+
     final inscricoes = await servidor.getData('curso/inscricoes/utilizador/$userId');
     if (inscricoes is List) await syncInscricoesFromApi(userId, List<Map<String, dynamic>>.from(inscricoes));
     print("[DB] Sincronização completa terminada.");

@@ -197,7 +197,6 @@ class _ProfilePageState extends State<ProfilePage> {
                                   onSaved: (value) => _name = value!,
                                 ),
                                 const SizedBox(height: 10),
-                                // --- CAMPO DE EMAIL AGORA NÃO-EDITÁVEL ---
                                 TextFormField(
                                   initialValue: _email,
                                   decoration: InputDecoration(

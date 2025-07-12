@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import '../middleware.dart'; // Import the new middleware
+import '../middleware.dart';
 
+// Componente de Filtros de cursos
 class CourseFilterWidget extends StatefulWidget {
   final Function(Map<String, dynamic>) onApplyFilters;
   final VoidCallback onClearFilters;

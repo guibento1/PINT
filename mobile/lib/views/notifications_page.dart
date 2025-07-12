@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:intl/intl.dart';
 
-// Modelo para representar uma mensagem de notificação
 class NotificationMessage {
   final String title;
   final String body;
@@ -14,8 +13,6 @@ class NotificationMessage {
     required this.receivedTime,
   });
 
-  // A adição destes operadores é uma boa prática para comparar objetos
-  // e evitar duplicados na lista de forma eficaz.
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -37,7 +34,6 @@ class NotificationsPage extends StatefulWidget {
 
 class _NotificationsPageState extends State<NotificationsPage> {
   final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
-  // A lista de notificações agora é estática para persistir entre as reconstruções da página
   static final List<NotificationMessage> _notifications = [];
 
   @override
@@ -46,9 +42,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
     _setupFirebaseListeners();
   }
 
-  /// Configura todos os listeners do Firebase Messaging
   void _setupFirebaseListeners() async {
-    // 1. Pedir permissão ao utilizador
     await _firebaseMessaging.requestPermission(
       alert: true,
       badge: true,
@@ -56,25 +50,21 @@ class _NotificationsPageState extends State<NotificationsPage> {
       provisional: false,
     );
 
-    // 2. Obter o token FCM para enviar notificações de teste
     final token = await _firebaseMessaging.getToken();
     print("======================================");
     print("FCM Token: $token");
     print("======================================");
 
-    // 3. Listener para quando a app está aberta (em primeiro plano)
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       print("Recebida notificação com a app aberta!");
       _addNotification(message);
     });
 
-    // 4. Listener para quando o utilizador clica na notificação (app em 2º plano)
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
       print("App aberta a partir de uma notificação em 2º plano!");
       _addNotification(message);
     });
 
-    // 5. Verifica se a app foi aberta a partir de uma notificação (app fechada)
     RemoteMessage? initialMessage = await _firebaseMessaging.getInitialMessage();
     if (initialMessage != null) {
       print("App aberta a partir de uma notificação com a app fechada!");
@@ -82,7 +72,6 @@ class _NotificationsPageState extends State<NotificationsPage> {
     }
   }
 
-  /// Adiciona uma notificação à lista e atualiza a UI se a página estiver visível
   void _addNotification(RemoteMessage message) {
     if (message.notification != null) {
       final newNotification = NotificationMessage(
@@ -91,13 +80,9 @@ class _NotificationsPageState extends State<NotificationsPage> {
         receivedTime: DateTime.now(),
       );
 
-      // Apenas adiciona se a notificação não existir na lista
       if (!_notifications.contains(newNotification)) {
-        // Adiciona no início da lista para que a mais recente apareça primeiro
         _notifications.insert(0, newNotification);
 
-        // AQUI ESTÁ A CORREÇÃO:
-        // Só chamamos setState se a página estiver "montada" (visível no ecrã).
         if (mounted) {
           setState(() {});
         }
@@ -107,7 +92,6 @@ class _NotificationsPageState extends State<NotificationsPage> {
 
   @override
   Widget build(BuildContext context) {
-    // Separa as notificações em "Hoje" e "Anteriores"
     final today = DateTime.now();
     final notificationsToday = _notifications.where((n) =>
     n.receivedTime.day == today.day &&
@@ -168,7 +152,6 @@ class _NotificationsPageState extends State<NotificationsPage> {
   }
 }
 
-/// Widget que representa um cartão de notificação individual
 class NotificationCard extends StatelessWidget {
   final NotificationMessage notification;
 

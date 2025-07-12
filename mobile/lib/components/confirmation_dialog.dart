@@ -1,8 +1,6 @@
-// lib/components/confirmation_dialog.dart
-
 import 'package:flutter/material.dart';
 
-/// Mostra um diálogo de confirmação e retorna `true` se confirmado, `false` se cancelado.
+// Mostra um diálogo de confirmação
 Future<bool?> mostrarDialogoDeConfirmacao({
   required BuildContext context,
   required String titulo,
@@ -57,7 +55,6 @@ Future<bool?> mostrarDialogoDeConfirmacao({
                         textAlign: TextAlign.center,
                       ),
                       onPressed: () {
-                        // Ao cancelar, o diálogo é fechado e retorna 'false'
                         Navigator.of(dialogContext).pop(false);
                       },
                     ),
@@ -79,7 +76,6 @@ Future<bool?> mostrarDialogoDeConfirmacao({
                         textAlign: TextAlign.center,
                       ),
                       onPressed: () {
-                        // Ao confirmar, o diálogo é fechado e retorna 'true'
                         Navigator.of(dialogContext).pop(true);
                       },
                     ),

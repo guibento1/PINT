@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../backend/server.dart';
 import '../backend/shared_preferences.dart' as my_prefs;
 import 'package:go_router/go_router.dart';
-import '../backend/notifications_service.dart'; // Import the notification service
+import '../backend/notifications_service.dart';
 
 class LoginPage extends StatefulWidget {
   @override
@@ -12,15 +12,15 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  bool _loadingLogin = false; // Separate loading state for login button
-  bool _loadingSubscriptions = false; // New loading state for subscriptions
+  bool _loadingLogin = false;
+  bool _loadingSubscriptions = false;
   String? _error;
 
-  final NotificationService _notificationService = NotificationService(); // Notification service instance
+  final NotificationService _notificationService = NotificationService();
 
   Future<void> _login() async {
     setState(() {
-      _loadingLogin = true; // Start loading for the login button
+      _loadingLogin = true;
       _error = null;
     });
 
@@ -31,11 +31,11 @@ class _LoginPageState extends State<LoginPage> {
     );
 
     setState(() {
-      _loadingLogin = false; // Stop loading for the login button
+      _loadingLogin = false;
     });
 
     final String? token = result != null && result['accessToken'] != null
-        ? result['accessToken'] as String // Certificar que é String
+        ? result['accessToken'] as String
         : null;
 
     if (token != null) {
@@ -47,16 +47,15 @@ class _LoginPageState extends State<LoginPage> {
             ? perfilResp
             : {};
 
-        await my_prefs.saveUser(perfil); // CORRIGIDO: Usar my_prefs.saveUser
+        await my_prefs.saveUser(perfil);
         print(perfil);
 
         if (mounted) {
           setState(() {
-            _loadingSubscriptions = true; // Start loading for subscriptions
+            _loadingSubscriptions = true;
           });
         }
 
-        // Fetch subscriptions for the user after login
         final subscriptions = await _fetchUserSubscriptions(userId);
         if (subscriptions != null && subscriptions.isNotEmpty) {
           for (var topicId in subscriptions) {
@@ -66,7 +65,7 @@ class _LoginPageState extends State<LoginPage> {
 
         if (mounted) {
           setState(() {
-            _loadingSubscriptions = false; // Stop loading for subscriptions
+            _loadingSubscriptions = false;
           });
         }
 
@@ -85,7 +84,6 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
-  // Function to fetch user subscriptions from the backend
   Future<List<int>?> _fetchUserSubscriptions(String userId) async {
     try {
       final response = await Servidor().getData('notificacao/list/subscricoes/$userId');
@@ -266,7 +264,6 @@ class _LoginPageState extends State<LoginPage> {
                           ),
                   ),
                 ),
-                // New spinning indicator specifically for subscriptions
                 if (_loadingSubscriptions)
                   const Padding(
                     padding: EdgeInsets.only(top: 20),

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../backend/server.dart'; // Make sure Servidor is imported
-import '../middleware.dart'; // Import your AppMiddleware
+import '../backend/server.dart';
+import '../middleware.dart';
 import '../backend/shared_preferences.dart' as my_prefs;
 import '../components/course_card.dart';
 
@@ -13,9 +13,8 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  // Initialize Servidor here to pass to AppMiddleware
   final Servidor _servidor = Servidor();
-  late final AppMiddleware _middleware; // Declared as late final
+  late final AppMiddleware _middleware;
 
   late Future<Map<String, dynamic>> _dataFuture;
 
@@ -28,7 +27,6 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
-    // Initialize _middleware in initState, passing the _servidor instance
     _middleware = AppMiddleware();
     _loadAllCategories();
     _dataFuture = _loadData();
@@ -43,7 +41,7 @@ class _HomePageState extends State<HomePage> {
   Future<void> _loadAllCategories() async {
     try {
       final List<Map<String, dynamic>> categoriasResp =
-          await _middleware.fetchAllCategories(); // Call middleware function
+          await _middleware.fetchAllCategories();
       setState(() {
         _todasCategorias = categoriasResp;
       });
@@ -129,7 +127,7 @@ class _HomePageState extends State<HomePage> {
             _termoPesquisa = '';
             _searchController.clear();
             _categoriasAtivasIds = [];
-            _dataFuture = _loadData(); // Reload without filters
+            _dataFuture = _loadData();
           });
           await _dataFuture;
         },

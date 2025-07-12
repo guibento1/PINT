@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_offline/flutter_offline.dart';
 
+// Indicador de estado online/offline
 class OfflineWarningWrapper extends StatelessWidget {
   final Widget child;
 

@@ -1,7 +1,7 @@
-// lib/components/course_card.dart
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart'; 
 
+// Cartão para apresentar um curso
 class CourseCard extends StatelessWidget {
   final Map<String, dynamic> curso;
   final bool isSubscribed;
@@ -16,7 +16,6 @@ class CourseCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Assuming 'thumbnail' holds the URL of the course image
     final String? thumbnailUrl = curso['thumbnail'] as String?;
     final bool hasThumbnail = thumbnailUrl != null && thumbnailUrl.isNotEmpty;
 
@@ -26,10 +25,10 @@ class CourseCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        margin: const EdgeInsets.only(bottom: 15), // Consistent spacing between cards
-        padding: const EdgeInsets.all(16), // Padding for the entire card content
+        margin: const EdgeInsets.only(bottom: 15),
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: const Color(0xFFFFFFFF), // Changed to white background
+          color: const Color(0xFFFFFFFF),
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
@@ -43,44 +42,44 @@ class CourseCard extends StatelessWidget {
         child: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(8), // Padding inside the image container
+              padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: Colors.white, // Inner background white
+                color: Colors.white,
                 borderRadius: BorderRadius.circular(15),
               ),
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(10), // Rounded corners for the image itself
+                borderRadius: BorderRadius.circular(10),
                 child: hasThumbnail
                     ? CachedNetworkImage(
-                        imageUrl: thumbnailUrl!, // Use ! because we've checked for null/empty
-                        width: 72, // Larger image as per friend's style
-                        height: 72, // Larger image as per friend's style
+                        imageUrl: thumbnailUrl,
+                        width: 72,
+                        height: 72,
                         fit: BoxFit.cover,
                         placeholder: (context, url) => const SizedBox(
                           width: 72,
                           height: 72,
                           child: Center(
-                            child: CircularProgressIndicator(strokeWidth: 2.0), // Smaller loading indicator
+                            child: CircularProgressIndicator(strokeWidth: 2.0),
                           ),
                         ),
                         errorWidget: (context, url, error) => Container(
                           width: 72,
                           height: 72,
-                          color: Colors.grey[200], // Background for error/no image
-                          child: const Icon(Icons.code, color: Color(0xFFFD7E14), size: 48), // Larger icon if error
+                          color: Colors.grey[200],
+                          child: const Icon(Icons.code, color: Color(0xFFFD7E14), size: 48),
                         ),
                       )
-                    : Container( // If no thumbnail URL
+                    : Container(
                         width: 72,
                         height: 72,
-                        color: Colors.grey[200], // Background for no image
+                        color: Colors.grey[200],
                         child: const Center(
-                          child: Icon(Icons.code, color: Color(0xFFFD7E14), size: 48), // Default icon
+                          child: Icon(Icons.code, color: Color(0xFFFD7E14), size: 48),
                         ),
                       ),
               ),
             ),
-            const SizedBox(width: 15), // Spacing between image and text
+            const SizedBox(width: 15),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -90,22 +89,22 @@ class CourseCard extends StatelessWidget {
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
-                      color: Color(0xFF222B45), // New main text color
+                      color: Color(0xFF222B45),
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 5),
                   Text(
-                    'Toque para ver os detalhes do curso.', // Your fixed description
+                    'Toque para ver os detalhes do curso.',
                     style: const TextStyle(
                       fontSize: 14,
-                      color: Color(0xFF8F9BB3), // New secondary text color
+                      color: Color(0xFF8F9BB3),
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  if (showInscritoTag) // Conditionally display the tag
+                  if (showInscritoTag)
                     Padding(
                       padding: const EdgeInsets.only(top: 8.0),
                       child: Chip(
@@ -117,8 +116,8 @@ class CourseCard extends StatelessWidget {
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-                        backgroundColor: const Color(0xFF007BFF), // Orange color
-                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap, // Compact size
+                        backgroundColor: const Color(0xFF007BFF),
+                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8),
                         ),

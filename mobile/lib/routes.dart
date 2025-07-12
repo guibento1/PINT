@@ -1,15 +1,12 @@
 import 'package:go_router/go_router.dart';
 import 'package:flutter/material.dart';
-
 import 'views/course_details_page.dart';
 import 'views/explore_courses_page.dart';
 import 'views/home_page.dart';
 import 'views/login_page.dart';
 import 'views/profile_page.dart';
 import 'views/notifications_page.dart';
-
 import 'backend/shared_preferences.dart' as my_prefs;
-
 import 'components/navigation_bar.dart';
 import 'components/top_headr_bar.dart';
 import 'components/offline_warning_wrapper.dart'; 
@@ -71,7 +68,6 @@ final rotas = GoRouter(
                 ],
               ),
             ),
-            // Conditionally render NavigationBarClass if it also needs to be hidden on specific routes
             bottomNavigationBar: !hideTopBar ? NavigationBarClass() : null,
           ),
         );
@@ -90,7 +86,7 @@ final rotas = GoRouter(
         GoRoute(
           path: '/settings',
           name: 'settings',
-          builder: (context, state) => HomePage(), //Redirecionado para a home porque ainda nao temos as settings implementadas
+          builder: (context, state) => HomePage(),
         ),
         GoRoute(
           path: '/notifications',
@@ -103,7 +99,7 @@ final rotas = GoRouter(
           builder: (context, state) => ProfilePage(),
         ),
         GoRoute(
-          path: '/course_details/:id', // Sem TopHeaderBar
+          path: '/course_details/:id',
           name: 'course_details',
           builder: (context, state) {
             final String? idString = state.pathParameters['id'];

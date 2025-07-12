@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:firebase_messaging/firebase_messaging.dart';
 
-// Modelo para representar uma mensagem de notificação
 class NotificationMessage {
   final String title;
   final String body;
@@ -66,7 +65,6 @@ class NotificationService {
     }
   }
 
-  /// Processa uma mensagem recebida e adiciona-a à lista e ao stream.
   void _handleMessage(RemoteMessage message) {
     print("Mensagem recebida pelo serviço: ${message.notification?.title}");
     if (message.notification != null) {
@@ -97,7 +95,6 @@ class NotificationService {
   Future<void> unsubscribeFromCourseTopic(int canalId) async {
     final String topicName = 'canal_$canalId';
     try {
-      // DEBUG PRINT ADDED HERE
       print('DEBUG: Calling FirebaseMessaging.unsubscribeFromTopic for topic: $topicName');
       await _firebaseMessaging.unsubscribeFromTopic(topicName);
       print('SUCCESS: Unsubscribed from topic: $topicName');

@@ -1,10 +1,9 @@
-// lib/components/top_headr_bar.dart
-
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../backend/shared_preferences.dart' as my_prefs;
 
+// Montagem do barra superior
 class TopHeaderBar extends StatefulWidget {
   const TopHeaderBar({super.key});
 
@@ -13,7 +12,7 @@ class TopHeaderBar extends StatefulWidget {
 }
 
 class _TopHeaderBarState extends State<TopHeaderBar> {
-  String _avatarUrl = 'https://i.pravatar.cc/150?img=32'; // URL padrão
+  String _avatarUrl = '';
 
   @override
   void initState() {
@@ -47,7 +46,7 @@ class _TopHeaderBarState extends State<TopHeaderBar> {
 
     if (mounted) {
       setState(() {
-        _avatarUrl = foto ?? 'https://i.pravatar.cc/150?img=32';
+        _avatarUrl = foto ?? 'https://avatar.iran.liara.run/public/boy';
       });
     }
   }
@@ -59,9 +58,8 @@ class _TopHeaderBarState extends State<TopHeaderBar> {
       padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10.0),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        crossAxisAlignment: CrossAxisAlignment.center, // Garante alinhamento pelo centro
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // Avatar com sombra
           Align(
             alignment: Alignment.center,
             child: Container(
@@ -86,14 +84,13 @@ class _TopHeaderBarState extends State<TopHeaderBar> {
                   backgroundImage: NetworkImage(_avatarUrl),
                   onBackgroundImageError: (exception, stackTrace) {
                     setState(() {
-                      _avatarUrl = 'https://i.pravatar.cc/150?img=32';
+                      _avatarUrl = 'https://avatar.iran.liara.run/public/boy';
                     });
                   },
                 ),
               ),
             ),
           ),
-          // Logo SVG com sombra
           Align(
             alignment: Alignment.center,
             child: Container(
@@ -120,7 +117,6 @@ class _TopHeaderBarState extends State<TopHeaderBar> {
               ),
             ),
           ),
-          // Botão de settings com sombra
           Align(
             alignment: Alignment.center,
             child: Container(
