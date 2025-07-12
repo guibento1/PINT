@@ -17,7 +17,7 @@ class DatabaseHelper {
     print("[DB] Path da Base de Dados: $path");
     var db = await openDatabase(
       path,
-      version: 4, // Incremented version for new fields/tables
+      version: 4,
       onCreate: _onCreate,
       onUpgrade: (Database db, int oldVersion, int newVersion) async {
 
@@ -195,7 +195,6 @@ class DatabaseHelper {
     final dbClient = await db;
     print("[DB] A fazer upsert do utilizador: ${utilizador['idutilizador']}");
 
-    // Ensure roles are removed before processing
     final userMap = Map<String, dynamic>.from(utilizador);
     userMap.remove('roles');
 
@@ -223,7 +222,6 @@ class DatabaseHelper {
       print("[DB] Utilizador encontrado: $idutilizador");
       var user = Map<String, dynamic>.from(maps.first);
       user['ativo'] = user['ativo'] == 1;
-      // Roles are not stored locally.
       return user;
     }
     print("[DB] Utilizador não encontrado na DB local: $idutilizador");
@@ -246,7 +244,6 @@ class DatabaseHelper {
       curso['disponivel'] = curso['disponivel'] == 1;
       curso['sincrono'] = curso['sincrono'] == 1;
       curso['inscrito'] = curso['inscrito'] == 1;
-      // It's good practice to fetch related data if needed, e.g., topics
       final topicos = await listarTopicosDoCurso(idcurso);
       curso['topicos'] = topicos;
       final licoes = await listarLicoesDoCurso(idcurso);
@@ -261,7 +258,6 @@ class DatabaseHelper {
     return null;
   }
 
-  // Upsert for perfil
   Future<void> upsertPerfil(Map<String, dynamic> perfil) async {
     var dbClient = await db;
     await dbClient.insert(
@@ -271,7 +267,6 @@ class DatabaseHelper {
     );
   }
 
-  // Upsert for curso
   Future<void> upsertCurso(Map<String, dynamic> curso) async {
     var dbClient = await db;
     await dbClient.insert(
@@ -281,19 +276,16 @@ class DatabaseHelper {
     );
   }
 
-  // Update curso
   Future<int> updateCurso(int idcurso, Map<String, dynamic> values) async {
     var dbClient = await db;
     return await dbClient.update('cursos', values, where: 'idcurso = ?', whereArgs: [idcurso]);
   }
 
-  // Delete curso
   Future<int> deleteCurso(int idcurso) async {
     var dbClient = await db;
     return await dbClient.delete('cursos', where: 'idcurso = ?', whereArgs: [idcurso]);
   }
 
-  // Save notification subscription
   Future<void> saveNotificationSubscription(int idutilizador, int idcanal) async {
     var dbClient = await db;
     await dbClient.insert(
@@ -307,7 +299,6 @@ class DatabaseHelper {
     );
   }
 
-  // Métodos para cursos
   Future<int> guardarCurso(Map<String, dynamic> curso) async {
     var dbClient = await db;
     return await dbClient.rawInsert(
@@ -360,8 +351,6 @@ class DatabaseHelper {
     await batch.commit(noResult: true);
   }
 
-
-  // Métodos para tópicos
   Future<int> guardarTopico(Map<String, dynamic> topico) async {
     var dbClient = await db;
     return await dbClient.rawInsert(
@@ -373,16 +362,15 @@ class DatabaseHelper {
       ],
     );
   }
+
   Future<List<Map<String, dynamic>>> listarTopicosDoCurso(int idcurso) async {
     var dbClient = await db;
     return await dbClient.query('topicos', where: 'idcurso = ?', whereArgs: [idcurso]);
   }
 
-  // Guardar inscrições do utilizador
   Future<void> syncInscricoesFromApi(int userId, List<Map<String, dynamic>> inscricoes) async {
     var dbClient = await db;
     print("[DB] A sincronizar ${inscricoes.length} inscrições para o utilizador $userId");
-    // Limpa inscrições antigas do utilizador atual
     await dbClient.delete('utilizador_cursos', where: 'idutilizador = ?', whereArgs: [userId]);
     final batch = dbClient.batch();
     for (final inscricao in inscricoes) {
@@ -398,7 +386,6 @@ class DatabaseHelper {
     await batch.commit(noResult: true);
   }
 
-  // Listar cursos inscritos (join com cursos)
   Future<List<Map<String, dynamic>>> listarCursosInscritos(int userId) async {
     var dbClient = await db;
     print("[DB] A listar cursos inscritos para o utilizador $userId a partir da DB local");
@@ -409,7 +396,6 @@ class DatabaseHelper {
     ''', [userId]);
   }
 
-  // --- Métodos para Categorias ---
   Future<void> syncCategoriasFromApi(List<Map<String, dynamic>> categorias) async {
     var dbClient = await db;
     await dbClient.delete('categorias');
@@ -432,7 +418,6 @@ class DatabaseHelper {
     return await dbClient.query('categorias');
   }
 
-  // --- Métodos para Áreas ---
   Future<void> syncAreasFromApi(List<Map<String, dynamic>> areas) async {
     var dbClient = await db;
     await dbClient.delete('areas');
@@ -458,8 +443,7 @@ class DatabaseHelper {
     }
     return await dbClient.query('areas');
   }
-
-  // --- Métodos para Tópicos Globais ---
+  
   Future<void> syncTopicosGlobaisFromApi(List<Map<String, dynamic>> topicos) async {
     var dbClient = await db;
     await dbClient.delete('topicosglobais');
