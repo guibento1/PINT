@@ -14,6 +14,7 @@ class DatabaseHelper {
   DatabaseHelper.internal();
   initDb() async {
     String path = await getDatabasesPath() + 'appdata.db';
+    print("[DB] Path da Base de Dados: $path");
     var db = await openDatabase(
       path,
       version: 4, // Incremented version for new fields/tables
@@ -44,28 +45,33 @@ class DatabaseHelper {
           'FOREIGN KEY(idarea) REFERENCES areas(idarea)'
           ')'
         );
-
-        await db.execute("CREATE INDEX IF NOT EXISTS idx_cursos_idcategoria ON cursos(idcategoria);");
-        await db.execute("CREATE INDEX IF NOT EXISTS idx_cursos_nome ON cursos(nome);");
         await db.execute(
-          'CREATE TABLE IF NOT EXISTS licoes('
-          'idlicao INTEGER PRIMARY KEY, '
-          'idcurso INTEGER, '
-          'titulo TEXT, '
-          'descricao TEXT, '
-          'ordem INTEGER, '
-          'FOREIGN KEY(idcurso) REFERENCES cursos(idcurso)'
+          'CREATE TABLE IF NOT EXISTS utilizadores('
+          'idutilizador INTEGER PRIMARY KEY, '
+          'nome TEXT, '
+          'email TEXT, '
+          'foto TEXT, '
+          'telefone TEXT, '
+          'morada TEXT, '
+          'ativo INTEGER, '
+          'dataregisto TEXT'
           ')'
         );
         await db.execute(
-          'CREATE TABLE IF NOT EXISTS materiais('
-          'idmaterial INTEGER PRIMARY KEY, '
-          'idlicao INTEGER, '
-          'titulo TEXT, '
-          'referencia TEXT, '
-          'tipo INTEGER, '
-          'criador INTEGER, '
-          'FOREIGN KEY(idlicao) REFERENCES licoes(idlicao)'
+          'CREATE TABLE IF NOT EXISTS utilizador_cursos('
+          'idutilizador INTEGER, '
+          'idcurso INTEGER, '
+          'PRIMARY KEY(idutilizador, idcurso), '
+          'FOREIGN KEY(idutilizador) REFERENCES utilizadores(idutilizador) ON DELETE CASCADE, '
+          'FOREIGN KEY(idcurso) REFERENCES cursos(idcurso) ON DELETE CASCADE'
+          ')'
+        );
+        await db.execute(
+          'CREATE TABLE IF NOT EXISTS notificacoes_subscritas('
+          'idutilizador INTEGER, '
+          'idcanal INTEGER, '
+          'data_subscricao TEXT, '
+          'PRIMARY KEY(idutilizador, idcanal)'
           ')'
         );
       },
@@ -99,13 +105,15 @@ class DatabaseHelper {
       ')'
     );
     await db.execute(
-      'CREATE TABLE perfil('
+      'CREATE TABLE utilizadores('
       'idutilizador INTEGER PRIMARY KEY, '
       'nome TEXT, '
       'email TEXT, '
       'foto TEXT, '
       'telefone TEXT, '
-      'morada TEXT'
+      'morada TEXT, '
+      'ativo INTEGER, '
+      'dataregisto TEXT'
       ')'
     );
     await db.execute(
@@ -160,15 +168,104 @@ class DatabaseHelper {
       'FOREIGN KEY(idlicao) REFERENCES licoes(idlicao)'
       ')'
     );
+    await db.execute(
+      'CREATE TABLE IF NOT EXISTS utilizador_cursos('
+      'idutilizador INTEGER, '
+      'idcurso INTEGER, '
+      'PRIMARY KEY(idutilizador, idcurso), '
+      'FOREIGN KEY(idutilizador) REFERENCES utilizadores(idutilizador) ON DELETE CASCADE, '
+      'FOREIGN KEY(idcurso) REFERENCES cursos(idcurso) ON DELETE CASCADE'
+      ')'
+    );
+    await db.execute(
+      'CREATE TABLE IF NOT EXISTS notificacoes_subscritas('
+      'idutilizador INTEGER, '
+      'idcanal INTEGER, '
+      'data_subscricao TEXT, '
+      'PRIMARY KEY(idutilizador, idcanal)'
+      ')'
+    );
     await db.execute("CREATE INDEX IF NOT EXISTS idx_cursos_idcategoria ON cursos(idcategoria);");
     await db.execute("CREATE INDEX IF NOT EXISTS idx_cursos_nome ON cursos(nome);");
+  }
+
+  // --- Métodos para Utilizadores ---
+
+  Future<void> upsertUtilizador(Map<String, dynamic> utilizador) async {
+    final dbClient = await db;
+    print("[DB] A fazer upsert do utilizador: ${utilizador['idutilizador']}");
+
+    // Ensure roles are removed before processing
+    final userMap = Map<String, dynamic>.from(utilizador);
+    userMap.remove('roles');
+
+    Map<String, dynamic> utilizadorData = {
+      'idutilizador': userMap['idutilizador'],
+      'nome': userMap['nome'],
+      'email': userMap['email'],
+      'foto': userMap['foto'],
+      'telefone': userMap['telefone'],
+      'morada': userMap['morada'],
+      'ativo': userMap['ativo'] == true ? 1 : 0,
+      'dataregisto': userMap['dataregisto'],
+    };
+
+    await dbClient.insert('utilizadores', utilizadorData, conflictAlgorithm: ConflictAlgorithm.replace);
+    print("[DB] Utilizador ${utilizador['idutilizador']} inserido/atualizado.");
+  }
+
+  Future<Map<String, dynamic>?> getUtilizador(int idutilizador) async {
+    final dbClient = await db;
+    print("[DB] A obter utilizador com ID: $idutilizador");
+    final List<Map<String, dynamic>> maps = await dbClient.query('utilizadores', where: 'idutilizador = ?', whereArgs: [idutilizador]);
+
+    if (maps.isNotEmpty) {
+      print("[DB] Utilizador encontrado: $idutilizador");
+      var user = Map<String, dynamic>.from(maps.first);
+      user['ativo'] = user['ativo'] == 1;
+      // Roles are not stored locally.
+      return user;
+    }
+    print("[DB] Utilizador não encontrado na DB local: $idutilizador");
+    return null;
+  }
+
+  Future<void> deleteUtilizador(int idutilizador) async {
+    final dbClient = await db;
+    await dbClient.delete('utilizadores', where: 'idutilizador = ?', whereArgs: [idutilizador]);
+  }
+
+  Future<Map<String, dynamic>?> getCurso(int idcurso) async {
+    final dbClient = await db;
+    print("[DB] A obter curso com ID: $idcurso");
+    final List<Map<String, dynamic>> maps = await dbClient.query('cursos', where: 'idcurso = ?', whereArgs: [idcurso]);
+
+    if (maps.isNotEmpty) {
+      print("[DB] Curso encontrado: $idcurso");
+      var curso = Map<String, dynamic>.from(maps.first);
+      curso['disponivel'] = curso['disponivel'] == 1;
+      curso['sincrono'] = curso['sincrono'] == 1;
+      curso['inscrito'] = curso['inscrito'] == 1;
+      // It's good practice to fetch related data if needed, e.g., topics
+      final topicos = await listarTopicosDoCurso(idcurso);
+      curso['topicos'] = topicos;
+      final licoes = await listarLicoesDoCurso(idcurso);
+      for (var licao in licoes) {
+        final materiais = await listarMateriaisDaLicao(licao['idlicao']);
+        licao['materiais'] = materiais;
+      }
+      curso['licoes'] = licoes;
+      return curso;
+    }
+    print("[DB] Curso não encontrado na DB local: $idcurso");
+    return null;
   }
 
   // Upsert for perfil
   Future<void> upsertPerfil(Map<String, dynamic> perfil) async {
     var dbClient = await db;
     await dbClient.insert(
-      'perfil',
+      'utilizadores',
       perfil,
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
@@ -225,7 +322,7 @@ class DatabaseHelper {
         curso['maxinscricoes'],
         curso['thumbnail'],
         curso['sincrono'],
-        curso['inscrito']? || null,
+        curso['inscrito'],
         curso['canal'],
         curso['planocurricular'],
       ],
@@ -282,18 +379,18 @@ class DatabaseHelper {
   }
 
   // Guardar inscrições do utilizador
-  Future<void> syncInscricoesFromApi(List<Map<String, dynamic>> inscricoes) async {
+  Future<void> syncInscricoesFromApi(int userId, List<Map<String, dynamic>> inscricoes) async {
     var dbClient = await db;
-    // Limpa inscrições antigas (opcional: só do utilizador atual)
-    await dbClient.delete('inscricoes');
+    print("[DB] A sincronizar ${inscricoes.length} inscrições para o utilizador $userId");
+    // Limpa inscrições antigas do utilizador atual
+    await dbClient.delete('utilizador_cursos', where: 'idutilizador = ?', whereArgs: [userId]);
     final batch = dbClient.batch();
     for (final inscricao in inscricoes) {
       batch.insert(
-        'inscricoes',
+        'utilizador_cursos',
         {
-          'curso': inscricao['idcurso'],
-          'formando': inscricao['idformando'],
-          'registo': inscricao['registo'],
+          'idutilizador': userId,
+          'idcurso': inscricao['idcurso'],
         },
         conflictAlgorithm: ConflictAlgorithm.replace,
       );
@@ -302,12 +399,14 @@ class DatabaseHelper {
   }
 
   // Listar cursos inscritos (join com cursos)
-  Future<List<Map<String, dynamic>>> listarCursosInscritos() async {
+  Future<List<Map<String, dynamic>>> listarCursosInscritos(int userId) async {
     var dbClient = await db;
+    print("[DB] A listar cursos inscritos para o utilizador $userId a partir da DB local");
     return await dbClient.rawQuery('''
       SELECT c.* FROM cursos c
-      INNER JOIN inscricoes i ON c.idcurso = i.curso
-    ''');
+      INNER JOIN utilizador_cursos uc ON c.idcurso = uc.idcurso
+      WHERE uc.idutilizador = ?
+    ''', [userId]);
   }
 
   // --- Métodos para Categorias ---
@@ -441,6 +540,7 @@ class DatabaseHelper {
 
   // Sincroniza todos os dados essenciais da API para a base local
   Future<void> syncAllFromApi(Servidor servidor, int userId) async {
+    print("[DB] A iniciar sincronização completa a partir da API para o utilizador $userId...");
     // Cursos
     final cursos = await servidor.getData('curso/list');
     print('SYNCALL: cursos: ' + cursos.toString());
@@ -457,6 +557,9 @@ class DatabaseHelper {
         materiais.map((e) => Map<String, dynamic>.from(e as Map)).toList()
       );
     }
+    // Perfil do utilizador
+    final perfil = await servidor.getData('utilizador/id/$userId');
+    if (perfil is Map) await upsertUtilizador(Map<String, dynamic>.from(perfil));
     // Categorias
     final categorias = await servidor.getData('categoria/list');
     if (categorias is List) await syncCategoriasFromApi(List<Map<String, dynamic>>.from(categorias));
@@ -468,6 +571,7 @@ class DatabaseHelper {
     if (topicos is List) await syncTopicosGlobaisFromApi(List<Map<String, dynamic>>.from(topicos));
     // Inscricoes do utilizador
     final inscricoes = await servidor.getData('curso/inscricoes/utilizador/$userId');
-    if (inscricoes is List) await syncInscricoesFromApi(List<Map<String, dynamic>>.from(inscricoes));
+    if (inscricoes is List) await syncInscricoesFromApi(userId, List<Map<String, dynamic>>.from(inscricoes));
+    print("[DB] Sincronização completa terminada.");
   }
 }

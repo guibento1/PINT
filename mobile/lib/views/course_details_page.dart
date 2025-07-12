@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../backend/notifications_service.dart';
 import '../middleware.dart';
 import '../components/confirmation_dialog.dart';
+import '../backend/shared_preferences.dart' as my_prefs;
 
 class CourseDetailsPage extends StatefulWidget {
   final int id;
@@ -77,7 +78,13 @@ class _CourseDetailsPageState extends State<CourseDetailsPage> {
     if (confirmou) {
       setState(() => _isSubmittingAction = true);
       try {
-        final response = await _middleware.subscribeToCourse(widget.id);
+        final userId = await my_prefs.getUserId();
+        if (userId == null) {
+          _showSnackBar('Erro: Utilizador não autenticado.', Colors.red);
+          if (mounted) setState(() => _isSubmittingAction = false);
+          return;
+        }
+        final response = await _middleware.subscribeToCourse(widget.id, int.parse(userId));
         if (response['success'] == true ||
             (response['message'] as String?)?.contains('sucesso') == true) {
           final int? canalId = int.tryParse(_courseData!['canal'].toString());
@@ -118,7 +125,13 @@ class _CourseDetailsPageState extends State<CourseDetailsPage> {
     if (confirmou) {
       setState(() => _isSubmittingAction = true);
       try {
-        final response = await _middleware.unsubscribeFromCourse(widget.id);
+        final userId = await my_prefs.getUserId();
+        if (userId == null) {
+          _showSnackBar('Erro: Utilizador não autenticado.', Colors.red);
+          if (mounted) setState(() => _isSubmittingAction = false);
+          return;
+        }
+        final response = await _middleware.unsubscribeFromCourse(widget.id, int.parse(userId));
         if (response['success'] == true || (response['message'] as String?)?.contains('sucesso') == true) {
           final int? canalId = int.tryParse(_courseData!['canal'].toString());
           if (canalId != null) {

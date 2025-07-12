@@ -1,7 +1,7 @@
 // lib/views/explore_courses_page.dart
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../middleware.dart'; // Changed from server.dart to middleware.dart
+import '../middleware.dart';
 import '../components/course_filter.dart';
 import '../components/course_card.dart';
 import '../backend/shared_preferences.dart' as my_prefs;

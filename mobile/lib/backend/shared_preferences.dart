@@ -61,3 +61,11 @@ Future<bool> isLoggedIn() async {
   final prefs = await SharedPreferences.getInstance();
   return prefs.getString(_tokenKey) != null && prefs.getString(_tokenKey)!.isNotEmpty;
 }
+
+Future<String?> getUserId() async {
+  final user = await getUser();
+  if (user != null && user.containsKey('idutilizador')) {
+    return user['idutilizador'].toString();
+  }
+  return null;
+}

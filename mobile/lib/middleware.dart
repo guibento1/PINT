@@ -3,10 +3,12 @@ import 'dart:convert';
 import 'dart:io'; // Required for SocketException
 import 'package:connectivity_plus/connectivity_plus.dart'; // Import connectivity_plus
 import 'backend/server.dart'; // Import your existing Servidor class
+import 'backend/database_helper.dart'; // Import the database helper
 import 'backend/shared_preferences.dart' as my_prefs;
 
 class AppMiddleware {
   final Servidor _servidor = Servidor();
+  final DatabaseHelper _dbHelper = DatabaseHelper(); // Instantiate the db helper
 
   Future<bool> _isOnline() async {
     try {
@@ -34,29 +36,24 @@ class AppMiddleware {
   }
 
   Future<Map<String, dynamic>> fetchUserProfile(String userId) async {
-    final cachedUser = await my_prefs.getUser();
-    print(cachedUser);
-    if (cachedUser != null && cachedUser.isNotEmpty) {
-      print('User profile fetched from SharedPreferences (cached data).');
-      return cachedUser;
-    }
-
     if (!await _isOnline()) {
-      print('Offline and no cached user found: Returning empty user profile.');
-      return {};
+      print('Offline: Fetching user profile from local DB.');
+      final user = await _dbHelper.getUtilizador(int.parse(userId));
+      return user ?? {};
     }
 
     try {
       print('Online: Fetching user profile from API.');
       final dynamic response = await _servidor.getData('utilizador/id/$userId');
       if (response is Map<String, dynamic>) {
-        await my_prefs.saveUser(response);
+        await _dbHelper.upsertUtilizador(response); // Save to local DB
         return response;
       }
       throw Exception('Invalid user profile data format from API.');
     } on SocketException catch (e) {
-      print('SocketException in AppMiddleware.fetchUserProfile: $e. Returning empty data.');
-      return {};
+      print('SocketException in AppMiddleware.fetchUserProfile: $e. Trying local DB.');
+      final user = await _dbHelper.getUtilizador(int.parse(userId));
+      return user ?? {};
     } catch (e) {
       print('Error in AppMiddleware.fetchUserProfile: $e');
       rethrow;
@@ -111,7 +108,7 @@ class AppMiddleware {
       );
 
       if (response is Map<String, dynamic>) {
-        await my_prefs.saveUser(response);
+        await _dbHelper.upsertUtilizador(response); // Update local DB
         return response;
       } else if (response == null) {
         print('Profile update request returned null. Check previous Servidor logs for details.');
@@ -132,17 +129,18 @@ class AppMiddleware {
   Future<Map<String, dynamic>> fetchCourseDetails(int courseId) async {
     if (!await _isOnline()) {
       print('Offline: Returning empty course details.');
-      return {}; // Return empty map if offline
+      return {};
     }
     try {
       final dynamic courseDetailsResp = await _servidor.getData('curso/$courseId');
       if (courseDetailsResp is Map<String, dynamic>) {
+        // Here we could add logic to save/update the course in the local DB
         return courseDetailsResp;
       }
       throw Exception('Formato de dados de detalhes do curso inválido.');
     } on SocketException catch (e) {
       print('SocketException in AppMiddleware.fetchCourseDetails: $e. Returning empty data.');
-      return {}; // Return empty map on network error
+      return {};
     } catch (e) {
       print('Error in AppMiddleware.fetchCourseDetails: $e');
       rethrow;
@@ -150,7 +148,7 @@ class AppMiddleware {
   }
 
   // Subscribes a user to a course
-  Future<Map<String, dynamic>> subscribeToCourse(int courseId) async {
+  Future<Map<String, dynamic>> subscribeToCourse(int courseId, int userId) async {
     if (!await _isOnline()) {
       print('Offline: Returning empty response for course subscription.');
       return {}; // Return empty map if offline
@@ -158,6 +156,8 @@ class AppMiddleware {
     try {
       final dynamic response = await _servidor.postData('curso/$courseId/inscrever', {});
       if (response is Map<String, dynamic>) {
+        // On success, update local db
+        await _dbHelper.db.then((db) => db.insert('utilizador_cursos', {'idutilizador': userId, 'idcurso': courseId}));
         return response;
       }
       throw Exception('Formato de resposta de inscrição inválido.');
@@ -171,7 +171,7 @@ class AppMiddleware {
   }
 
   // Unsubscribes a user from a course
-  Future<Map<String, dynamic>> unsubscribeFromCourse(int courseId) async {
+  Future<Map<String, dynamic>> unsubscribeFromCourse(int courseId, int userId) async {
     if (!await _isOnline()) {
       print('Offline: Returning empty response for course unsubscription.');
       return {}; // Return empty map if offline
@@ -179,6 +179,8 @@ class AppMiddleware {
     try {
       final dynamic response = await _servidor.postData('curso/$courseId/sair', {});
       if (response is Map<String, dynamic>) {
+        // On success, update local db
+        await _dbHelper.db.then((db) => db.delete('utilizador_cursos', where: 'idutilizador = ? AND idcurso = ?', whereArgs: [userId, courseId]));
         return response;
       }
       throw Exception('Formato de resposta de cancelamento de inscrição inválido.');
@@ -265,8 +267,8 @@ class AppMiddleware {
     List<int>? categoryIds,
   }) async {
     if (!await _isOnline()) {
-      print('Offline: Returning empty user courses list.');
-      return <Map<String, dynamic>>[];
+      print('Offline: Fetching user courses from local DB.');
+      return await _dbHelper.listarCursosInscritos(int.parse(userId));
     }
     try {
       String coursesBasePath = 'curso/inscricoes/utilizador/$userId';
@@ -301,15 +303,17 @@ class AppMiddleware {
       print('API response for courses: $cursosResp'); // Debugging API response
 
       if (cursosResp is List) {
-        print('Courses response is a List. Number of courses: ${cursosResp.length}');
-        return List<Map<String, dynamic>>.from(
-            cursosResp.whereType<Map<String, dynamic>>());
+        final coursesList = List<Map<String, dynamic>>.from(cursosResp.whereType<Map<String, dynamic>>());
+        // Sync with local DB
+        await _dbHelper.syncInscricoesFromApi(int.parse(userId), coursesList);
+        await _dbHelper.syncCursosFromApi(coursesList);
+        return coursesList;
       }
       print('Courses response is NOT a List. Type: ${cursosResp.runtimeType}, Value: $cursosResp');
       return <Map<String, dynamic>>[];
     } on SocketException catch (e) {
-      print('SocketException in AppMiddleware.fetchUserCourses: $e. Returning empty data.');
-      return <Map<String, dynamic>>[];
+      print('SocketException in AppMiddleware.fetchUserCourses: $e. Returning local data.');
+      return await _dbHelper.listarCursosInscritos(int.parse(userId));
     } catch (e) {
       print('Error in AppMiddleware.fetchUserCourses: $e');
       rethrow;
@@ -325,7 +329,7 @@ class AppMiddleware {
   }) async {
     if (!await _isOnline()) {
       print('Offline: Returning empty all courses list.');
-      return []; // Return empty list if offline
+      return [];
     }
     try {
       Map<String, dynamic> queryParams = {};
@@ -348,13 +352,14 @@ class AppMiddleware {
       );
 
       if (coursesResp is List) {
-        return List<Map<String, dynamic>>.from(
-            coursesResp.whereType<Map<String, dynamic>>());
+        final courseList = List<Map<String, dynamic>>.from(coursesResp.whereType<Map<String, dynamic>>());
+        // await _dbHelper.syncCursosFromApi(courseList); // Sync all courses to local DB
+        return courseList;
       }
       return [];
     } on SocketException catch (e) {
       print('SocketException in AppMiddleware.fetchAllCourses: $e. Returning empty data.');
-      return []; // Return empty list on network error
+      return [];
     } catch (e) {
       print('Error in AppMiddleware.fetchAllCourses: $e');
       rethrow;
