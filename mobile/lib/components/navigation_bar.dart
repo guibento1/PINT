@@ -12,14 +12,30 @@ class NavigationBarClass extends StatefulWidget {
 
 class _NavigationBarClassState extends State<NavigationBarClass> {
   final GlobalKey<CurvedNavigationBarState> _bottomNavigationKey = GlobalKey();
-  int page = 0;
+
+  int _getPageIndex(BuildContext context) {
+    final String location = GoRouterState.of(context).uri.toString();
+    if (location.startsWith('/home')) {
+      return 0;
+    }
+    if (location.startsWith('/search_courses')) {
+      return 1;
+    }
+    if (location.startsWith('/notifications')) {
+      return 2;
+    }
+    if (location.startsWith('/profile')) {
+      return 3;
+    }
+    return 0;
+  }
 
   @override
   Widget build(BuildContext context) {
     return
       CurvedNavigationBar(
         key: _bottomNavigationKey,
-        index: page,
+        index: _getPageIndex(context),
         height: 75.0,
         items: const <Widget>[
           Icon(Icons.home, size: 33, color: Colors.white),
@@ -33,11 +49,6 @@ class _NavigationBarClassState extends State<NavigationBarClass> {
         animationCurve: Curves.easeInOut,
         animationDuration: const Duration(milliseconds: 600),
         onTap: (index) {
-
-          setState(() {
-            page = index;
-          });
-
           switch (index) {
             case 0:
               context.go('/home');
