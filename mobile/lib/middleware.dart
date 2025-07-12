@@ -1,4 +1,3 @@
-// lib/backend/middleware.dart
 import 'dart:io'; // Required for SocketException
 import 'package:connectivity_plus/connectivity_plus.dart'; // Import connectivity_plus
 import 'backend/server.dart'; // Import your existing Servidor class

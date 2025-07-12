@@ -88,6 +88,11 @@ final rotas = GoRouter(
           builder: (context, state) => ExploreCoursesPage(),
         ),
         GoRoute(
+          path: '/settings',
+          name: 'settings',
+          builder: (context, state) => HomePage(), //Redirecionado para a home porque ainda nao temos as settings implementadas
+        ),
+        GoRoute(
           path: '/notifications',
           name: 'notifications',
           builder: (context, state) => NotificationsPage(),

@@ -137,7 +137,7 @@ class _TopHeaderBarState extends State<TopHeaderBar> {
               ),
               child: IconButton(
                 icon: const Icon(Icons.settings, color: Color(0xFF007BFF), size: 28),
-                onPressed: () => context.go('/'),
+                onPressed: () => context.go('/settings'),
               ),
             ),
           ),
