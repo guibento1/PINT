@@ -256,7 +256,7 @@ controllers.update = async (req, res) => {
 
             result = await models.utilizadores.findOne({ 
                 where: { idutilizador: id } ,
-                attributes: ["idutilizador","email","nome","dataregisto","foto","ativo"]
+                attributes: ["idutilizador","email","nome","morada","telefone","dataregisto","foto","ativo"]
             });
 
             result.dataValues.roles = await findRoles(id);
