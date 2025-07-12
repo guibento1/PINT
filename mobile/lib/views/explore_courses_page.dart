@@ -140,9 +140,18 @@ class _ExploreCoursesPageState extends State<ExploreCoursesPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Explorar Cursos', style: TextStyle(color: Color(0xFF007BFF))),
         backgroundColor: Colors.transparent,
         elevation: 0,
+        title: const Text(
+          'Explorar Cursos',
+          style: TextStyle(
+            fontSize: 25,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF007BFF),
+          ),
+          textAlign: TextAlign.left,
+        ),
+        titleSpacing: 20.0,
       ),
       body: RefreshIndicator(
         color: const Color(0xFF007BFF),

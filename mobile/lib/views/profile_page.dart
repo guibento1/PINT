@@ -307,7 +307,13 @@ class _ProfilePageState extends State<ProfilePage> {
                                         _isEditing = true;
                                       });
                                     },
-                                    child: const Text('Editar Perfil'),
+                                    child: const Text(
+                                      'Editar Perfil',
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
                                   ),
                                 ),
                               ],
@@ -338,7 +344,10 @@ class _ProfilePageState extends State<ProfilePage> {
                               onConfirm: _logout,
                             );
                           },
-                          child: const Text("Sair"),
+                          child: const Text(
+                            "Sair",
+                            style: TextStyle(fontSize: 22, fontWeight: FontWeight.w500),
+                          ),
                         ),
                       ),
                       const SizedBox(height: 32),
