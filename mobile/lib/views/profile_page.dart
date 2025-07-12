@@ -5,6 +5,7 @@ import 'dart:io';
 import '/middleware.dart';
 import '../components/confirmation_dialog.dart';
 import '../backend/shared_preferences.dart' as my_prefs;
+import '../backend/server.dart'; // Make sure this import is correct
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -14,7 +15,9 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
-  final AppMiddleware _middleware = AppMiddleware();
+  // Initialize Servidor here and pass it to AppMiddleware
+  late final AppMiddleware _middleware; // Use late final as it depends on _servidor
+
   late Future<Map<String, dynamic>?> _userDataFuture;
 
   bool _isEditing = false;
@@ -30,6 +33,7 @@ class _ProfilePageState extends State<ProfilePage> {
   @override
   void initState() {
     super.initState();
+    _middleware = AppMiddleware(); // Initialize middleware here
     _userDataFuture = _loadUserData();
   }
 
@@ -45,7 +49,6 @@ class _ProfilePageState extends State<ProfilePage> {
     }
 
     try {
-      // Use middleware to fetch user profile
       final Map<String, dynamic> perfilResp = await _middleware.fetchUserProfile(userId);
       setState(() {
         _name = perfilResp['nome'] as String? ?? '';
@@ -88,11 +91,16 @@ class _ProfilePageState extends State<ProfilePage> {
       return;
     }
 
-    Map<String, String> fields = {
+    // Prepare data for updateUserProfile, now supporting Map<String, dynamic>
+    Map<String, dynamic> dataToUpdate = {
       'nome': _name,
-      'email': _email,
+      // 'email': _email, // Email is not editable, so do not include it here
       'morada': _address,
       'telefone': _phone,
+      // If roles are editable on this page, fetch them from a state variable or control.
+      // For now, assuming roles are not edited here or are handled separately if needed.
+      // If you need to send roles, get them from your userData loaded or a separate control.
+      // Example: 'roles': (await _middleware.fetchUserProfile(userId))?['roles'] as List<String>?,
     };
 
     setState(() {
@@ -100,10 +108,9 @@ class _ProfilePageState extends State<ProfilePage> {
     });
 
     try {
-      // Use middleware to update user profile
       final Map<String, dynamic> response = await _middleware.updateUserProfile(
         userId,
-        fields,
+        dataToUpdate, // Pass the Map<String, dynamic>
         profileImage: _profileImage,
       );
 
@@ -112,7 +119,7 @@ class _ProfilePageState extends State<ProfilePage> {
         _profileImage = null; // Clear the selected image after upload
         _currentProfileImageUrl = response['foto'] as String?;
         _name = response['nome'] as String? ?? _name;
-        _email = response['email'] as String? ?? _email;
+        // _email is not updated from response as it's not editable.
         _address = response['morada'] as String? ?? _address;
         _phone = response['telefone'] as String? ?? _phone;
       });
@@ -184,14 +191,14 @@ class _ProfilePageState extends State<ProfilePage> {
                           backgroundImage: _profileImage != null
                               ? FileImage(_profileImage!)
                               : (_currentProfileImageUrl != null && _currentProfileImageUrl!.isNotEmpty
-                              ? NetworkImage(_currentProfileImageUrl!)
-                              : const AssetImage('assets/placeholder_profile.png') as ImageProvider),
+                                  ? NetworkImage(_currentProfileImageUrl!)
+                                  : const AssetImage('assets/placeholder_profile.png') as ImageProvider),
                           child: _profileImage == null && (_currentProfileImageUrl == null || _currentProfileImageUrl!.isEmpty)
                               ? const Icon(
-                            Icons.person,
-                            size: 80,
-                            color: Colors.white,
-                          )
+                                  Icons.person,
+                                  size: 80,
+                                  color: Colors.white,
+                                )
                               : null,
                         ),
                       ),
@@ -238,21 +245,21 @@ class _ProfilePageState extends State<ProfilePage> {
                                 onSaved: (value) => _name = value!,
                               ),
                               const SizedBox(height: 10),
+                              // --- MODIFIED EMAIL TEXTFORMFIELD ---
                               TextFormField(
                                 initialValue: _email,
-                                decoration: const InputDecoration(labelText: 'Email'),
+                                decoration: InputDecoration(
+                                  labelText: 'Email',
+                                  filled: true, // Crucial for fillColor to work
+                                  fillColor: Colors.grey.shade200, // Gray background
+                                  border: const OutlineInputBorder(), // Add border for disabled look consistency
+                                ),
                                 keyboardType: TextInputType.emailAddress,
-                                validator: (value) {
-                                  if (value == null || value.isEmpty) {
-                                    return 'Por favor, insira o email';
-                                  }
-                                  if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value)) {
-                                    return 'Por favor, insira um email válido';
-                                  }
-                                  return null;
-                                },
-                                onSaved: (value) => _email = value!,
+                                readOnly: true, // Make it non-editable
+                                enabled: false, // Gray it out
+                                // No validator or onSaved needed as it's not editable
                               ),
+                              // --- END MODIFIED EMAIL TEXTFORMFIELD ---
                               const SizedBox(height: 10),
                               TextFormField(
                                 initialValue: _address,
@@ -270,47 +277,46 @@ class _ProfilePageState extends State<ProfilePage> {
                             const SizedBox(height: 20),
                             _isEditing
                                 ? Row(
-                              mainAxisAlignment: MainAxisAlignment.end,
-                              children: [
-                                TextButton(
-                                  onPressed: () {
-                                    setState(() {
-                                      _isEditing = false;
-                                      _profileImage = null;
-                                      // Reload initial data to discard changes
-                                      _userDataFuture = _loadUserData();
-                                    });
-                                  },
-                                  child: const Text('Cancelar'),
-                                ),
-                                const SizedBox(width: 10),
-                                ElevatedButton(
-                                  onPressed: _saveProfile,
-                                  child: const Text('Guardar Alterações'),
-                                ),
-                              ],
-                            )
-                                : Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Expanded(
-                                  child: ElevatedButton(
-                                    onPressed: () {
-                                      setState(() {
-                                        _isEditing = true;
-                                      });
-                                    },
-                                    child: const Text(
-                                      'Editar Perfil',
-                                      style: TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.w500,
+                                    mainAxisAlignment: MainAxisAlignment.end,
+                                    children: [
+                                      TextButton(
+                                        onPressed: () {
+                                          setState(() {
+                                            _isEditing = false;
+                                            _profileImage = null;
+                                            _userDataFuture = _loadUserData();
+                                          });
+                                        },
+                                        child: const Text('Cancelar'),
                                       ),
-                                    ),
+                                      const SizedBox(width: 10),
+                                      ElevatedButton(
+                                        onPressed: _saveProfile,
+                                        child: const Text('Guardar Alterações'),
+                                      ),
+                                    ],
+                                  )
+                                : Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Expanded(
+                                        child: ElevatedButton(
+                                          onPressed: () {
+                                            setState(() {
+                                              _isEditing = true;
+                                            });
+                                          },
+                                          child: const Text(
+                                            'Editar Perfil',
+                                            style: TextStyle(
+                                              fontSize: 18,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
                                   ),
-                                ),
-                              ],
-                            ),
                           ],
                         ),
                       ),

@@ -76,11 +76,9 @@ class AppMiddleware {
 
     try {
       final String endpoint = 'utilizador/id/$userId';
-      final Map<String, String> finalMultipartFields = {}; // This will hold all fields for the request
-      final Map<String, dynamic> infoData = {}; // This will hold data for the 'info' JSON field
+      final Map<String, String> finalMultipartFields = {}; 
+      final Map<String, dynamic> infoData = {}; 
 
-      // Define which keys from userData should go into the 'info' JSON object
-      // Add any other fields here that your backend expects inside 'info'
       const List<String> infoKeys = ['nome', 'morada', 'telefone'];
 
       userData.forEach((key, value) {
