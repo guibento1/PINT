@@ -108,12 +108,6 @@ class _ProfilePageState extends State<ProfilePage> {
         profileImage: _profileImage,
       );
 
-      // Update local user data in SharedPreferences
-      if (user != null) {
-        final updatedUser = {...user, ...response};
-        await my_prefs.saveUser(updatedUser);
-      }
-
       setState(() {
         _isEditing = false;
         _profileImage = null; // Clear the selected image after upload

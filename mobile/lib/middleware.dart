@@ -33,19 +33,28 @@ class AppMiddleware {
   }
 
   Future<Map<String, dynamic>> fetchUserProfile(String userId) async {
+    final cachedUser = await my_prefs.getUser();
+    if (cachedUser != null && cachedUser.isNotEmpty) {
+      print('User profile fetched from SharedPreferences (cached data).');
+      return cachedUser;
+    }
+
     if (!await _isOnline()) {
-      print('Offline: Returning empty user profile.');
+      print('Offline and no cached user found: Returning empty user profile.');
       return {};
     }
+
     try {
+      print('Online: Fetching user profile from API.');
       final dynamic response = await _servidor.getData('utilizador/id/$userId');
       if (response is Map<String, dynamic>) {
+        await my_prefs.saveUser(response);
         return response;
       }
-      throw Exception('Invalid user profile data format.');
+      throw Exception('Invalid user profile data format from API.');
     } on SocketException catch (e) {
       print('SocketException in AppMiddleware.fetchUserProfile: $e. Returning empty data.');
-      return {}; // Return empty map on network error
+      return {};
     } catch (e) {
       print('Error in AppMiddleware.fetchUserProfile: $e');
       rethrow;
@@ -74,9 +83,13 @@ class AppMiddleware {
         );
       }
 
+
+
       if (response is Map<String, dynamic>) {
         await my_prefs.saveUser(response); 
+        return response;
       }
+
       throw Exception('Invalid response format for profile update.');
     } on SocketException catch (e) {
       print('SocketException in AppMiddleware.updateUserProfile: $e. Returning empty data.');
@@ -216,7 +229,8 @@ class AppMiddleware {
     }
   }
 
-  // Fetches user's subscribed courses with optional search and category filters
+// lib/backend/middleware.dart
+
   Future<List<Map<String, dynamic>>> fetchUserCourses({
     required String userId,
     String? searchTerm,
@@ -224,41 +238,50 @@ class AppMiddleware {
   }) async {
     if (!await _isOnline()) {
       print('Offline: Returning empty user courses list.');
-      return <Map<String, dynamic>>[]; // Return empty list if offline
+      return <Map<String, dynamic>>[];
     }
     try {
-      String coursesUrl = 'curso/inscricoes/utilizador/$userId';
-      Map<String, dynamic> queryParams = {};
-
-      if (searchTerm != null && searchTerm.isNotEmpty) {
-        queryParams['search'] = searchTerm;
-      }
-      if (categoryIds != null && categoryIds.isNotEmpty) {
-        // The original code had an empty loop here, which is not needed.
-        // The categoryIds are used in finalQueryParams below.
-      }
+      String coursesBasePath = 'curso/inscricoes/utilizador/$userId';
 
       final Map<String, dynamic> finalQueryParams = {};
       if (searchTerm != null && searchTerm.isNotEmpty) {
         finalQueryParams['search'] = searchTerm;
       }
       if (categoryIds != null && categoryIds.isNotEmpty) {
-        finalQueryParams['categoria'] = categoryIds;
+        // This line correctly converts List<int> to List<String>
+        // for `Servidor.getData` to form `?categoria=X&categoria=Y`
+        finalQueryParams['categoria'] = categoryIds.map((id) => id.toString()).toList();
       }
 
+      final Uri finalUri = Uri(
+        path: coursesBasePath,
+        queryParameters: finalQueryParams.map((key, value) {
+          if (value is List) {
+            return MapEntry(key, value.map((e) => e.toString()).toList());
+          }
+          return MapEntry(key, value.toString());
+        }),
+      );
+
+      print('Fetching user courses with URL path and parameters: ${finalUri.toString()}');
+
       final dynamic cursosResp = await _servidor.getData(
-        'curso/inscricoes/utilizador/$userId',
+        coursesBasePath,
         queryParameters: finalQueryParams,
       );
 
+      print('API response for courses: $cursosResp'); // Debugging API response
+
       if (cursosResp is List) {
+        print('Courses response is a List. Number of courses: ${cursosResp.length}');
         return List<Map<String, dynamic>>.from(
             cursosResp.whereType<Map<String, dynamic>>());
       }
+      print('Courses response is NOT a List. Type: ${cursosResp.runtimeType}, Value: $cursosResp');
       return <Map<String, dynamic>>[];
     } on SocketException catch (e) {
       print('SocketException in AppMiddleware.fetchUserCourses: $e. Returning empty data.');
-      return <Map<String, dynamic>>[]; // Return empty list on network error
+      return <Map<String, dynamic>>[];
     } catch (e) {
       print('Error in AppMiddleware.fetchUserCourses: $e');
       rethrow;
