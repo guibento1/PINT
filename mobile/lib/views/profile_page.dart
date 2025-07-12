@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
-import '../backend/server.dart';
+import '/middleware.dart';
 import '../backend/shared_preferences.dart' as my_prefs;
 
 class ProfilePage extends StatefulWidget {
@@ -13,7 +13,8 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
-  final Servidor servidor = Servidor();
+  // Use AppMiddleware instead of Servidor directly
+  final AppMiddleware _middleware = AppMiddleware();
   late Future<Map<String, dynamic>?> _userDataFuture;
 
   bool _isEditing = false;
@@ -44,19 +45,16 @@ class _ProfilePageState extends State<ProfilePage> {
     }
 
     try {
-      final dynamic perfilResp = await servidor.getData('utilizador/id/$userId');
-      if (perfilResp is Map<String, dynamic>) {
-        setState(() {
-          _name = perfilResp['nome'] as String? ?? '';
-          _email = perfilResp['email'] as String? ?? '';
-          _address = perfilResp['morada'] as String? ?? '';
-          _phone = perfilResp['telefone'] as String? ?? '';
-          _currentProfileImageUrl = perfilResp['foto'] as String?;
-        });
-        return perfilResp;
-      } else {
-        throw Exception('Failed to load user data or data is not in expected format.');
-      }
+      // Use middleware to fetch user profile
+      final Map<String, dynamic> perfilResp = await _middleware.fetchUserProfile(userId);
+      setState(() {
+        _name = perfilResp['nome'] as String? ?? '';
+        _email = perfilResp['email'] as String? ?? '';
+        _address = perfilResp['morada'] as String? ?? '';
+        _phone = perfilResp['telefone'] as String? ?? '';
+        _currentProfileImageUrl = perfilResp['foto'] as String?;
+      });
+      return perfilResp;
     } catch (e) {
       _showSnackBar('Erro ao carregar dados do perfil: $e', isError: true);
       return null;
@@ -102,45 +100,29 @@ class _ProfilePageState extends State<ProfilePage> {
     });
 
     try {
-      Map<String, dynamic>? response;
-      if (_profileImage != null) {
-        response = await servidor.putMultipartData(
-          'utilizador/id/$userId',
-          fields,
-          'foto',
-          _profileImage!.path,
-        );
-      } else {
-        response = await servidor.putData(
-          'utilizador/id/$userId',
-          fields,
-        );
+      // Use middleware to update user profile
+      final Map<String, dynamic> response = await _middleware.updateUserProfile(
+        userId,
+        fields,
+        profileImage: _profileImage,
+      );
+
+      // Update local user data in SharedPreferences
+      if (user != null) {
+        final updatedUser = {...user, ...response};
+        await my_prefs.saveUser(updatedUser);
       }
 
-      if (response != null) {
-        // Promote response to a non-nullable local variable
-        final Map<String, dynamic> finalResponse = response;
-
-        // Update local user data in SharedPreferences
-        if (user != null) {
-          final updatedUser = {...user, ...finalResponse}; // Use finalResponse here
-          await my_prefs.saveUser(updatedUser);
-        }
-
-        setState(() {
-          _isEditing = false;
-          _profileImage = null; // Clear the selected image after upload
-          // Use finalResponse for safe access
-          _currentProfileImageUrl = finalResponse['foto'] as String?;
-          _name = finalResponse['nome'] as String? ?? _name;
-          _email = finalResponse['email'] as String? ?? _email;
-          _address = finalResponse['morada'] as String? ?? _address;
-          _phone = finalResponse['telefone'] as String? ?? _phone;
-        });
-        _showSnackBar('Perfil atualizado com sucesso!');
-      } else {
-        _showSnackBar('Falha ao atualizar o perfil. Tente novamente.', isError: true);
-      }
+      setState(() {
+        _isEditing = false;
+        _profileImage = null; // Clear the selected image after upload
+        _currentProfileImageUrl = response['foto'] as String?;
+        _name = response['nome'] as String? ?? _name;
+        _email = response['email'] as String? ?? _email;
+        _address = response['morada'] as String? ?? _address;
+        _phone = response['telefone'] as String? ?? _phone;
+      });
+      _showSnackBar('Perfil atualizado com sucesso!');
     } catch (e) {
       _showSnackBar('Erro ao atualizar perfil: $e', isError: true);
     } finally {
@@ -194,14 +176,14 @@ class _ProfilePageState extends State<ProfilePage> {
                   backgroundImage: _profileImage != null
                       ? FileImage(_profileImage!)
                       : (_currentProfileImageUrl != null && _currentProfileImageUrl!.isNotEmpty
-                              ? NetworkImage(_currentProfileImageUrl!)
-                              : const AssetImage('assets/placeholder_profile.png') as ImageProvider),
+                      ? NetworkImage(_currentProfileImageUrl!)
+                      : const AssetImage('assets/placeholder_profile.png') as ImageProvider),
                   child: _profileImage == null && (_currentProfileImageUrl == null || _currentProfileImageUrl!.isEmpty)
                       ? const Icon(
-                          Icons.person,
-                          size: 80,
-                          color: Colors.white,
-                        )
+                    Icons.person,
+                    size: 80,
+                    color: Colors.white,
+                  )
                       : null,
                 ),
               ),
@@ -280,44 +262,41 @@ class _ProfilePageState extends State<ProfilePage> {
                     const SizedBox(height: 20),
                     _isEditing
                         ? Row(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            children: [
-                              TextButton(
-                                onPressed: () {
-                                  setState(() {
-                                    _isEditing = false;
-                                    _profileImage = null;
-                                    _name = userData['nome'] as String? ?? '';
-                                    _email = userData['email'] as String? ?? '';
-                                    _address = userData['morada'] as String? ?? '';
-                                    _phone = userData['telefone'] as String? ?? '';
-                                    _currentProfileImageUrl = userData['foto'] as String?;
-                                  });
-                                },
-                                child: const Text('Cancelar'),
-                              ),
-                              const SizedBox(width: 10),
-                              ElevatedButton(
-                                onPressed: _saveProfile,
-                                child: const Text('Guardar Alterações'),
-                              ),
-                            ],
-                          )
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        TextButton(
+                          onPressed: () {
+                            setState(() {
+                              _isEditing = false;
+                              _profileImage = null;
+                              // Reload initial data to discard changes
+                              _userDataFuture = _loadUserData();
+                            });
+                          },
+                          child: const Text('Cancelar'),
+                        ),
+                        const SizedBox(width: 10),
+                        ElevatedButton(
+                          onPressed: _saveProfile,
+                          child: const Text('Guardar Alterações'),
+                        ),
+                      ],
+                    )
                         : Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Expanded(
-                                child: ElevatedButton(
-                                  onPressed: () {
-                                    setState(() {
-                                      _isEditing = true;
-                                    });
-                                  },
-                                  child: const Text('Editar Perfil'),
-                                ),
-                              ),
-                            ],
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: () {
+                              setState(() {
+                                _isEditing = true;
+                              });
+                            },
+                            child: const Text('Editar Perfil'),
                           ),
+                        ),
+                      ],
+                    ),
                   ],
                 ),
               ),

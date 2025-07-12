@@ -12,6 +12,7 @@ import 'backend/shared_preferences.dart' as my_prefs;
 
 import 'components/navigation_bar.dart';
 import 'components/top_headr_bar.dart';
+import 'components/offline_warning_wrapper.dart'; 
 
 final rotas = GoRouter(
   initialLocation: '/',
@@ -37,34 +38,42 @@ final rotas = GoRouter(
     GoRoute(
       path: '/login',
       name: 'login',
-      builder: (context, state) => LoginPage(), // Sem TopHeaderBar
+      builder: (context, state) => LoginPage(), 
     ),
 
-    // ShellRoute for authenticated routes with shared layout
     ShellRoute(
       builder: (context, state, child) {
-        // Get the current route's URI to determine if TopHeaderBar should be shown
-        // state.uri gives you the full URI of the current location
         final String currentPath = state.uri.path;
 
-        // Define routes where TopHeaderBar (and possibly NavigationBar) should NOT appear
         final bool hideTopBar = currentPath == '/course_details' || currentPath.startsWith('/course_details/');
-        // You can add more conditions here: || currentPath == '/another_route_without_topbar'
 
-        return Scaffold(
-          body: SafeArea(
-            child: Column(
-              children: [
-                // Conditionally render TopHeaderBar
-                if (!hideTopBar) const TopHeaderBar(), // Only show if hideTopBar is false
-                Expanded(
-                  child: child, // This is the actual page content
-                ),
-              ],
+        return WillPopScope( 
+          onWillPop: () async {
+            if (context.canPop()) {
+              context.pop(); 
+              return false; 
+            }
+            return true;
+          },
+          child: Scaffold(
+            body: SafeArea(
+              child: Column(
+                children: [
+                  if (!hideTopBar) const TopHeaderBar(),
+                  Expanded(
+                    child: OfflineWarningWrapper(
+                      offlineMessage: "Está offline, certas funcionalidades podem não funcionar",
+                      bannerColor: Colors.orange,
+                      textStyle: const TextStyle(color: Colors.white, fontSize: 14.0, fontWeight: FontWeight.bold),
+                      child: child, 
+                    ),
+                  ),
+                ],
+              ),
             ),
+            // Conditionally render NavigationBarClass if it also needs to be hidden on specific routes
+            bottomNavigationBar: !hideTopBar ? NavigationBarClass() : null,
           ),
-          // Conditionally render NavigationBarClass if it also needs to be hidden on specific routes
-          bottomNavigationBar: !hideTopBar ? NavigationBarClass() : null, // Assuming NavigationBarClass is a StatelessWidget
         );
       },
       routes: [

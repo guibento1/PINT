@@ -1,7 +1,7 @@
 // lib/views/explore_courses_page.dart
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../backend/server.dart';
+import '../middleware.dart'; // Changed from server.dart to middleware.dart
 import '../components/course_filter.dart';
 import '../components/course_card.dart';
 import '../backend/shared_preferences.dart' as my_prefs;
@@ -14,7 +14,8 @@ class ExploreCoursesPage extends StatefulWidget {
 }
 
 class _ExploreCoursesPageState extends State<ExploreCoursesPage> {
-  final Servidor _servidor = Servidor();
+  // Use AppMiddleware instead of Servidor directly
+  final AppMiddleware _middleware = AppMiddleware();
   List<Map<String, dynamic>> _allCourses = [];
   List<Map<String, dynamic>> _filteredCourses = [];
   bool _isLoading = true;
@@ -42,30 +43,28 @@ class _ExploreCoursesPageState extends State<ExploreCoursesPage> {
         throw Exception('Utilizador não encontrado. Não é possível verificar inscrições.');
       }
 
-      // Fetch subscribed courses first to populate _subscribedCourseIds
-      final dynamic subscribedCoursesResp = await _servidor.getData('curso/inscricoes/utilizador/$userId');
-      if (subscribedCoursesResp is List) {
-        _subscribedCourseIds = subscribedCoursesResp
-            .whereType<Map<String, dynamic>>()
-            .map((course) {
-              final dynamic rawIdcurso = course['idcurso'];
-              int? idcurso;
-              if (rawIdcurso is int) {
-                idcurso = rawIdcurso;
-              } else if (rawIdcurso is double) { // Handle doubles if they come from API
-                idcurso = rawIdcurso.toInt();
-              } else if (rawIdcurso is String) {
-                idcurso = int.tryParse(rawIdcurso);
-              }
-              return idcurso;
-            })
-            .where((id) => id != null) // Filter out nulls from failed parses
-            .cast<int>() // Ensure all elements are int before converting to Set
-            .toSet();
-      } else {
-        _subscribedCourseIds = {};
-      }
+      // Fetch subscribed courses using middleware
+      // Assuming fetchUserCourses will handle the userId correctly and return a list
+      final List<Map<String, dynamic>> subscribedCourses = await _middleware.fetchUserCourses(userId: userId);
 
+      _subscribedCourseIds = subscribedCourses
+          .map((course) {
+            final dynamic rawIdcurso = course['idcurso'];
+            int? idcurso;
+            if (rawIdcurso is int) {
+              idcurso = rawIdcurso;
+            } else if (rawIdcurso is double) {
+              idcurso = rawIdcurso.toInt();
+            } else if (rawIdcurso is String) {
+              idcurso = int.tryParse(rawIdcurso);
+            }
+            return idcurso;
+          })
+          .where((id) => id != null)
+          .cast<int>()
+          .toSet();
+
+      // Fetch all courses with current filters using middleware
       await _fetchCourses(_currentFilters);
     } catch (e) {
       setState(() {
@@ -87,35 +86,24 @@ class _ExploreCoursesPageState extends State<ExploreCoursesPage> {
     });
 
     try {
-      final Map<String, dynamic> apiParams = {
-        'sincrono': false,
-      };
+      // Extract filter parameters safely, defaulting to null if not present or empty
+      final String? searchTerm = filters['search'] as String?;
+      final String? categoriaId = filters['categoria'] as String?;
+      final String? areaId = filters['area'] as String?;
+      final String? topicoId = filters['topico'] as String?;
 
-      if (filters['search'] != null && filters['search'].isNotEmpty) {
-        apiParams['search'] = filters['search'];
-      }
-      if (filters['categoria'] != null && filters['categoria'].isNotEmpty) {
-        apiParams['categoria'] = filters['categoria'];
-      }
-      if (filters['area'] != null && filters['area'].isNotEmpty) {
-        apiParams['area'] = filters['area'];
-      }
-      if (filters['topico'] != null && filters['topico'].isNotEmpty) {
-        apiParams['topico'] = filters['topico'];
-      }
+      // Call the middleware's fetchAllCourses method with the extracted filters
+      final List<Map<String, dynamic>> courses = await _middleware.fetchAllCourses(
+        searchTerm: searchTerm?.isNotEmpty == true ? searchTerm : null,
+        categoriaId: categoriaId?.isNotEmpty == true ? categoriaId : null,
+        areaId: areaId?.isNotEmpty == true ? areaId : null,
+        topicoId: topicoId?.isNotEmpty == true ? topicoId : null,
+      );
 
-      final dynamic coursesResp = await _servidor.getData('curso/list', queryParameters: apiParams);
-
-      if (coursesResp is List) {
-        setState(() {
-          _allCourses = List<Map<String, dynamic>>.from(coursesResp.whereType<Map<String, dynamic>>());
-          _applyLocalFiltersAndSort();
-        });
-      } else {
-        setState(() {
-          _errorMessage = 'Formato de dados de cursos inválido.';
-        });
-      }
+      setState(() {
+        _allCourses = courses;
+        _applyLocalFiltersAndSort(); // This will just assign _allCourses to _filteredCourses
+      });
     } catch (e) {
       setState(() {
         _errorMessage = 'Erro ao carregar cursos: ${e.toString()}';
@@ -129,6 +117,8 @@ class _ExploreCoursesPageState extends State<ExploreCoursesPage> {
   }
 
   void _applyLocalFiltersAndSort() {
+    // With fetchAllCourses in middleware, filtering is done on the server.
+    // So _allCourses already contains the filtered results.
     _filteredCourses = List.from(_allCourses);
   }
 
@@ -143,7 +133,7 @@ class _ExploreCoursesPageState extends State<ExploreCoursesPage> {
     setState(() {
       _currentFilters = {};
     });
-    _fetchCourses({});
+    _fetchCourses({}); // Fetch all courses again without any filters
   }
 
   @override

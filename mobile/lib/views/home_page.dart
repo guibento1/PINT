@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../backend/server.dart';
-import '../backend/database_helper.dart'; // Ensure this is needed, or remove if not
+import '../middleware.dart'; 
 import '../backend/shared_preferences.dart' as my_prefs;
 import '../components/course_card.dart';
 
@@ -13,13 +12,12 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  final Servidor servidor = Servidor();
-  final DatabaseHelper dbHelper = DatabaseHelper(); // Keep if actively used
+  final AppMiddleware _middleware = AppMiddleware();
   late Future<Map<String, dynamic>> _dataFuture;
 
   String _termoPesquisa = '';
   List<Map<String, dynamic>> _todasCategorias = [];
-  List<int> _categoriasAtivasIds = []; // Stores only the IDs of active categories
+  List<int> _categoriasAtivasIds = []; 
 
   final TextEditingController _searchController = TextEditingController();
 
@@ -36,23 +34,21 @@ class _HomePageState extends State<HomePage> {
     super.dispose();
   }
 
-  // Fetches all categories from the backend
+  // Fetches all categories from the backend using the middleware
   Future<void> _loadAllCategories() async {
     try {
-      final dynamic categoriasResp = await servidor.getData('categoria/list');
-      if (categoriasResp is List) {
-        setState(() {
-          _todasCategorias = List<Map<String, dynamic>>.from(
-              categoriasResp.whereType<Map<String, dynamic>>());
-        });
-      }
+      final List<Map<String, dynamic>> categoriasResp =
+          await _middleware.fetchAllCategories(); // Call middleware function
+      setState(() {
+        _todasCategorias = categoriasResp;
+      });
     } catch (e) {
       // Handle error, e.g., show a snackbar
       _showSnackBar('Erro ao carregar categorias: $e', isError: true);
     }
   }
 
-  // Loads user data and courses, now with optional search and category filters
+  // Loads user data and courses, now with optional search and category filters, using middleware
   Future<Map<String, dynamic>> _loadData({
     String? searchTerm,
     List<int>? categoryIds,
@@ -67,9 +63,8 @@ class _HomePageState extends State<HomePage> {
       throw Exception('Utilizador não encontrado');
     }
 
-    final dynamic perfilResp = await servidor.getData('utilizador/id/$userId');
-    final Map<String, dynamic> perfil =
-        (perfilResp is Map<String, dynamic>) ? perfilResp : {};
+    // Fetch user profile using middleware
+    final Map<String, dynamic> perfil = await _middleware.fetchUserProfile(userId);
 
     // Update SharedPreferences with profile data
     if (user != null) {
@@ -80,29 +75,12 @@ class _HomePageState extends State<HomePage> {
       await my_prefs.saveUser({'idutilizador': userId, 'perfil': perfil});
     }
 
-    // Construct the URL for fetching courses with filters
-    String coursesUrl = 'curso/inscricoes/utilizador/$userId';
-    List<String> queryParams = [];
-
-    if (searchTerm != null && searchTerm.isNotEmpty) {
-      queryParams.add('search=${Uri.encodeComponent(searchTerm)}');
-    }
-    if (categoryIds != null && categoryIds.isNotEmpty) {
-      for (int id in categoryIds) {
-        queryParams.add('categoria=$id');
-      }
-    }
-
-    if (queryParams.isNotEmpty) {
-      coursesUrl += '?${queryParams.join('&')}';
-    }
-
-    final dynamic cursosResp = await servidor.getData(coursesUrl);
-
-    final List<Map<String, dynamic>> cursos = (cursosResp is List)
-        ? List<Map<String, dynamic>>.from(
-            cursosResp.whereType<Map<String, dynamic>>())
-        : <Map<String, dynamic>>[];
+    // Fetch courses using middleware
+    final List<Map<String, dynamic>> cursos = await _middleware.fetchUserCourses(
+      userId: userId,
+      searchTerm: searchTerm,
+      categoryIds: categoryIds,
+    );
 
     return {'perfil': perfil, 'cursos': cursos};
   }
@@ -195,7 +173,8 @@ class _HomePageState extends State<HomePage> {
                         child: SizedBox(
                           width: 50,
                           height: 50,
-                          child: GestureDetector( // Use GestureDetector for tap event
+                          child: GestureDetector(
+                            // Use GestureDetector for tap event
                             onTap: () {
                               _filterCourses(); // Trigger search on icon tap
                             },
@@ -213,8 +192,8 @@ class _HomePageState extends State<HomePage> {
                                   ),
                                 ],
                               ),
-                              child:
-                                  const Icon(Icons.search, color: Colors.white, size: 25),
+                              child: const Icon(Icons.search,
+                                  color: Colors.white, size: 25),
                             ),
                           ),
                         ),
@@ -225,8 +204,8 @@ class _HomePageState extends State<HomePage> {
                         borderRadius: BorderRadius.circular(30.0),
                         borderSide: BorderSide.none,
                       ),
-                      contentPadding:
-                          const EdgeInsets.symmetric(vertical: 16, horizontal: 25),
+                      contentPadding: const EdgeInsets.symmetric(
+                          vertical: 16, horizontal: 25),
                     ),
                     onChanged: (value) {
                       // Only update the search term, do not trigger filtering yet
@@ -245,7 +224,8 @@ class _HomePageState extends State<HomePage> {
                     spacing: 8.0, // Space between buttons
                     runSpacing: 4.0, // Space between rows of buttons
                     children: _todasCategorias.map((categoria) {
-                      final int? categoryId = int.tryParse(categoria['idcategoria'].toString());
+                      final int? categoryId =
+                          int.tryParse(categoria['idcategoria'].toString());
                       final String categoryName =
                           categoria['designacao'] as String? ?? 'Desconhecida';
 
@@ -260,7 +240,8 @@ class _HomePageState extends State<HomePage> {
                         selected: isActive,
                         selectedColor: const Color(0xFF007BFF),
                         onSelected: (selected) {
-                          _toggleCategory(categoryId); // Categories still filter immediately
+                          _toggleCategory(
+                              categoryId); // Categories still filter immediately
                         },
                         labelStyle: TextStyle(
                           color: isActive ? Colors.white : Colors.black87,

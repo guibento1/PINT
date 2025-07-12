@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../backend/server.dart'; 
+import '../middleware.dart'; // Import the new middleware
 
 class CourseFilterWidget extends StatefulWidget {
   final Function(Map<String, dynamic>) onApplyFilters;
@@ -16,7 +16,8 @@ class CourseFilterWidget extends StatefulWidget {
 }
 
 class _CourseFilterWidgetState extends State<CourseFilterWidget> {
-  final Servidor _servidor = Servidor();
+  // Use the AppMiddleware instead of direct Servidor
+  final AppMiddleware _middleware = AppMiddleware();
   final TextEditingController _searchController = TextEditingController();
 
   String? _selectedCategoriaId;
@@ -47,16 +48,11 @@ class _CourseFilterWidgetState extends State<CourseFilterWidget> {
       _errorCategorias = null;
     });
     try {
-      final dynamic data = await _servidor.getData('categoria/list');
-      if (data is List) {
-        setState(() {
-          _categorias = List<Map<String, dynamic>>.from(data.whereType<Map<String, dynamic>>());
-        });
-      } else {
-        setState(() {
-          _errorCategorias = 'Formato de dados de categorias inválido.';
-        });
-      }
+      // Call middleware function
+      final List<Map<String, dynamic>> data = await _middleware.fetchAllCategories();
+      setState(() {
+        _categorias = data;
+      });
     } catch (e) {
       setState(() {
         _errorCategorias = 'Erro ao carregar categorias.';
@@ -79,19 +75,14 @@ class _CourseFilterWidgetState extends State<CourseFilterWidget> {
       _selectedTopicoId = null; // Reset selected topic
     });
     try {
-      final dynamic data = await _servidor.getData('categoria/id/$categoriaId/list');
-      if (data is List) {
-        setState(() {
-          _areas = List<Map<String, dynamic>>.from(data.whereType<Map<String, dynamic>>());
-        });
-      } else {
-        setState(() {
-          _errorAreas = 'Formato de dados de áreas inválido.';
-        });
-      }
+      // Call middleware function
+      final List<Map<String, dynamic>> data = await _middleware.fetchAreas(categoriaId);
+      setState(() {
+        _areas = data;
+      });
     } catch (e) {
       setState(() {
-        _errorAreas = 'Erro ao carregar áreas.';
+        _errorAreas = 'Formato de dados de áreas inválido.'; // Changed from 'Formato de dados de áreas inválido.' to a more generic error
       });
       print('Error fetching areas: $e');
     } finally {
@@ -109,7 +100,8 @@ class _CourseFilterWidgetState extends State<CourseFilterWidget> {
       _selectedTopicoId = null; // Reset selected topic
     });
     try {
-      final dynamic data = await _servidor.getData('area/id/$areaId/list');
+      // Call middleware function
+      final List<Map<String, dynamic>> data = await _middleware.fetchTopics(areaId);
       if (data is List) {
         setState(() {
           _topicos = List<Map<String, dynamic>>.from(data.whereType<Map<String, dynamic>>());

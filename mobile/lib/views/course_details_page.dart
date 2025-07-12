@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../backend/notifications_service.dart';
-import '../backend/server.dart';
+import '../middleware.dart'; 
 
 class CourseDetailsPage extends StatefulWidget {
   final int id;
@@ -14,7 +14,8 @@ class CourseDetailsPage extends StatefulWidget {
 
 class _CourseDetailsPageState extends State<CourseDetailsPage> {
   late Future<Map<String, dynamic>?> _courseFuture;
-  final Servidor servidor = Servidor();
+  // Use AppMiddleware instead of Servidor directly
+  final AppMiddleware _middleware = AppMiddleware();
 
   final NotificationService _notificationService = NotificationService();
 
@@ -29,11 +30,12 @@ class _CourseDetailsPageState extends State<CourseDetailsPage> {
   }
 
   Future<Map<String, dynamic>?> _fetchCourseDetails() async {
-    final id = widget.id;
-    final data = await servidor.getData('curso/$id');
-    print('Resposta da API para curso/$id:');
-    print(data);
-    if (data is Map<String, dynamic>) {
+    final int courseId = widget.id;
+    try {
+      // Use middleware to fetch course details
+      final Map<String, dynamic> data = await _middleware.fetchCourseDetails(courseId);
+      print('Resposta da API para curso/$courseId (via middleware):');
+      print(data);
       if (mounted) {
         setState(() {
           _isInscrito = data['inscrito'] == true;
@@ -41,8 +43,11 @@ class _CourseDetailsPageState extends State<CourseDetailsPage> {
         });
       }
       return data;
+    } catch (e) {
+      print('Error fetching course details via middleware: $e');
+      _showSnackBar('Erro ao carregar detalhes do curso.', Colors.red);
+      return null;
     }
-    return null;
   }
 
   Future<void> _subscribeToCourse() async {
@@ -55,9 +60,9 @@ class _CourseDetailsPageState extends State<CourseDetailsPage> {
       _isSubmittingAction = true;
     });
     try {
-      final response = await servidor.postData('curso/${widget.id}/inscrever', {});
-      if (response != null && response['success'] == true) {
-        // Ensure canalId is an int
+      // Use middleware to subscribe
+      final response = await _middleware.subscribeToCourse(widget.id);
+      if (response['success'] == true) { // Middleware returns Map, check for 'success' key
         final int? canalId = int.tryParse(_courseData!['canal'].toString());
         if (canalId != null) {
           print('DEBUG: Attempting to subscribe to Firebase topic: canal_$canalId');
@@ -67,13 +72,16 @@ class _CourseDetailsPageState extends State<CourseDetailsPage> {
         }
         _showSnackBar('Inscrição realizada com sucesso!', Colors.green);
         if (mounted) {
+          // No need to rebuild, just navigate if successful.
+          // Or, refetch course details to update _isInscrito state
+          // For now, let's navigate to home as before.
           context.go('/home');
         }
       } else {
-        _showSnackBar(response?['message'] ?? 'Erro na inscrição.', Colors.red);
+        _showSnackBar(response['message'] ?? 'Erro na inscrição.', Colors.red);
       }
     } catch (e) {
-      print('Error subscribing: $e');
+      print('Error subscribing via middleware: $e');
       _showSnackBar('Ocorreu um erro ao inscrever-se.', Colors.red);
     } finally {
       if (mounted) {
@@ -85,7 +93,7 @@ class _CourseDetailsPageState extends State<CourseDetailsPage> {
   }
 
   Future<void> _unsubscribeFromCourse() async {
-    print('DEBUG: _unsubscribeFromCourse called'); // Debug print 1
+    print('DEBUG: _unsubscribeFromCourse called');
 
     if (_courseData == null || _courseData!['canal'] == null) {
       _showSnackBar('Não foi possível obter o canal do curso para cancelar a inscrição.', Colors.red);
@@ -114,38 +122,35 @@ class _CourseDetailsPageState extends State<CourseDetailsPage> {
     );
 
     if (confirm == true) {
-      print('DEBUG: User confirmed unsubscription'); // Debug print 2
+      print('DEBUG: User confirmed unsubscription');
       setState(() {
         _isSubmittingAction = true;
       });
       try {
-        print('DEBUG: Attempting to call servidor.postData for unsubscription...'); // NEW DEBUG PRINT
-        final response = await servidor.postData('curso/${widget.id}/sair', {});
-        print('DEBUG: Response from server for unsubscription: $response'); // NEW DEBUG PRINT
+        // Use middleware to unsubscribe
+        print('DEBUG: Attempting to call middleware.unsubscribeFromCourse...');
+        final response = await _middleware.unsubscribeFromCourse(widget.id);
+        print('DEBUG: Response from middleware for unsubscription: $response');
 
-        // Check if response is not null AND either 'success' is true,
-        // OR 'message' exists and contains "sucesso" (for your current backend response)
-        if (response != null && (response['success'] == true || (response['message'] as String?)?.contains('sucesso') == true)) {
-          // Ensure canalId is an int by parsing from String
+        if (response['success'] == true || (response['message'] as String?)?.contains('sucesso') == true) {
           final int? canalId = int.tryParse(_courseData!['canal'].toString());
           if (canalId != null) {
-            print('DEBUG: Attempting to unsubscribe from Firebase topic: canal_$canalId'); // Debug print 3
-            await _notificationService.unsubscribeFromCourseTopic(canalId); // Use parsed canalId
+            print('DEBUG: Attempting to unsubscribe from Firebase topic: canal_$canalId');
+            await _notificationService.unsubscribeFromCourseTopic(canalId);
           } else {
-            print('ERROR: canalId is null or could not be parsed when trying to unsubscribe from topic.'); // Debug print if canalId is null
+            print('ERROR: canalId is null or could not be parsed when trying to unsubscribe from topic.');
             _showSnackBar('Não foi possível obter o canal do curso para cancelar a inscrição.', Colors.red);
           }
           _showSnackBar('Saída do curso realizada com sucesso!', Colors.green);
           if (mounted) {
-            context.go('/home');
+            context.go('/home'); // Navigate to home after successful unsubscription
           }
         } else {
-          // This block is executed if response is null or success is false AND message does not contain "sucesso"
-          _showSnackBar(response?['message'] ?? 'Erro ao sair do curso.', Colors.red);
-          print('ERROR: Server unsubscription failed: ${response?['message']}'); // NEW DEBUG PRINT
+          _showSnackBar(response['message'] ?? 'Erro ao sair do curso.', Colors.red);
+          print('ERROR: Server unsubscription failed: ${response['message']}');
         }
       } catch (e) {
-        print('Error unsubscribing (caught exception): $e'); // Specific catch print
+        print('Error unsubscribing (caught exception via middleware): $e');
         _showSnackBar('Ocorreu um erro ao sair do curso.', Colors.red);
       } finally {
         if (mounted) {

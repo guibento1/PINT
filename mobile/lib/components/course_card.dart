@@ -1,5 +1,6 @@
 // lib/components/course_card.dart
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart'; 
 
 class CourseCard extends StatelessWidget {
   final Map<String, dynamic> curso;
@@ -15,8 +16,9 @@ class CourseCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final hasThumbnail =
-        curso['thumbnail'] != null && (curso['thumbnail'] as String).isNotEmpty;
+    // Assuming 'thumbnail' holds the URL of the course image
+    final String? thumbnailUrl = curso['thumbnail'] as String?;
+    final bool hasThumbnail = thumbnailUrl != null && thumbnailUrl.isNotEmpty;
 
     final currentRoute = ModalRoute.of(context)?.settings.name;
     final bool showInscritoTag = currentRoute != '/home' && (curso['inscrito'] == true);
@@ -46,19 +48,37 @@ class CourseCard extends StatelessWidget {
                 color: Colors.white, // Inner background white
                 borderRadius: BorderRadius.circular(15),
               ),
-              child: hasThumbnail
-                  ? ClipRRect( // Added ClipRRect for rounded image corners
-                      borderRadius: BorderRadius.circular(10),
-                      child: Image.network(
-                        curso['thumbnail'],
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(10), // Rounded corners for the image itself
+                child: hasThumbnail
+                    ? CachedNetworkImage(
+                        imageUrl: thumbnailUrl!, // Use ! because we've checked for null/empty
                         width: 72, // Larger image as per friend's style
                         height: 72, // Larger image as per friend's style
                         fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) =>
-                            const Icon(Icons.code, color: Color(0xFFFD7E14), size: 48), // Larger icon if error
+                        placeholder: (context, url) => const SizedBox(
+                          width: 72,
+                          height: 72,
+                          child: Center(
+                            child: CircularProgressIndicator(strokeWidth: 2.0), // Smaller loading indicator
+                          ),
+                        ),
+                        errorWidget: (context, url, error) => Container(
+                          width: 72,
+                          height: 72,
+                          color: Colors.grey[200], // Background for error/no image
+                          child: const Icon(Icons.code, color: Color(0xFFFD7E14), size: 48), // Larger icon if error
+                        ),
+                      )
+                    : Container( // If no thumbnail URL
+                        width: 72,
+                        height: 72,
+                        color: Colors.grey[200], // Background for no image
+                        child: const Center(
+                          child: Icon(Icons.code, color: Color(0xFFFD7E14), size: 48), // Default icon
+                        ),
                       ),
-                    )
-                  : const Icon(Icons.code, color: Color(0xFFFD7E14), size: 48), // Larger icon
+              ),
             ),
             const SizedBox(width: 15), // Spacing between image and text
             Expanded(
@@ -78,7 +98,7 @@ class CourseCard extends StatelessWidget {
                   const SizedBox(height: 5),
                   Text(
                     'Toque para ver os detalhes do curso.', // Your fixed description
-                    style: const TextStyle( // Use const if possible
+                    style: const TextStyle(
                       fontSize: 14,
                       color: Color(0xFF8F9BB3), // New secondary text color
                     ),
