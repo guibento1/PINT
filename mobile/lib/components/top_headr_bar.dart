@@ -36,7 +36,7 @@ class _TopHeaderBarState extends State<TopHeaderBar> {
   Future<void> _updateAvatarFromPrefs() async {
     final user = my_prefs.currentUserNotifier.value;
 
-    final perfil = user?['perfil'];
+    final perfil = user;
     String? foto;
 
     if (perfil is Map<String, dynamic>) {

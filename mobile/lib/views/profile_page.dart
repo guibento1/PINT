@@ -87,21 +87,22 @@ class _ProfilePageState extends State<ProfilePage> {
     };
 
     try {
-      final response = await _middleware.updateUserProfile(userId, fields, profileImage: _profileImage);
-      if (user != null) {
-        await my_prefs.saveUser({...user, ...response});
-      }
-      if (mounted) {
-        setState(() {
-          _isEditing = false;
-          _profileImage = null;
-          _currentProfileImageUrl = response['foto'] as String?;
-          _name = response['nome'] as String? ?? _name;
-          _email = response['email'] as String? ?? _email;
-          _address = response['morada'] as String? ?? _address;
-          _phone = response['telefone'] as String? ?? _phone;
-        });
-      }
+      // Use middleware to update user profile
+      final Map<String, dynamic> response = await _middleware.updateUserProfile(
+        userId,
+        fields,
+        profileImage: _profileImage,
+      );
+
+      setState(() {
+        _isEditing = false;
+        _profileImage = null; // Clear the selected image after upload
+        _currentProfileImageUrl = response['foto'] as String?;
+        _name = response['nome'] as String? ?? _name;
+        _email = response['email'] as String? ?? _email;
+        _address = response['morada'] as String? ?? _address;
+        _phone = response['telefone'] as String? ?? _phone;
+      });
       _showSnackBar('Perfil atualizado com sucesso!');
     } catch (e) {
       _showSnackBar('Erro ao atualizar perfil: $e', isError: true);

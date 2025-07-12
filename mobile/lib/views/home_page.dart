@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../middleware.dart'; 
+import '../backend/server.dart'; // Make sure Servidor is imported
+import '../middleware.dart'; // Import your AppMiddleware
 import '../backend/shared_preferences.dart' as my_prefs;
 import '../components/course_card.dart';
 
@@ -12,18 +13,23 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  final AppMiddleware _middleware = AppMiddleware();
+  // Initialize Servidor here to pass to AppMiddleware
+  final Servidor _servidor = Servidor();
+  late final AppMiddleware _middleware; // Declared as late final
+
   late Future<Map<String, dynamic>> _dataFuture;
 
   String _termoPesquisa = '';
   List<Map<String, dynamic>> _todasCategorias = [];
-  List<int> _categoriasAtivasIds = []; 
+  List<int> _categoriasAtivasIds = [];
 
   final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
+    // Initialize _middleware in initState, passing the _servidor instance
+    _middleware = AppMiddleware();
     _loadAllCategories();
     _dataFuture = _loadData();
   }
@@ -34,7 +40,6 @@ class _HomePageState extends State<HomePage> {
     super.dispose();
   }
 
-  // Fetches all categories from the backend using the middleware
   Future<void> _loadAllCategories() async {
     try {
       final List<Map<String, dynamic>> categoriasResp =
@@ -43,12 +48,10 @@ class _HomePageState extends State<HomePage> {
         _todasCategorias = categoriasResp;
       });
     } catch (e) {
-      // Handle error, e.g., show a snackbar
       _showSnackBar('Erro ao carregar categorias: $e', isError: true);
     }
   }
 
-  // Loads user data and courses, now with optional search and category filters, using middleware
   Future<Map<String, dynamic>> _loadData({
     String? searchTerm,
     List<int>? categoryIds,
@@ -56,17 +59,14 @@ class _HomePageState extends State<HomePage> {
     final user = await my_prefs.getUser();
     final userId = user?['idutilizador']?.toString();
     if (userId == null) {
-      // If user ID is null, navigate to login
       if (mounted) {
         context.go('/login');
       }
       throw Exception('Utilizador não encontrado');
     }
 
-    // Fetch user profile using middleware
     final Map<String, dynamic> perfil = await _middleware.fetchUserProfile(userId);
 
-    // Update SharedPreferences with profile data
     if (user != null) {
       final Map<String, dynamic> updatedUser = Map<String, dynamic>.from(user);
       updatedUser['perfil'] = perfil;
@@ -75,7 +75,6 @@ class _HomePageState extends State<HomePage> {
       await my_prefs.saveUser({'idutilizador': userId, 'perfil': perfil});
     }
 
-    // Fetch courses using middleware
     final List<Map<String, dynamic>> cursos = await _middleware.fetchUserCourses(
       userId: userId,
       searchTerm: searchTerm,
@@ -85,17 +84,15 @@ class _HomePageState extends State<HomePage> {
     return {'perfil': perfil, 'cursos': cursos};
   }
 
-  // Triggers a reload of courses based on current filters
   void _filterCourses() {
     setState(() {
       _dataFuture = _loadData(
-        searchTerm: _termoPesquisa, // Use the current value in _termoPesquisa
+        searchTerm: _termoPesquisa,
         categoryIds: _categoriasAtivasIds,
       );
     });
   }
 
-  // Toggles the active state of a category
   void _toggleCategory(int categoryId) {
     setState(() {
       if (_categoriasAtivasIds.contains(categoryId)) {
@@ -103,7 +100,7 @@ class _HomePageState extends State<HomePage> {
       } else {
         _categoriasAtivasIds.add(categoryId);
       }
-      _filterCourses(); // Categories still filter immediately
+      _filterCourses();
     });
   }
 
@@ -174,9 +171,8 @@ class _HomePageState extends State<HomePage> {
                           width: 50,
                           height: 50,
                           child: GestureDetector(
-                            // Use GestureDetector for tap event
                             onTap: () {
-                              _filterCourses(); // Trigger search on icon tap
+                              _filterCourses();
                             },
                             child: Container(
                               margin: const EdgeInsets.all(6),
@@ -192,8 +188,8 @@ class _HomePageState extends State<HomePage> {
                                   ),
                                 ],
                               ),
-                              child: const Icon(Icons.search,
-                                  color: Colors.white, size: 25),
+                              child:
+                                  const Icon(Icons.search, color: Colors.white, size: 25),
                             ),
                           ),
                         ),
@@ -204,25 +200,22 @@ class _HomePageState extends State<HomePage> {
                         borderRadius: BorderRadius.circular(30.0),
                         borderSide: BorderSide.none,
                       ),
-                      contentPadding: const EdgeInsets.symmetric(
-                          vertical: 16, horizontal: 25),
+                      contentPadding:
+                          const EdgeInsets.symmetric(vertical: 16, horizontal: 25),
                     ),
                     onChanged: (value) {
-                      // Only update the search term, do not trigger filtering yet
                       _termoPesquisa = value;
                     },
                     onSubmitted: (value) {
-                      // Optionally, also trigger search when user presses 'Done'/'Enter' on keyboard
                       _filterCourses();
                     },
                   ),
                 ),
                 const SizedBox(height: 20),
-                // Category buttons
                 if (_todasCategorias.isNotEmpty)
                   Wrap(
-                    spacing: 8.0, // Space between buttons
-                    runSpacing: 4.0, // Space between rows of buttons
+                    spacing: 8.0,
+                    runSpacing: 4.0,
                     children: _todasCategorias.map((categoria) {
                       final int? categoryId =
                           int.tryParse(categoria['idcategoria'].toString());
@@ -240,8 +233,7 @@ class _HomePageState extends State<HomePage> {
                         selected: isActive,
                         selectedColor: const Color(0xFF007BFF),
                         onSelected: (selected) {
-                          _toggleCategory(
-                              categoryId); // Categories still filter immediately
+                          _toggleCategory(categoryId);
                         },
                         labelStyle: TextStyle(
                           color: isActive ? Colors.white : Colors.black87,

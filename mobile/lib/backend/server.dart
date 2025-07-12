@@ -1,8 +1,9 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
-import 'package:flutter/widgets.dart';
+import 'package:flutter/widgets.dart'; // Often not needed in backend/server.dart, can remove if not used for UI
 import 'shared_preferences.dart' as prefs_utils;
+import 'package:flutter/foundation.dart'; // Import for kDebugMode
 
 class Servidor {
   final String urlAPI = 'https://api.thesoftskills.xyz';
@@ -33,8 +34,8 @@ class Servidor {
           return responseBody;
         }
       } else {
-        print('Login failed: \\${response.statusCode}');
-        print('Response body: \\${response.body}');
+        print('Login failed: ${response.statusCode}'); // Corrected string interpolation
+        print('Response body: ${response.body}');     // Corrected string interpolation
         return null;
       }
     } catch (e) {
@@ -55,15 +56,39 @@ class Servidor {
   Future<void> clearToken() async {
     await prefs_utils.removeToken();
   }
-  // --- GET Method with queryParameters ---
+
+  // --- CORRECTED GET Method with queryParameters ---
   Future<dynamic> getData(String endpoint, {Map<String, dynamic>? queryParameters}) async {
     try {
       final headers = await _getAuthHeaders();
       headers['Content-Type'] = 'application/json; charset=UTF-8';
 
+      // Start building the URI from the base URL and endpoint
       Uri uri = Uri.parse('$urlAPI/$endpoint');
+
+      // Process query parameters to correctly handle lists
       if (queryParameters != null && queryParameters.isNotEmpty) {
-        uri = uri.replace(queryParameters: queryParameters.map((key, value) => MapEntry(key, value.toString())));
+        final Map<String, List<String>> finalEncodedQueryParams = {};
+
+        queryParameters.forEach((key, value) {
+          if (value is List) {
+            // If the value is a List (like List<String> from AppMiddleware for 'categoria')
+            // Convert all list items to String and assign to a List<String>
+            finalEncodedQueryParams[key] = value.map((e) => e.toString()).toList();
+          } else {
+            // For single values, just convert to string and put into a List
+            finalEncodedQueryParams[key] = [value.toString()];
+          }
+        });
+
+        // Use uri.replace with the correctly formatted queryParameters map
+        // This will correctly generate "key=value1&key=value2" for lists
+        uri = uri.replace(queryParameters: finalEncodedQueryParams);
+      }
+
+      // Print the final URL that http.get will use for debugging
+      if (kDebugMode) { // Only print in debug mode
+        print('Servidor GET request URL: $uri');
       }
 
       final response = await http.get(
@@ -71,28 +96,35 @@ class Servidor {
         headers: headers,
       );
 
-      print('GET request URL: $uri'); 
-      print('Response Status Code: ${response.statusCode}');
+      if (kDebugMode) { // Only print in debug mode
+        print('Response Status Code: ${response.statusCode}');
+        print('Response Body: ${response.body}');
+      }
 
       if (response.statusCode == 200) {
         final decodedResponse = json.decode(response.body);
         return decodedResponse;
       } else if (response.statusCode == 401 || response.statusCode == 403) {
-        print(
-            'Authentication error: Token might be invalid or expired. Status: ${response.statusCode}');
+        print('Authentication error: Token might be invalid or expired. Status: ${response.statusCode}');
         return null;
       } else {
         print('Failed to load data: ${response.statusCode}');
         print('Response body: ${response.body}');
         return null;
       }
+    } on SocketException catch (e) {
+      print('Network error during GET request: $e');
+      // Consider throwing an error or returning a specific error type
+      return null;
     } catch (e) {
       print('Error during GET request: $e');
       return null;
     }
   }
 
-  // Keep all other methods as they are.
+  // Keep all other methods as they are, they don't use queryParameters in the same way.
+  // ... (postData, putData, deleteData, postMultipartData, putMultipartData) ...
+
   Future<Map<String, dynamic>?> postData(
       String endpoint, Map<String, dynamic> data) async {
     try {
@@ -220,8 +252,8 @@ class Servidor {
   Future<Map<String, dynamic>?> putMultipartData(
     String endpoint,
     Map<String, String> fields,
-    String fileField,
-    String filePath,
+    String fileField, // Name of the file field (e.g., 'foto')
+    String? filePath, // Make filePath nullable here
   ) async {
     try {
       final headers = await _getAuthHeaders();
@@ -233,14 +265,19 @@ class Servidor {
 
       request.fields.addAll(fields);
 
-      request.files.add(await http.MultipartFile.fromPath(fileField, filePath));
+      // --- CRITICAL CHANGE HERE ---
+      if (filePath != null && filePath.isNotEmpty) {
+        // Only add the file to the request if filePath is not null or empty
+        request.files.add(await http.MultipartFile.fromPath(fileField, filePath));
+      }
+      // --- END CRITICAL CHANGE ---
 
       request.headers.addAll(headers);
 
       final streamedResponse = await request.send();
       final response = await http.Response.fromStream(streamedResponse);
 
-      if (response.statusCode == 200) {
+      if (response.statusCode == 200 || response.statusCode == 201) {
         return json.decode(response.body);
       } else if (response.statusCode == 401 || response.statusCode == 403) {
         print(

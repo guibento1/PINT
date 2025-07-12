@@ -160,14 +160,6 @@ class DatabaseHelper {
       'FOREIGN KEY(idlicao) REFERENCES licoes(idlicao)'
       ')'
     );
-    await db.execute(
-      'CREATE TABLE IF NOT EXISTS notificacoes_subscritas('
-      'id INTEGER PRIMARY KEY AUTOINCREMENT, '
-      'idutilizador INTEGER, '
-      'idcanal INTEGER, '
-      'data_subscricao TEXT'
-      ')'
-    );
     await db.execute("CREATE INDEX IF NOT EXISTS idx_cursos_idcategoria ON cursos(idcategoria);");
     await db.execute("CREATE INDEX IF NOT EXISTS idx_cursos_nome ON cursos(nome);");
   }
@@ -218,22 +210,6 @@ class DatabaseHelper {
     );
   }
 
-  // Remove notification subscription
-  Future<void> removeNotificationSubscription(int idutilizador, int idcanal) async {
-    var dbClient = await db;
-    await dbClient.delete(
-      'notificacoes_subscritas',
-      where: 'idutilizador = ? AND idcanal = ?',
-      whereArgs: [idutilizador, idcanal],
-    );
-  }
-
-  // List notification subscriptions for user
-  Future<List<Map<String, dynamic>>> listarNotificacoesSubscritas(int idutilizador) async {
-    var dbClient = await db;
-    return await dbClient.query('notificacoes_subscritas', where: 'idutilizador = ?', whereArgs: [idutilizador]);
-  }
-
   // Métodos para cursos
   Future<int> guardarCurso(Map<String, dynamic> curso) async {
     var dbClient = await db;
@@ -249,7 +225,7 @@ class DatabaseHelper {
         curso['maxinscricoes'],
         curso['thumbnail'],
         curso['sincrono'],
-        curso['inscrito'],
+        curso['inscrito']? || null,
         curso['canal'],
         curso['planocurricular'],
       ],
@@ -260,7 +236,6 @@ class DatabaseHelper {
     return await dbClient.query('cursos');
   }
 
-  // Sincroniza cursos da API para a base de dados local (upsert)
   Future<void> syncCursosFromApi(List<Map<String, dynamic>> cursos) async {
     var dbClient = await db;
     final batch = dbClient.batch();
@@ -288,24 +263,6 @@ class DatabaseHelper {
     await batch.commit(noResult: true);
   }
 
-  // Listar cursos com filtros locais
-  Future<List<Map<String, dynamic>>> listarCursosFiltrado({String? search, String? categoria, String? area, String? topico}) async {
-    var dbClient = await db;
-    String where = '';
-    List<dynamic> whereArgs = [];
-    if (search != null && search.isNotEmpty) {
-      where += '(nome LIKE ? OR planocurricular LIKE ?)';
-      whereArgs.add('%$search%');
-      whereArgs.add('%$search%');
-    }
-    if (categoria != null && categoria.isNotEmpty) {
-      if (where.isNotEmpty) where += ' AND ';
-      where += 'idcategoria = ?';
-      whereArgs.add(int.tryParse(categoria) ?? categoria);
-    }
-    // area/topico: add logic if you store these in cursos or via join
-    return await dbClient.query('cursos', where: where.isNotEmpty ? where : null, whereArgs: whereArgs);
-  }
 
   // Métodos para tópicos
   Future<int> guardarTopico(Map<String, dynamic> topico) async {
@@ -322,30 +279,6 @@ class DatabaseHelper {
   Future<List<Map<String, dynamic>>> listarTopicosDoCurso(int idcurso) async {
     var dbClient = await db;
     return await dbClient.query('topicos', where: 'idcurso = ?', whereArgs: [idcurso]);
-  }
-
-  // Métodos para perfil
-  Future<int> guardarPerfil(Map<String, dynamic> perfil) async {
-    var dbClient = await db;
-    return await dbClient.rawInsert(
-      'INSERT INTO perfil (idutilizador, nome, email, foto, telefone, morada) VALUES (?, ?, ?, ?, ?, ?)',
-      [
-        perfil['idutilizador'],
-        perfil['nome'],
-        perfil['email'],
-        perfil['foto'],
-        perfil['telefone'],
-        perfil['morada'],
-      ],
-    );
-  }
-  Future<Map<String, dynamic>?> obterPerfil(int idutilizador) async {
-    var dbClient = await db;
-    var result = await dbClient.query('perfil', where: 'idutilizador = ?', whereArgs: [idutilizador]);
-    if (result.isNotEmpty) {
-      return result.first;
-    }
-    return null;
   }
 
   // Guardar inscrições do utilizador
