@@ -1,28 +1,11 @@
-// lib/backend/server.dart (Modified getData method)
-
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter/widgets.dart';
+import 'shared_preferences.dart' as prefs_utils;
 
 class Servidor {
   final String urlAPI = 'https://api.thesoftskills.xyz';
-  static const String _jwtTokenKey = 'jwt_token';
-
-  Future<void> _saveToken(String token) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_jwtTokenKey, token);
-  }
-
-  Future<String?> _getToken() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(_jwtTokenKey);
-  }
-
-  Future<void> clearToken() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_jwtTokenKey);
-  }
 
   Future<Map<String, dynamic>?> login(String email, String password) async {
     try {
@@ -42,7 +25,7 @@ class Servidor {
         final String? token = responseBody['accessToken'];
 
         if (token != null) {
-          await _saveToken(token);
+          await prefs_utils.setToken(token);
           print('Login successful. Token saved.');
           return responseBody;
         } else {
@@ -50,8 +33,8 @@ class Servidor {
           return responseBody;
         }
       } else {
-        print('Login failed: ${response.statusCode}');
-        print('Response body: ${response.body}');
+        print('Login failed: \\${response.statusCode}');
+        print('Response body: \\${response.body}');
         return null;
       }
     } catch (e) {
@@ -61,7 +44,7 @@ class Servidor {
   }
 
   Future<Map<String, String>> _getAuthHeaders() async {
-    final token = await _getToken();
+    final token = await prefs_utils.getToken();
     final Map<String, String> headers = {};
     if (token != null) {
       headers['Authorization'] = 'Bearer $token';
@@ -69,6 +52,9 @@ class Servidor {
     return headers;
   }
 
+  Future<void> clearToken() async {
+    await prefs_utils.removeToken();
+  }
   // --- GET Method with queryParameters ---
   Future<dynamic> getData(String endpoint, {Map<String, dynamic>? queryParameters}) async {
     try {

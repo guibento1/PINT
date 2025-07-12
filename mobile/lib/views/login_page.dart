@@ -39,8 +39,6 @@ class _LoginPageState extends State<LoginPage> {
         : null;
 
     if (token != null) {
-      await my_prefs.setToken(token); // CORRIGIDO: Usar my_prefs.setToken
-
       final String? userId = result?['idutilizador']?.toString();
 
       if (userId != null) {

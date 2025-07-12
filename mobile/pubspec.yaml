@@ -52,6 +52,7 @@ dependencies:
   intl: ^0.20.2
   cached_network_image: ^3.4.1
   connectivity_plus: ^6.1.4
+  google_fonts: ^6.1.0
 
 
 dev_dependencies:
@@ -79,6 +80,11 @@ flutter:
   assets:
     - lib/assets/thesoftskillsLogo.svg
     - lib/assets/softinsaLogo.svg
+
+  fonts:
+    - family: ADLaMDisplay
+      fonts:
+        - asset: fonts/ADLaMDisplay-Regular.ttf
 
   # To add assets to your application, add an assets section, like this:
   # assets:

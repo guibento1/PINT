@@ -1,13 +1,9 @@
-// lib/backend/shared_preferences.dart
-
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/foundation.dart';
 
 const String _tokenKey = 'token';
 const String _userKey = 'user';
-const String _themeModeKey = 'darkMode';
-const String _languageKey = 'language';
 
 final ValueNotifier<Map<String, dynamic>?> currentUserNotifier = ValueNotifier(null);
 
@@ -64,24 +60,4 @@ Future<void> removeUser() async {
 Future<bool> isLoggedIn() async {
   final prefs = await SharedPreferences.getInstance();
   return prefs.getString(_tokenKey) != null && prefs.getString(_tokenKey)!.isNotEmpty;
-}
-
-Future<void> saveThemeMode(bool isDarkMode) async {
-  final prefs = await SharedPreferences.getInstance();
-  await prefs.setBool(_themeModeKey, isDarkMode);
-}
-
-Future<bool> getThemeMode() async {
-  final prefs = await SharedPreferences.getInstance();
-  return prefs.getBool(_themeModeKey) ?? false;
-}
-
-Future<void> saveLanguage(String languageCode) async {
-  final prefs = await SharedPreferences.getInstance();
-  await prefs.setString(_languageKey, languageCode);
-}
-
-Future<String?> getLanguage() async {
-  final prefs = await SharedPreferences.getInstance();
-  return prefs.getString(_languageKey);
 }

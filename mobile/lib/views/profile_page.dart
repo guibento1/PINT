@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import '/middleware.dart';
+import '../components/confirmation_dialog.dart';
 import '../backend/shared_preferences.dart' as my_prefs;
 
 class ProfilePage extends StatefulWidget {
@@ -132,6 +133,13 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
+  Future<void> _logout() async {
+    await my_prefs.removeToken();
+    if (mounted) {
+      context.go('/login');
+    }
+  }
+
   void _showSnackBar(String message, {bool isError = false}) {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -158,150 +166,197 @@ class _ProfilePageState extends State<ProfilePage> {
 
         final userData = snapshot.data!;
 
-        return SingleChildScrollView(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Text(
-                _isEditing ? 'Editar Perfil' : 'Perfil do Utilizador',
-                style: Theme.of(context).textTheme.headlineMedium,
-              ),
-              const SizedBox(height: 20),
-              GestureDetector(
-                onTap: _isEditing ? _pickImage : null,
-                child: CircleAvatar(
-                  radius: 75,
-                  backgroundColor: Colors.blueAccent,
-                  backgroundImage: _profileImage != null
-                      ? FileImage(_profileImage!)
-                      : (_currentProfileImageUrl != null && _currentProfileImageUrl!.isNotEmpty
-                      ? NetworkImage(_currentProfileImageUrl!)
-                      : const AssetImage('assets/placeholder_profile.png') as ImageProvider),
-                  child: _profileImage == null && (_currentProfileImageUrl == null || _currentProfileImageUrl!.isEmpty)
-                      ? const Icon(
-                    Icons.person,
-                    size: 80,
-                    color: Colors.white,
-                  )
-                      : null,
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
+              padding: const EdgeInsets.all(16.0),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  minHeight: constraints.maxHeight,
                 ),
-              ),
-              if (_isEditing)
-                const Padding(
-                  padding: EdgeInsets.only(top: 8.0),
-                  child: Text(
-                    'Apenas JPG/PNG são aceites.',
-                    style: TextStyle(fontSize: 12, color: Colors.grey),
-                  ),
-                ),
-              const SizedBox(height: 30),
-              Form(
-                key: _formKey,
-                child: Column(
-                  children: [
-                    if (!_isEditing) ...[
-                      _buildInfoRow('Nome:', _name),
-                      _buildInfoRow('Email:', _email),
-                      _buildInfoRow('Morada:', _address.isNotEmpty ? _address : 'Não especificada'),
-                      _buildInfoRow('Telefone:', _phone.isNotEmpty ? _phone : 'Não especificado'),
-                      _buildInfoRow(
-                        'Roles:',
-                        (userData['roles'] != null && (userData['roles'] as List).isNotEmpty)
-                            ? (userData['roles'] as List).map((r) => r['role']).join(', ')
-                            : 'Nenhum',
+                child: IntrinsicHeight(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Text(
+                        _isEditing ? 'Editar Perfil' : 'Perfil do Utilizador',
+                        style: Theme.of(context).textTheme.headlineMedium,
                       ),
-                      _buildInfoRow(
-                        'Membro desde:',
-                        userData['dataregisto'] != null
-                            ? DateTime.parse(userData['dataregisto']).toLocaleDateString('pt-PT')
-                            : 'N/A',
-                      ),
-                    ] else ...[
-                      TextFormField(
-                        initialValue: _name,
-                        decoration: const InputDecoration(labelText: 'Nome'),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Por favor, insira o nome';
-                          }
-                          return null;
-                        },
-                        onSaved: (value) => _name = value!,
-                      ),
-                      const SizedBox(height: 10),
-                      TextFormField(
-                        initialValue: _email,
-                        decoration: const InputDecoration(labelText: 'Email'),
-                        keyboardType: TextInputType.emailAddress,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Por favor, insira o email';
-                          }
-                          if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value)) {
-                            return 'Por favor, insira um email válido';
-                          }
-                          return null;
-                        },
-                        onSaved: (value) => _email = value!,
-                      ),
-                      const SizedBox(height: 10),
-                      TextFormField(
-                        initialValue: _address,
-                        decoration: const InputDecoration(labelText: 'Morada'),
-                        onSaved: (value) => _address = value!,
-                      ),
-                      const SizedBox(height: 10),
-                      TextFormField(
-                        initialValue: _phone,
-                        decoration: const InputDecoration(labelText: 'Telefone'),
-                        keyboardType: TextInputType.phone,
-                        onSaved: (value) => _phone = value!,
-                      ),
-                    ],
-                    const SizedBox(height: 20),
-                    _isEditing
-                        ? Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        TextButton(
-                          onPressed: () {
-                            setState(() {
-                              _isEditing = false;
-                              _profileImage = null;
-                              // Reload initial data to discard changes
-                              _userDataFuture = _loadUserData();
-                            });
-                          },
-                          child: const Text('Cancelar'),
+                      const SizedBox(height: 20),
+                      GestureDetector(
+                        onTap: _isEditing ? _pickImage : null,
+                        child: CircleAvatar(
+                          radius: 75,
+                          backgroundColor: Colors.blueAccent,
+                          backgroundImage: _profileImage != null
+                              ? FileImage(_profileImage!)
+                              : (_currentProfileImageUrl != null && _currentProfileImageUrl!.isNotEmpty
+                              ? NetworkImage(_currentProfileImageUrl!)
+                              : const AssetImage('assets/placeholder_profile.png') as ImageProvider),
+                          child: _profileImage == null && (_currentProfileImageUrl == null || _currentProfileImageUrl!.isEmpty)
+                              ? const Icon(
+                            Icons.person,
+                            size: 80,
+                            color: Colors.white,
+                          )
+                              : null,
                         ),
-                        const SizedBox(width: 10),
-                        ElevatedButton(
-                          onPressed: _saveProfile,
-                          child: const Text('Guardar Alterações'),
-                        ),
-                      ],
-                    )
-                        : Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Expanded(
-                          child: ElevatedButton(
-                            onPressed: () {
-                              setState(() {
-                                _isEditing = true;
-                              });
-                            },
-                            child: const Text('Editar Perfil'),
+                      ),
+                      if (_isEditing)
+                        const Padding(
+                          padding: EdgeInsets.only(top: 8.0),
+                          child: Text(
+                            'Apenas JPG/PNG são aceites.',
+                            style: TextStyle(fontSize: 12, color: Colors.grey),
                           ),
                         ),
-                      ],
-                    ),
-                  ],
+                      const SizedBox(height: 30),
+                      Form(
+                        key: _formKey,
+                        child: Column(
+                          children: [
+                            if (!_isEditing) ...[
+                              _buildInfoRow('Nome:', _name),
+                              _buildInfoRow('Email:', _email),
+                              _buildInfoRow('Morada:', _address.isNotEmpty ? _address : 'Não especificada'),
+                              _buildInfoRow('Telefone:', _phone.isNotEmpty ? _phone : 'Não especificado'),
+                              _buildInfoRow(
+                                'Roles:',
+                                (userData['roles'] != null && (userData['roles'] as List).isNotEmpty)
+                                    ? (userData['roles'] as List).map((r) => r['role']).join(', ')
+                                    : 'Nenhum',
+                              ),
+                              _buildInfoRow(
+                                'Membro desde:',
+                                userData['dataregisto'] != null
+                                    ? DateTime.parse(userData['dataregisto']).toLocaleDateString('pt-PT')
+                                    : 'N/A',
+                              ),
+                            ] else ...[
+                              TextFormField(
+                                initialValue: _name,
+                                decoration: const InputDecoration(labelText: 'Nome'),
+                                validator: (value) {
+                                  if (value == null || value.isEmpty) {
+                                    return 'Por favor, insira o nome';
+                                  }
+                                  return null;
+                                },
+                                onSaved: (value) => _name = value!,
+                              ),
+                              const SizedBox(height: 10),
+                              TextFormField(
+                                initialValue: _email,
+                                decoration: const InputDecoration(labelText: 'Email'),
+                                keyboardType: TextInputType.emailAddress,
+                                validator: (value) {
+                                  if (value == null || value.isEmpty) {
+                                    return 'Por favor, insira o email';
+                                  }
+                                  if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value)) {
+                                    return 'Por favor, insira um email válido';
+                                  }
+                                  return null;
+                                },
+                                onSaved: (value) => _email = value!,
+                              ),
+                              const SizedBox(height: 10),
+                              TextFormField(
+                                initialValue: _address,
+                                decoration: const InputDecoration(labelText: 'Morada'),
+                                onSaved: (value) => _address = value!,
+                              ),
+                              const SizedBox(height: 10),
+                              TextFormField(
+                                initialValue: _phone,
+                                decoration: const InputDecoration(labelText: 'Telefone'),
+                                keyboardType: TextInputType.phone,
+                                onSaved: (value) => _phone = value!,
+                              ),
+                            ],
+                            const SizedBox(height: 20),
+                            _isEditing
+                                ? Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                TextButton(
+                                  onPressed: () {
+                                    setState(() {
+                                      _isEditing = false;
+                                      _profileImage = null;
+                                      // Reload initial data to discard changes
+                                      _userDataFuture = _loadUserData();
+                                    });
+                                  },
+                                  child: const Text('Cancelar'),
+                                ),
+                                const SizedBox(width: 10),
+                                ElevatedButton(
+                                  onPressed: _saveProfile,
+                                  child: const Text('Guardar Alterações'),
+                                ),
+                              ],
+                            )
+                                : Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Expanded(
+                                  child: ElevatedButton(
+                                    onPressed: () {
+                                      setState(() {
+                                        _isEditing = true;
+                                      });
+                                    },
+                                    child: const Text(
+                                      'Editar Perfil',
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      Expanded(child: Container()),
+                      SizedBox(
+                        width: 200,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFFF0004),
+                            foregroundColor: Colors.white,
+                            elevation: 4,
+                            minimumSize: const Size(0, 55),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                          ),
+                          onPressed: () {
+                            mostrarDialogoDeConfirmacao(
+                              context: context,
+                              titulo: 'Terminar Sessão',
+                              conteudo: 'Tem a certeza que deseja sair?',
+                              textoBotaoConfirmar: 'Sair',
+                              textoBotaoCancelar: 'Cancelar',
+                              onConfirm: _logout,
+                            );
+                          },
+                          child: const Text(
+                            "Sair",
+                            style: TextStyle(fontSize: 22, fontWeight: FontWeight.w500),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 32),
+                    ],
+                  ),
                 ),
               ),
-            ],
-          ),
+            );
+          },
         );
       },
     );

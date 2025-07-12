@@ -2,6 +2,7 @@
 import 'dart:io'; // Required for SocketException
 import 'package:connectivity_plus/connectivity_plus.dart'; // Import connectivity_plus
 import 'backend/server.dart'; // Import your existing Servidor class
+import 'backend/shared_preferences.dart' as my_prefs;
 
 class AppMiddleware {
   final Servidor _servidor = Servidor();
