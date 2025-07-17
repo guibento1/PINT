@@ -46,7 +46,7 @@ class _TopHeaderBarState extends State<TopHeaderBar> {
 
     if (mounted) {
       setState(() {
-        _avatarUrl = foto ?? 'https://avatar.iran.liara.run/public/boy';
+        _avatarUrl = foto ?? '';
       });
     }
   }
@@ -84,7 +84,7 @@ class _TopHeaderBarState extends State<TopHeaderBar> {
                   backgroundImage: NetworkImage(_avatarUrl),
                   onBackgroundImageError: (exception, stackTrace) {
                     setState(() {
-                      _avatarUrl = 'https://avatar.iran.liara.run/public/boy';
+                      _avatarUrl = '';
                     });
                   },
                 ),
