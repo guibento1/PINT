@@ -5,6 +5,7 @@ envVars/*
 backend/node_modules/
 backend/package-lock.json
 backend/db/data
+backend/logs/*
 
 # Node.js (Frontend - BackOffice)
 web/backOffice/node_modules/
