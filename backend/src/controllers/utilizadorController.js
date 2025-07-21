@@ -1,10 +1,11 @@
-const { uploadFile, deleteFile, updateFile, generateSASUrl, sendEmail, isLink } = require('../utils.js');
-const { generateAccessToken } = require('../middleware.js');
+const { uploadFile, deleteFile, updateFile, generateSASUrl, sendEmail, isLink } = require('../utils');
+const { generateAccessToken } = require('../middleware');
 const crypto = require('crypto');
 const Sequelize = require('sequelize');
+const logger = require('../logger.js');
 
-var initModels = require("../models/init-models.js");
-var db = require("../database.js");
+var initModels = require("../models/init-models");
+var db = require("../database");
 var models = initModels(db);
 
 // Aux Functions
@@ -50,31 +51,62 @@ const controllers = {};
 
 controllers.byEmail = async (req, res) => {
 
-    const email = req.query.email;
+    const { email } = req.query; 
+
+    logger.debug(`Requisição para procurar utilizador por email recebida: ${email || 'não fornecido'}.`);
 
     if (!email) {
-        return res.status(400).json({ error: 'Email is required' });
+        logger.warn('Tentativa de procurar utilizador sem fornecer email. Requisição inválida.');
+        return res.status(400).json({
+            error: 'O email é obrigatório.'
+        });
     }
 
     try {
-        const data = await models.utilizadores.findOne({ 
+        const data = await models.utilizadores.findOne({
             where: { email },
-            attributes: ["idutilizador","email","nome","dataregisto","foto","ativo"]
+            attributes: ["idutilizador", "email", "nome", "dataregisto", "foto", "ativo"]
         });
 
         if (!data) {
-            return res.status(404).json({ error: 'User not found' });
+            logger.info(`Tentativa de acesso a utilizador não encontrado para o email: ${email}.`);
+            return res.status(404).json({
+                error: 'Utilizador não encontrado.'
+            });
         }
 
         if (!data.ativo) {
-            return res.status(403).json({ error: 'User disabled' });
+            logger.warn(`Tentativa de acesso a utilizador inativo: ${email}.`, { idutilizador: data.idutilizador });
+            return res.status(403).json({
+                error: 'O utilizador está desativado.'
+            });
         }
 
+        logger.debug(`A obter funções para o utilizador ${data.idutilizador} (${email}).`);
         data.dataValues.roles = await findRoles(data.idutilizador);
-        data.dataValues.foto =  data.dataValues.foto ? await generateSASUrl(data.dataValues.foto, 'userprofiles') : null;
+        logger.debug(`Funções obtidas para o utilizador ${data.idutilizador}: ${data.dataValues.roles.join(', ')}`);
+
+
+        if (data.dataValues.foto) {
+            data.dataValues.foto = await generateSASUrl(data.dataValues.foto, 'userprofiles');
+        } else {
+            data.dataValues.foto = null;
+        }
+
+
+        logger.info(`Utilizador ${data.idutilizador} (${email}) acedido com sucesso.`);
         res.status(200).json(data);
+
     } catch (error) {
-        return res.status(500).json({ error: 'Something bad happened' });
+        logger.error(`Erro interno ao procurar utilizador por email: ${email}. Detalhes: ${error.message}`, {
+            email,
+            stack: error.stack,
+            method: 'controllers.utilizadores.byEmail',
+            query: req.query 
+        });
+        return res.status(500).json({
+            error: 'Ocorreu um erro interno no servidor.'
+        });
     }
 };
 
@@ -84,206 +116,253 @@ controllers.loginUser = async (req, res) => {
 
     const { email, password } = req.body;
 
+    logger.debug(`Tentativa de login para o email: ${email || 'não fornecido'}.`);
+
     if (!email) {
-        return res.status(400).json({ error: 'Email is required' });
+        logger.warn('Tentativa de login sem fornecer email. Requisição inválida.');
+        return res.status(400).json({
+            error: 'O email é obrigatório.'
+        });
     }
 
     try {
-        const data = await models.utilizadores.findOne({ 
-            where: { email }
+        const data = await models.utilizadores.findOne({
+            where: { email },
+            attributes: ["idutilizador", "email", "nome", "dataregisto", "foto", "ativo", "passwordhash", "salt"]
         });
 
         if (!data) {
-            return res.status(404).json({ error: 'User not found' });
+            logger.info(`Tentativa de login falhada: Utilizador não encontrado para o email: ${email}.`);
+            return res.status(401).json({
+                error: 'Credenciais inválidas.'
+            });
         }
 
         if (!data.ativo) {
-
-            if(data.passwordhash == null){
-                return res.status(400).json({ message: 'User has not confirmed email' });
+            if (data.passwordhash === null) {
+                logger.warn(`Tentativa de login de utilizador com email não confirmado: ${email}.`, { idutilizador: data.idutilizador });
+                return res.status(403).json({
+                    error: 'Por favor, confirme o seu email para ativar a conta.'
+                });
+            } else {
+                logger.warn(`Tentativa de login de utilizador desativado: ${email}.`, { idutilizador: data.idutilizador });
+                return res.status(403).json({
+                    error: 'A sua conta está desativada. Por favor, contacte o suporte.'
+                });
             }
-
-            return res.status(403).json({ error: 'User disabled' });
         }
 
         if (!password) {
-            return res.status(403).json({ error: 'No password provided' });
+            logger.warn(`Tentativa de login para ${email} sem fornecer password.`);
+            return res.status(400).json({
+                error: 'A password é obrigatória.'
+            });
         }
 
-        const passwordhash = crypto.pbkdf2Sync(password, data.salt, 1000, 64, 'sha512').toString('hex') ;
+        logger.debug(`A verificar password para o utilizador ${email}.`);
+        const passwordhash = crypto.pbkdf2Sync(password, data.salt, 1000, 64, 'sha512').toString('hex');
 
-        if(passwordhash == data.passwordhash){
+        if (passwordhash === data.passwordhash) {
+            logger.info(`Login bem-sucedido para o utilizador ${data.idutilizador} (${email}).`);
 
+            logger.debug(`A obter funções para o utilizador ${data.idutilizador}.`);
             data.dataValues.roles = await findRoles(data.idutilizador);
 
-            if(!data.dataValues.roles){
-                return res.status(500).json({ error: 'User has no roles' });
+            if (!data.dataValues.roles || data.dataValues.roles.length === 0) {
+                logger.error(`Utilizador ${data.idutilizador} (${email}) sem funções atribuídas após login bem-sucedido.`);
+                return res.status(500).json({
+                    error: 'Erro: O utilizador não tem funções atribuídas.'
+                });
+            }
+            logger.debug(`Funções obtidas para o utilizador ${data.idutilizador}: ${data.dataValues.roles.join(', ')}.`);
+
+            if (data.foto) {
+                data.dataValues.foto = await generateSASUrl(data.foto, 'userprofiles');
+            } else {
+                data.dataValues.foto = null;
             }
 
-            data.dataValues.foto =  data.dataValues.foto ? await generateSASUrl(data.dataValues.foto, 'userprofiles') : null;
+            const accessToken = generateAccessToken({
+                idutilizador: data.idutilizador,
+                roles: data.dataValues.roles
+            });
+            logger.debug(`Access Token gerado para o utilizador ${data.idutilizador}.`);
 
-            const responseData = { 
-                idutilizador: data.idutilizador, 
-                email: data.email, 
+            const responseData = {
+                idutilizador: data.idutilizador,
+                email: data.email,
                 nome: data.nome,
                 dataregisto: data.dataregisto,
-                ativo: data.ativo, 
-                foto: data.dataValues.foto, 
+                ativo: data.ativo,
+                foto: data.dataValues.foto,
                 roles: data.dataValues.roles,
-                accessToken: generateAccessToken( {
-                    idutilizador: data.idutilizador,
-                    roles : data.dataValues.roles 
-                })
+                accessToken: accessToken
             };
 
             return res.status(200).json(responseData);
+        } else {
+            logger.info(`Tentativa de login falhada: Password incorreta para o email: ${email}.`);
+            return res.status(401).json({
+                error: 'Credenciais inválidas.'
+            });
         }
 
-        return res.status(400).json({ error: 'Password mismatch' });
-        
-
     } catch (error) {
-        console.log(error);
-        return res.status(500).json({ error: 'Something bad happened' });
+        logger.error(`Erro interno no servidor durante o processo de login para o email: ${email}. Detalhes: ${error.message}`, {
+            email,
+            stack: error.stack,
+            method: 'controllers.loginUser',
+            requestBody: req.body
+        });
+        return res.status(500).json({
+            error: 'Ocorreu um erro interno no servidor durante o login.'
+        });
     }
 };
 
 controllers.byID = async (req, res) => {
 
-    const id = req.params.id;
+    const { id } = req.params;
+    const isAdmin = req.user.roles?.some(role => role.role === "admin");
+    const isSelf = req.user.idutilizador == id;
 
-    // Controlador apenas acessivel para admin ou utilizadores com alvo a si próprios
-    
-    if( 
-        req.user.idutilizador == id || 
-        ( req.user.roles && req.user.roles.map((roleEntry) => roleEntry.role).includes("admin") ) 
-    ){
+    logger.debug(`Pedido de dados do utilizador ID ${id} por utilizador autenticado ID ${req.user.idutilizador}.`);
 
-
-        try {
-
-
-            const data = await models.utilizadores.findOne({ 
-                where: { idutilizador: id },
-                attributes: ["idutilizador","email","nome","morada","telefone","dataregisto","foto","ativo"]
-            });
-
-            if (!data) {
-                return res.status(404).json({ error: 'User not found' });
-            }
-
-            if (!data.ativo) {
-                return res.status(403).json({ error: 'User disabled' });
-            }
-
-            data.dataValues.roles = await findRoles(id);
-            data.dataValues.foto =  data.dataValues.foto ? await generateSASUrl(data.dataValues.foto, 'userprofiles') : null;
-
-            return res.status(200).json(data);
-
-        } catch (error) {
-            console.log(error);
-            return res.status(500).json({ error: 'Something bad happened' });
-        }
-
+    if (!isSelf && !isAdmin) {
+        logger.warn(`Acesso negado: utilizador ${req.user.idutilizador} tentou aceder aos dados do utilizador ${id} sem permissões suficientes.`);
+        return res.status(403).json({ message: 'Acesso negado: sem permissões suficientes' });
     }
 
+    try {
+        logger.debug(`A procurar utilizador com ID ${id}.`);
+        const data = await models.utilizadores.findByPk(id, {
+            attributes: ["idutilizador", "email", "nome", "morada", "telefone", "dataregisto", "foto", "ativo"]
+        });
 
-    return res.status(403).json({ message: 'Forbidden: insufficient permissions' });
+        if (!data) {
+            logger.info(`Utilizador com ID ${id} não encontrado.`);
+            return res.status(404).json({ error: 'Utilizador não encontrado' });
+        }
 
-    
+        if (!data.ativo) {
+            logger.warn(`Utilizador com ID ${id} está desativado. Acesso negado.`);
+            return res.status(403).json({ error: 'Utilizador desativo' });
+        }
+
+        logger.debug(`A obter funções e foto para o utilizador ${id}.`);
+        const roles = await findRoles(id);
+        const foto = data.foto ? await generateSASUrl(data.foto, 'userprofiles') : null;
+
+        logger.info(`Dados do utilizador ${id} obtidos com sucesso por ${req.user.idutilizador}.`);
+        return res.status(200).json({
+            ...data.dataValues,
+            roles,
+            foto
+        });
+
+    } catch (error) {
+        logger.error(`Erro ao obter dados do utilizador ${id}.`, {
+            requesterId: req.user.idutilizador,
+            targetId: id,
+            stack: error.stack,
+            method: 'controllers.byID'
+        });
+        return res.status(500).json({ error: 'Ocorreu um erro interno no servidor' });
+    }
 };
 
 controllers.update = async (req, res) => {
 
     const { id } = req.params;
+    const isAdmin = req.user.roles?.some(role => role.role === "admin");
+    const isSelf = req.user.idutilizador == id;
 
+    logger.debug(`Pedido de atualização de dados para o utilizador ${id} por ${req.user.idutilizador}.`);
 
-    // Controlador apenas acessivel para admin ou utilizadores com alvo a si próprios
-    
-    if( 
-        req.user.idutilizador == id || 
-        ( req.user.roles && req.user.roles.map((roleEntry) => roleEntry.role).includes("admin") ) 
-    ){
-
-        const foto = req.file;
-        const updatedData = {};
-
-
-        const { nome, email, password, morada, telefone, roles } = JSON.parse(req.body.info || "{}");
-
-        if (nome) updatedData.nome = nome;
-        if (email) updatedData.email = email;
-        if (morada !== undefined) updatedData.morada = morada;
-        if (telefone !== undefined) updatedData.telefone = telefone;
-
-
-        try {
-
-            
-            var result = await models.utilizadores.findOne({ where: { idutilizador: id } });
-
-
-            if (password){
-                const passwordhash = crypto.pbkdf2Sync(password, result.salt, 1000, 64, 'sha512').toString('hex') ;
-                updatedData.passwordhash = passwordhash;
-            }
-
-            if(foto){
-
-                updatedData.foto = await updateFile( foto, "userprofiles", result.foto, [".jpg", ".png"]);
-
-            }
-            
-            if (Object.keys(updatedData).length !== 0) {
-                
-                const [affectedCount, updatedRows] = await models.utilizadores.update(updatedData, {
-                    where: { idutilizador: id, ativo: true },
-                    returning: true,
-                });
-
-                if (affectedCount === 0 && roles === undefined) {
-                    return res.status(404).json({ message: 'User not found or inactive' });
-                }
-
-            }
-
-
-            if (roles !== undefined && req.user.roles.map((roleEntry) => roleEntry.role).includes("admin")) {
-                await updateRoles(id, roles);
-            }
-
-
-            result = await models.utilizadores.findOne({ 
-                where: { idutilizador: id } ,
-                attributes: ["idutilizador","email","nome","morada","telefone","dataregisto","foto","ativo"]
-            });
-
-            result.dataValues.roles = await findRoles(id);
-
-            if(result.foto){
-                result.dataValues.foto = await generateSASUrl(result.foto, 'userprofiles');
-            }
-
-            return res.status(200).json(result);
-        } catch (error) {
-            console.log(error);
-            return res.status(500).json({ message: 'Error updating User' });
-        }
+    if (!isSelf && !isAdmin) {
+        logger.warn(`Acesso negado: utilizador ${req.user.idutilizador} tentou atualizar os dados do utilizador ${id} sem permissões suficientes.`);
+        return res.status(403).json({ message: 'Acesso negado: sem permissões suficientes' });
     }
 
-    return res.status(403).json({ message: 'Forbidden: insufficient permissions' });
+    const foto = req.file;
+    const updatedData = {};
+    const { nome, email, password, morada, telefone, roles } = JSON.parse(req.body.info || "{}");
+
+    if (nome) updatedData.nome = nome;
+    if (email) updatedData.email = email;
+    if (morada !== undefined) updatedData.morada = morada;
+    if (telefone !== undefined) updatedData.telefone = telefone;
+
+    try {
+        logger.debug(`A procurar utilizador com ID ${id}.`);
+        let result = await models.utilizadores.findByPk(id);
+
+        if (!result) {
+            logger.info(`Utilizador com ID ${id} não encontrado ou inativo.`);
+            return res.status(404).json({ message: 'Utilizador não encontrado ou desativo' });
+        }
+
+        if (password) {
+            const passwordhash = crypto.pbkdf2Sync(password, result.salt, 1000, 64, 'sha512').toString('hex');
+            updatedData.passwordhash = passwordhash;
+            logger.debug(`Password atualizada para o utilizador ${id}.`);
+        }
+
+        if (foto) {
+            updatedData.foto = await updateFile(foto, "userprofiles", result.foto, [".jpg", ".png"]);
+            logger.debug(`Foto atualizada para o utilizador ${id}.`);
+        }
+
+        if (Object.keys(updatedData).length > 0) {
+            const [affectedCount] = await models.utilizadores.update(updatedData, {
+                where: { idutilizador: id, ativo: true },
+                returning: true,
+            });
+
+            if (affectedCount === 0) {
+                logger.info(`Nenhuma atualização feita para o utilizador ${id}.`);
+                return res.status(404).json({ message: 'Utilizador não encontrado ou desativo' });
+            }
+            logger.info(`Dados do utilizador ${id} atualizados com sucesso.`);
+        }
+
+        if (roles && isAdmin) {
+            await updateRoles(id, roles);
+            logger.info(`Funções atualizadas para o utilizador ${id}.`);
+        }
+
+        result = await models.utilizadores.findByPk(id, {
+            attributes: ["idutilizador", "email", "nome", "morada", "telefone", "dataregisto", "foto", "ativo"]
+        });
+
+        result.dataValues.roles = await findRoles(id);
+        if (result.foto) {
+            result.dataValues.foto = await generateSASUrl(result.foto, 'userprofiles');
+        }
+
+        logger.info(`Dados do utilizador ${id} retornados com sucesso após atualização.`);
+        return res.status(200).json(result);
+    } catch (error) {
+        logger.error(`Erro ao atualizar dados do utilizador ${id}.`, {
+            requesterId: req.user.idutilizador,
+            targetId: id,
+            stack: error.stack,
+            method: 'controllers.update'
+        });
+        return res.status(500).json({ message: 'Erro ao atualizar dados do utilizador' });
+    }
 };
 
 
-controllers.list = async (req,res) => {
+controllers.list = async (req, res) => {
 
-    const id  = req.user.idutilizador;
+    const id = req.user.idutilizador;
+
+    logger.debug(`Pedido para listar utilizadores, excluindo o utilizador ID ${id}.`);
 
     try {
-
-        const data = await models.utilizadores.findAll({ 
-            attributes: ["idutilizador","email","nome","dataregisto","foto","ativo"],
+        const data = await models.utilizadores.findAll({
+            attributes: ["idutilizador", "email", "nome", "dataregisto", "foto", "ativo"],
             where: {
                 idutilizador: {
                     [Sequelize.Op.ne]: id
@@ -291,152 +370,163 @@ controllers.list = async (req,res) => {
             }
         });
 
+        if (!data.length) {
+            logger.info(`Nenhum utilizador encontrado além do utilizador ID ${id}.`);
+            return res.status(404).json({ message: 'Nenhum utilizador encontrado' });
+        }
+
         for (let user of data) {
             user.dataValues.roles = await findRoles(user.idutilizador);
-            user.dataValues.foto =  user.dataValues.foto ? await generateSASUrl(user.dataValues.foto, 'userprofiles') : null;
+            user.dataValues.foto = user.dataValues.foto ? await generateSASUrl(user.dataValues.foto, 'userprofiles') : null;
         }
-            
-        res.status(200).json(data);
+
+        logger.info(`Lista de utilizadores excluindo o utilizador ID ${id} retornada com sucesso.`);
+        return res.status(200).json(data);
 
     } catch (error) {
-        console.log(error);
-        return res.status(400).json({ error: 'Something bad happened' });
+        logger.error(`Erro ao listar utilizadores.`, {
+            requesterId: id,
+            stack: error.stack,
+            method: 'controllers.list'
+        });
+        return res.status(500).json({ error: 'Erro ao atualizar dados do utilizador' });
     }
 };
 
 
 controllers.register = async (req, res) => {
 
-    const { nome, email }  = req.body;
+    const { nome, email } = req.body;
     const roles = ['formando'];
     const ativo = false;
 
+    const insertData = { nome, email, ativo };
 
-
-    const insertData = {
-        nome,
-        email,
-        ativo
-    };
-
+    logger.debug(`Tentativa de registo de utilizador com email ${email}.`);
 
     try {
-
         const createdRow = await models.utilizadores.create(insertData, {
             returning: true,
         });
 
-        const token = generateAccessToken( 
-        {
+        const token = generateAccessToken({
             idutilizador: createdRow.idutilizador,
-            roles : roles 
-        })
+            roles
+        });
 
-
-        const data = {
+        const emailData = {
             to: email,
             subject: 'Confirmação de email',
-            text: `Bem vindo á thesoftskills,\n \
+            text: `Bem vindo à thesoftskills,\n \
                    para finalizar a criação de conta siga \
                    o seguinte link: http://localhost:3001/resetpassword?token=${token}`,
-            html: `<h1>Bem vindo á thesoftskills,<h1> \
+            html: `<h1>Bem vindo à thesoftskills,<h1> \
                    <h2> para finalizar a criação de conta siga \
-                   o seguinte <a href="http://localhost:3001/resetpassword?token=${token}">link</a>. <h2>`
-
+                   o seguinte <a href="http://localhost:3001/resetpassword?token=${token}">link</a>.</h2>`
         };
 
-        sendEmail(data);
+        sendEmail(emailData);
+        logger.info(`Email de confirmação enviado para ${email}.`);
 
-
-        res.status(200).json({message:"Confirm email"});
+        return res.status(200).json({ message: "Confirm email" });
 
     } catch (error) {
-
         const dbMessage = error?.parent?.message || '';
-
+        
         if (dbMessage.includes('Utilizador existente')) {
-          return res.status(409).json({ error: 'User with that email already exists' });
+            logger.warn(`Tentativa de registo falhada: utilizador com email ${email} já existe.`);
+            return res.status(409).json({ error: `Tentativa de registo falhada: utilizador com email ${email} já existe.` });
         }
 
-        console.error('Error creating User:', error);
-        return res.status(500).json({ message: 'Error creating User' });
+        logger.error(`Erro ao criar utilizador com email ${email}.`, {
+            error: error.message,
+            stack: error.stack,
+            method: 'controllers.register'
+        });
+
+        return res.status(500).json({ message: 'Erro ao criar utilizador' });
     }
 };
 
 
 controllers.resetPassword = async (req, res) => {
 
-    const id  = req.user.idutilizador;
+    const id = req.user.idutilizador;
     const roles = req.user.roles;
     const { password } = req.body;
 
+    logger.debug(`Tentativa de reset de password para o utilizador ID ${id}.`);
 
     const salt = crypto.randomBytes(8).toString('hex');
-    const passwordhash = crypto.pbkdf2Sync(password, salt, 1000, 64, 'sha512').toString('hex') ;
-
+    const passwordhash = crypto.pbkdf2Sync(password, salt, 1000, 64, 'sha512').toString('hex');
 
     const updateData = {
         salt,
         passwordhash,
         ativo: true
     };
-    
 
     try {
+        logger.debug(`A procurar utilizador com ID ${id}.`);
+        let result = await models.utilizadores.findByPk(id);
 
-        
-        var result = await models.utilizadores.findOne({ where: { idutilizador: id } });
+        if (!result) {
+            logger.warn(`Utilizador com ID ${id} não encontrado.`);
+            return res.status(404).json({ message: 'Utilizador não econtrado' });
+        }
 
-        if (result.dataregisto == null){
+        if (result.dataregisto == null) {
             updateData.dataregisto = new Date();
         }
 
-
-        const [affectedCount, updatedRows] = await models.utilizadores.update(updateData, {
+        logger.debug(`A atualizar dados do utilizador ID ${id}.`);
+        const [affectedCount] = await models.utilizadores.update(updateData, {
             where: { idutilizador: id },
             returning: true,
         });
 
-
-        if (affectedCount === 0 ) {
-            return res.status(404).json({ message: 'User not found' });
+        if (affectedCount === 0) {
+            logger.warn(`Nenhuma atualização feita para o utilizador ID ${id}.`);
+            return res.status(404).json({ message: 'Utilizador não econtrado' });
         }
 
-
+        logger.debug(`Funções do utilizador ID ${id} a serem atualizadas.`);
         await updateRoles(id, roles);
 
-
-        result = await models.utilizadores.findOne({ 
-            where: { idutilizador: id } ,
-            attributes: ["idutilizador","email","nome","dataregisto","foto","ativo"]
+        result = await models.utilizadores.findByPk(id,{
+            attributes: ["idutilizador", "email", "nome", "dataregisto", "foto", "ativo"]
         });
 
         result.dataValues.roles = await findRoles(id);
 
-        if(result.foto!=null)
+        if (result.foto) {
             result.dataValues.foto = await generateSASUrl(result.foto, 'userprofiles');
+        }
 
-        res.status(200).json(result);
+        logger.info(`Password e dados do utilizador ID ${id} atualizados com sucesso.`);
+        return res.status(200).json(result);
 
     } catch (error) {
-        console.log(error);
-        res.status(500).json({ message: 'Error updating User' });
+        logger.error(`Erro ao tentar resetar password para o utilizador ID ${id}.`, {
+            error: error.message,
+            stack: error.stack,
+            method: 'controllers.resetPassword'
+        });
+        return res.status(500).json({ message: 'Erro ao fazer reset á password' });
     }
 };
 
 
 
 controllers.create = async (req, res) => {
-
     const foto = req.file;
-    var fotoUrl = null;
-    console.log('req.body:', req.body);
-    console.log('req.body.info:', req.body.info);
-    const { nome, email, password, morada, telefone, roles }  = JSON.parse(req.body.info);
+    let fotoUrl = null;
 
+    logger.debug(`Tentativa de registo de novo utilizador com email ${req.body.email}.`);
 
+    const { nome, email, password, morada, telefone, roles } = JSON.parse(req.body.info);
     const salt = crypto.randomBytes(8).toString('hex');
-    const passwordhash = crypto.pbkdf2Sync(password, salt, 1000, 64, 'sha512').toString('hex') ;
+    const passwordhash = crypto.pbkdf2Sync(password, salt, 1000, 64, 'sha512').toString('hex');
 
     const insertData = {
         nome,
@@ -450,110 +540,113 @@ controllers.create = async (req, res) => {
     if (telefone !== undefined) insertData.telefone = telefone;
 
     try {
-
-
-        if(foto){
-
+        if (foto) {
             insertData.foto = await updateFoto(foto);
             fotoUrl = await generateSASUrl(insertData.foto, 'userprofiles');
-
         }
 
-        const createdRow = await models.utilizadores.create(insertData, {
-            returning: true,
-        });
+        const createdRow = await models.utilizadores.create(insertData, { returning: true });
 
         if (roles !== undefined) {
             await updateRoles(createdRow.idutilizador, roles);
         }
 
-
-
         createdRow.dataValues.roles = await findRoles(createdRow.idutilizador);
         createdRow.dataValues.foto = fotoUrl;
 
+        const responseData = {
+            idutilizador: createdRow.idutilizador,
+            email: createdRow.email,
+            nome: createdRow.nome,
+            dataregisto: createdRow.dataregisto,
+            ativo: createdRow.ativo,
+            foto: createdRow.dataValues.foto,
+            roles: createdRow.dataValues.roles
+        };
 
-
-    const responseData = { 
-        idutilizador: createdRow.idutilizador, 
-        email: createdRow.email, 
-        nome: createdRow.nome,
-        dataregisto: createdRow.dataregisto,
-        ativo: createdRow.ativo, 
-        foto: createdRow.dataValues.foto, 
-        roles: createdRow.dataValues.roles 
-    };
-
-        res.status(201).json(responseData);
+        logger.info(`Novo utilizador criado com sucesso: ID ${createdRow.idutilizador}`);
+        return res.status(201).json(responseData);
 
     } catch (error) {
         const dbMessage = error?.parent?.message || '';
 
         if (dbMessage.includes('Utilizador existente')) {
-          return res.status(409).json({ error: 'User with that email already exists' });
+            logger.warn(`Tentativa de registo falhada: utilizador com email ${email} já existe.`);
+            return res.status(409).json({ error: `Tentativa de registo falhada: utilizador com email ${email} já existe.` });
         }
 
-        console.error('Error creating User:', error);
+        logger.error(`Erro ao criar utilizador com email ${email}.`, {
+            error: error.message,
+            stack: error.stack,
+            method: 'controllers.create'
+        });
+
         return res.status(500).json({ message: 'Error creating User' });
     }
 };
 
 controllers.delete = async (req, res) => {
-
     const id = req.params.id;
-    
-    if( 
-        req.user.idutilizador == id || 
-        ( req.user.roles && req.user.roles.map((roleEntry) => roleEntry.role).includes("admin") ) 
-    ){
 
+    logger.debug(`Tentativa de desativação do utilizador ID ${id}.`);
+
+    if (req.user.idutilizador == id || (req.user.roles && req.user.roles.some(role => role.role === "admin"))) {
         try {
-            const user = await models.utilizadores.findOne({ where: { idutilizador: id } });
+            const user = await models.utilizadores.findByPk(id);
 
             if (!user || !user.ativo) {
-                return res.status(404).json({ message: 'User not found or already inactive' });
+                logger.warn(`Utilizador ID ${id} não encontrado ou já desativado.`);
+                return res.status(404).json({ message: `Utilizador ID ${id} não encontrado ou já desativado.` });
             }
 
             await models.utilizadores.destroy({ where: { idutilizador: id } });
+            logger.info(`Utilizador ID ${id} desativado com sucesso.`);
+            return res.status(200).json({ message: 'Utilizador desativado' });
 
-            return res.status(204).json({ message: 'User deactivated' }); 
         } catch (error) {
-            console.log(error);
-            return res.status(500).json({ error: 'Something bad happened' });
+            logger.error(`Erro ao desativar o utilizador ID ${id}.`, {
+                error: error.message,
+                stack: error.stack,
+                method: 'controllers.delete'
+            });
+            return res.status(500).json({ error: 'Erro ao desativar o utilizador' });
         }
     }
 
-    return res.status(403).json({ message: 'Forbidden: insufficient permissions' });
+    logger.warn(`Utilizador ID ${id} não tem permissões para desativar ou não é um administrador.`);
+    return res.status(403).json({ message: 'Utilizador não tem permissões para desativar' });
 };
 
 controllers.activate = async (req, res) => {
     const id = req.params.id;
 
+    logger.debug(`Tentativa de ativação do utilizador ID ${id}.`);
 
-    if( 
-        req.user.idutilizador == id || 
-        ( req.user.roles && req.user.roles.map((roleEntry) => roleEntry.role).includes("admin") ) 
-    ){
-
+    if (req.user.idutilizador == id || (req.user.roles && req.user.roles.some(role => role.role === "admin"))) {
         try {
-
-            const data = await models.utilizadores.findOne({ where: { idutilizador: id } });
+            const data = await models.utilizadores.findByPk(id);
 
             if (!data) {
-                return res.status(404).json({ error: 'User not found' });
+                logger.warn(`Utilizador ID ${id} não encontrado.`);
+                return res.status(404).json({ error: `Utilizador ID ${id} não encontrado.` });
             }
 
             await models.utilizadores.update({ ativo: true }, { where: { idutilizador: id } });
-            return res.status(200).json({ message: 'User activated' });
+            logger.info(`Utilizador ID ${id} ativado com sucesso.`);
+            return res.status(200).json({ message: `Utilizador ativado com sucesso.` });
 
         } catch (error) {
-            console.log(error);
-            return res.status(500).json({ error: 'Something bad happened' });
+            logger.error(`Erro ao ativar o utilizador ID ${id}.`, {
+                error: error.message,
+                stack: error.stack,
+                method: 'controllers.activate'
+            });
+            return res.status(500).json({ error: 'Erro ao ativar o utilizador' });
         }
-
     }
 
-    return res.status(403).json({ message: 'Forbidden: insufficient permissions' });
+    logger.warn(`Utilizador ID ${id} não tem permissões para ativar ou não é um administrador.`);
+    return res.status(403).json({ message: 'Utilizador não tem permissões para ativar outro utilizador' });
 };
 
 module.exports = controllers;

@@ -1,4 +1,5 @@
 //web\backend\src\middleware.js
+
 const path = require('path');
 const jwt = require('jsonwebtoken');
 
@@ -13,7 +14,7 @@ function authenticateJWT(req, res, next) {
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return res.status(401).json({ message: 'Missing token' });
+    return res.status(401).json({ message: 'Token em falta' });
   }
   
   const token = authHeader.split(' ')[1];
@@ -23,7 +24,7 @@ function authenticateJWT(req, res, next) {
     req.user = decoded;
     next();
   } catch(error) {
-    return res.status(403).json({ message: 'Invalid token' });
+    return res.status(401).json({ message: 'Token Invalido' });
   }
 }
 
@@ -33,7 +34,7 @@ function authorizeRoles(...allowedRoles) {
   return (req, res, next) => {
 
     if ( !req.user || !req.user.roles || req.user.roles.length == 0  ) {
-      return res.status(403).json({ message: 'No roles assigned' });
+      return res.status(403).json({ message: 'Utilizador não possui qualquer papel(role)' });
     }
 
     const userRoles = req.user.roles.map((roleEntry) => roleEntry.role); 
@@ -41,7 +42,7 @@ function authorizeRoles(...allowedRoles) {
     const hasRole = userRoles.some(role => allowedRoles.includes(role));
 
     if (!hasRole) {
-      return res.status(403).json({ message: 'Forbidden: insufficient permissions' });
+      return res.status(403).json({ message: 'Acesso Negado' });
     }
 
     next();

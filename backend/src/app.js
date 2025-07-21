@@ -1,13 +1,7 @@
-// const https = require("https");
-// const fs = require("fs");
+const logger = require('./logger.js'); 
 const express  = require("express");
 const app = express();
 const port = 3000;
-
-// const options = {
-//   key: fs.readFileSync("path/to/server.key"),
-//   cert: fs.readFileSync("path/to/server.cert")
-// };
 
 var cors = require('cors')
 
@@ -16,8 +10,10 @@ app.use(express.json());
 app.use(cors())
 
 app.listen(port, () => {
-    console.log("listening on port "+port);
+    logger.info("listening on port "+port);
 })
+
+// Controladores
 
 const index = require('./routes/indexRoute.js');
 const utilizador = require('./routes/utilizadorRoute.js');
@@ -28,10 +24,10 @@ const topico = require('./routes/topicoRoute.js');
 const notificacao = require('./routes/notificacaoRoute.js');
 const curso = require('./routes/cursoRoute.js');
 
-// Route Defenition
+// Defenicao de rotas
+
 app.use('/',(req, res, next) => {
-  console.log('URL: %s',req.originalUrl);
-  console.log('Data e Hora: %s', Date.now().toString());
+  logger.info('URL: %s',req.originalUrl);
   next();
 });
 
@@ -45,7 +41,4 @@ app.use('/topico',topico);
 app.use('/notificacao',notificacao);
 app.use('/curso',curso);
 
-// https.createServer(options, app).listen(port, () => {
-//   console.log(`HTTPS server listening on port ${port}`);
-// });
 

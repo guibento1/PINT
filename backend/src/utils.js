@@ -4,64 +4,81 @@ const Mailgun = require('mailgun.js');
 const formData = require('form-data');
 const axios = require('axios');
 const { GoogleAuth } = require('google-auth-library');
+const logger = require('./logger');
 
 require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
 
 function isLink(str) {
-  try {
-    new URL(str);
-    return true;
-  } catch {
-    return false;
-  }
+    try {
+        new URL(str);
+        return true;
+    } catch (error) {
+        logger.debug(`"${str}" is not a valid URL: ${error.message}`); 
+        return false;
+    }
 }
 
-const { 
-  BlobServiceClient, 
-  StorageSharedKeyCredential, 
-  BlobClient,
-  generateBlobSASQueryParameters, 
-  BlobSASPermissions } = require('@azure/storage-blob');
+const {
+    BlobServiceClient,
+    StorageSharedKeyCredential,
+    BlobClient,
+    generateBlobSASQueryParameters,
+    BlobSASPermissions
+} = require('@azure/storage-blob');
 
-
-const accountName = process.env.AZURESTORAGE_ACCOUNTNAME; 
+const accountName = process.env.AZURESTORAGE_ACCOUNTNAME;
 const accountKey = process.env.AZURESTORAGE_KEY;
 
+if (!accountName || !accountKey) {
+    logger.warn('Azure Storage account name or key is missing. Blob operations may fail.');
+}
 
 const sharedKeyCredential = new StorageSharedKeyCredential(accountName, accountKey);
 const blobServiceClient = new BlobServiceClient(`https://${accountName}.blob.core.windows.net`, sharedKeyCredential);
 
 async function uploadFile(fileBuffer, blobName, containerName) {
     try {
-
+        logger.debug(`Attempting to upload blob "${blobName}" to container "${containerName}".`);
         const containerClient = blobServiceClient.getContainerClient(containerName);
         const blobClient = containerClient.getBlockBlobClient(blobName);
-        const uploadBlobResponse = await blobClient.upload(fileBuffer, fileBuffer.length,{});
+        const uploadBlobResponse = await blobClient.upload(fileBuffer, fileBuffer.length, {});
 
-        console.log(`Uploaded image to blob "${blobName}" successfully.`, uploadBlobResponse);
+        logger.info(`Uploaded image to blob "${blobName}" in container "${containerName}" successfully.`, {
+            eTag: uploadBlobResponse.eTag,
+            lastModified: uploadBlobResponse.lastModified,
+            blobUrl: blobClient.url
+        });
 
         return blobClient.url;
     } catch (error) {
-        console.error('Error uploading image to Azure Blob Storage:', error.message);
+        logger.error(`Error uploading image to Azure Blob Storage: ${error.message}`, {
+            blobName,
+            containerName,
+            stack: error.stack
+        });
         throw error;
     }
 }
 
-
-async function updateFile(file,  container, existingBlob = null, allowedFileExtensions = null) {
-
-
+async function updateFile(file, container, existingBlob = null, allowedFileExtensions = null) {
     if (!file || !file.buffer || !file.originalname) {
-        throw 'Invalid file object';
+        logger.warn('Invalid file object provided for updateFile function.', { file: file || 'null' });
+        throw new Error('Invalid file object'); 
     }
 
     try {
         if (existingBlob !== null) {
+            logger.info(`Attempting to delete existing blob: "${existingBlob}" from container "${container}" for update.`);
             try {
                 await deleteFile(existingBlob, container);
+                logger.info(`Successfully deleted existing blob: "${existingBlob}".`);
             } catch (error) {
-                console.error(`Error deleting existing file: ${error}`);
-                throw error;
+                logger.error(`Error deleting existing file "${existingBlob}" during update process: ${error.message}`, {
+                    blobToDelete: existingBlob,
+                    container,
+                    stack: error.stack
+                });
+                throw error; 
             }
         }
 
@@ -70,34 +87,48 @@ async function updateFile(file,  container, existingBlob = null, allowedFileExte
         const fileExtension = path.extname(originalFileName).toLowerCase();
 
         if (allowedFileExtensions != null && !allowedFileExtensions.includes(fileExtension)) {
-            throw `Profile Pic must be one of the following: ${allowedfileExtensions.join(", ")}`;
+            logger.warn(`Attempted to upload file with disallowed extension: "${fileExtension}".`, {
+                originalFileName,
+                allowedExtensions: allowedFileExtensions
+            });
+            throw new Error(`Profile Pic must be one of the following: ${allowedFileExtensions.join(", ")}`);
         }
 
         const blobName = crypto.randomBytes(16).toString('hex').slice(0, 16) + fileExtension;
+        logger.debug(`Generated new blob name: "${blobName}" for file: "${originalFileName}".`);
 
         try {
             await uploadFile(fileBuffer, blobName, container);
+            logger.info(`Successfully uploaded new file "${blobName}" during update.`);
         } catch (error) {
-            console.error(`Error uploading file: ${error}`);
-            throw error;
+            logger.error(`Error uploading new file "${blobName}" during update process: ${error.message}`, {
+                originalFileName,
+                container,
+                stack: error.stack
+            });
+            throw error; 
         }
 
         return blobName;
     } catch (error) {
-        console.error(`Error uploading file: ${error}`);
+        logger.error(`General error in updateFile function: ${error.message}`, {
+            fileName: file.originalname,
+            container,
+            existingBlob,
+            stack: error.stack
+        });
         throw error;
     }
 }
 
 async function generateSASUrl(blobName, containerName) {
-
     const containerClient = blobServiceClient.getContainerClient(containerName);
     const blobClient = containerClient.getBlobClient(blobName);
 
     const permissions = BlobSASPermissions.parse("r"); 
 
     const expiresOn = new Date();
-    expiresOn.setHours(expiresOn.getHours() + 1);  
+    expiresOn.setHours(expiresOn.getHours() + 1); 
 
     const sasToken = generateBlobSASQueryParameters(
         {
@@ -110,12 +141,12 @@ async function generateSASUrl(blobName, containerName) {
     ).toString();
 
     const sasUrl = `${blobClient.url}?${sasToken}`;
-    return sasUrl; 
-
+    return sasUrl;
 }
 
 async function deleteFile(blobName, containerName) {
     try {
+        logger.debug(`Attempting to delete blob "${blobName}" from container "${containerName}".`);
         const containerClient = blobServiceClient.getContainerClient(containerName);
         const blobClient = containerClient.getBlockBlobClient(blobName);
 
@@ -124,93 +155,131 @@ async function deleteFile(blobName, containerName) {
                 permanentDelete: true,
             },
         });
-
+        logger.info(`Successfully deleted blob "${blobName}" from container "${containerName}".`, {
+            requestId: deleteBlobResponse.requestId
+        });
     } catch (error) {
-        console.error('Error permanently deleting blob from Azure Blob Storage:', error.message);
+        logger.error(`Error permanently deleting blob "${blobName}" from Azure Blob Storage: ${error.message}`, {
+            blobName,
+            containerName,
+            stack: error.stack
+        });
         throw error;
     }
 }
 
-
-
-
 const mailgun = new Mailgun(formData);
 
 const client = mailgun.client({
-  username: 'api',
-  key: process.env.MAILGUN_APIKEY,
-  url: 'https://api.eu.mailgun.net'
+    username: 'api',
+    key: process.env.MAILGUN_APIKEY,
+    url: 'https://api.eu.mailgun.net' 
 });
 
+if (!process.env.MAILGUN_APIKEY || !process.env.MAILGUN_DOMAIN) {
+    logger.warn('Mailgun API key or domain is missing. Email sending may fail.');
+}
+
 async function sendEmail(data) {
-
-  data.from = `TheSoftSkill Team <noreply@${process.env.MAILGUN_DOMAIN}>`;
-  const response = await client.messages.create(process.env.MAILGUN_DOMAIN, data);
-
+    try {
+        data.from = `TheSoftSkill Team <noreply@${process.env.MAILGUN_DOMAIN}>`;
+        logger.info(`Attempting to send email to: "${data.to}" with subject: "${data.subject}"`);
+        const response = await client.messages.create(process.env.MAILGUN_DOMAIN, data);
+        logger.info(`Email sent successfully to: "${data.to}".`, {
+            id: response.id,
+            message: response.message
+        });
+        return response; 
+    } catch (error) {
+        logger.error(`Error sending email to: "${data.to}" with subject: "${data.subject}": ${error.message}`, {
+            recipient: data.to,
+            subject: data.subject,
+            errorDetails: error.response ? error.response.data : error.message,
+            stack: error.stack
+        });
+        throw error;
+    }
 }
 
 // Firebase
 
-
 async function getGoogleAuthToken() {
+    const serviceAccountJsonString = process.env.GOOGLE_OAUTH2_KEY;
 
-  const serviceAccountJsonString = process.env.GOOGLE_OAUTH2_KEY;
+    if (!serviceAccountJsonString) {
+        logger.error('GOOGLE_OAUTH2_KEY environment variable is not set. Cannot obtain Google Auth Token.');
+        throw new Error('GOOGLE_SERVICE_ACCOUNT_JSON environment variable is not set.');
+    }
 
-  if (!serviceAccountJsonString) {
-    throw new Error('GOOGLE_SERVICE_ACCOUNT_JSON environment variable is not set.');
-  }
+    try {
+        const credentials = JSON.parse(serviceAccountJsonString);
+        const auth = new GoogleAuth({
+            credentials: credentials,
+            scopes: 'https://www.googleapis.com/auth/firebase.messaging',
+        });
 
-  const credentials = JSON.parse(serviceAccountJsonString);
-
-  const auth = new GoogleAuth({
-    credentials: credentials, 
-    scopes: 'https://www.googleapis.com/auth/firebase.messaging',
-  });
-
-  const client = await auth.getClient();
-  const accessToken = await client.getAccessToken();
-  return accessToken.token;
+        const client = await auth.getClient();
+        const accessToken = await client.getAccessToken();
+        logger.debug('Successfully obtained Google OAuth2 Access Token.');
+        return accessToken.token;
+    } catch (error) {
+        logger.error(`Error parsing Google Service Account JSON or getting auth token: ${error.message}`, {
+            stack: error.stack
+        });
+        throw error;
+    }
 }
-
 
 async function sendFCMNotification(topic, title, body, imageUrl = null) {
-  try {
+    try {
+        if (typeof topic !== 'string' || typeof title !== 'string' || typeof body !== 'string') {
+            logger.warn('Invalid input data types for FCM notification.', { topic, title, body });
+            throw new Error('Invalid input data types');
+        }
 
-    if (typeof topic !== 'string' || typeof title !== 'string' || typeof body !== 'string') {
-      throw new Error('Invalid input data types');
+        logger.info(`Attempting to send FCM notification to topic: "${topic}" with title: "${title}".`);
+        const accessToken = await getGoogleAuthToken();
+        const fcmEndpoint = process.env.AZURESTORAGE_ACCOUNTNAME + '/messages:send';
+
+        const messagePayload = {
+            message: {
+                topic: topic,
+                notification: {
+                    title: title,
+                    body: body,
+                },
+            },
+        };
+
+        if (imageUrl) {
+            messagePayload.message.notification.imageUrl = imageUrl;
+            logger.debug(`FCM notification includes image URL: ${imageUrl}`);
+        }
+
+        logger.debug('FCM message payload:', messagePayload); 
+
+        const response = await axios.post(fcmEndpoint, messagePayload, {
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${accessToken}`,
+            },
+        });
+
+        logger.info(`FCM notification sent successfully to topic: "${topic}".`, {
+            response: response.data
+        });
+        return response.data;
+    } catch (error) {
+        const errorDetails = error.response ? error.response.data.error.details : error.message;
+        logger.error(`Error sending FCM notification to topic "${topic}": ${error.message}`, {
+            topic,
+            title,
+            body,
+            fcmError: errorDetails,
+            stack: error.stack
+        });
+        throw error;
     }
-
-    const accessToken = await getGoogleAuthToken();
-    const fcmEndpoint = `https://fcm.googleapis.com/v1/projects/thesoftskills-2025/messages:send`;
-
-    const messagePayload = {
-      message: {
-        topic: topic,
-        notification: {
-          title: title,
-          body: body,
-        },
-      },
-    };
-
-    //console.log(messagePayload);
-
-    if (imageUrl) {
-      messagePayload.message.notification.imageUrl = imageUrl;
-    }
-
-    const response = await axios.post(fcmEndpoint, messagePayload, {
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${accessToken}`,
-      },
-    });
-
-    return response.data;
-  } catch (error) {
-    console.error('Error sending FCM notification:', error.response.data.error.details);
-    throw error;
-  }
 }
 
-module.exports = { isLink ,uploadFile, deleteFile, updateFile, generateSASUrl, sendEmail, sendFCMNotification };
+module.exports = { isLink, uploadFile, deleteFile, updateFile, generateSASUrl, sendEmail, sendFCMNotification };

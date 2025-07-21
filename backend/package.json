@@ -21,7 +21,8 @@
     "mailgun.js": "^12.0.2",
     "multer": "^2.0.0",
     "pg": "^8.14.1",
-    "sequelize": "^6.37.7"
+    "sequelize": "^6.37.7",
+    "winston": "^3.17.0"
   },
   "devDependencies": {
     "sequelize-auto": "^0.8.8"
