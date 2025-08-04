@@ -14,11 +14,12 @@ void main() async {
 
     await NotificationService().setupListeners();
 
-    runApp(const MyApp());
-
   } catch (e) {
     print('ERRO AO INICIALIZAR A APP: $e');
   }
+
+  runApp(const MyApp());
+
 }
 
 class MyApp extends StatelessWidget {
