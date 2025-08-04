@@ -3,9 +3,12 @@ import 'package:mobile/routes.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'backend/notifications_service.dart';
+import 'backend/shared_preferences.dart' as my_prefs;
 
 void main() async {
+
   try {
+
     WidgetsFlutterBinding.ensureInitialized();
 
     await Firebase.initializeApp(
@@ -13,6 +16,7 @@ void main() async {
     );
 
     await NotificationService().setupListeners();
+    await my_prefs.setGoogleServices();
 
   } catch (e) {
     print('ERRO AO INICIALIZAR A APP: $e');

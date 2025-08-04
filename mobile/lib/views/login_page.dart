@@ -19,6 +19,9 @@ class _LoginPageState extends State<LoginPage> {
   final NotificationService _notificationService = NotificationService();
 
   Future<void> _login() async {
+
+    bool googleServices = await my_prefs.googleServiceStatus();
+
     setState(() {
       _loadingLogin = true;
       _error = null;
@@ -57,7 +60,7 @@ class _LoginPageState extends State<LoginPage> {
         }
 
         final subscriptions = await _fetchUserSubscriptions(userId);
-        if (subscriptions != null && subscriptions.isNotEmpty) {
+        if (googleServices && subscriptions != null && subscriptions.isNotEmpty) {
           for (var topicId in subscriptions) {
             try {
               await _notificationService.subscribeToCourseTopic(topicId);

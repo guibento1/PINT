@@ -69,3 +69,17 @@ Future<String?> getUserId() async {
   }
   return null;
 }
+
+
+Future<void> setGoogleServices() async {
+  final prefs = await SharedPreferences.getInstance();
+  prefs.setString("googlePlayServices","true");
+}
+
+
+Future<bool> googleServiceStatus() async {
+
+  final prefs = await SharedPreferences.getInstance();
+  return prefs.getString("googlePlayServices") != null ;
+
+}
