@@ -67,8 +67,8 @@ final rotas = GoRouter(
                   ),
                 ],
               ),
-              bottomNavigationBar: !hideTopBar ? NavigationBarClass() : null,
             ),
+            bottomNavigationBar: SafeArea(child: (!hideTopBar ? NavigationBarClass() : null)),
           ),
         );
       },
