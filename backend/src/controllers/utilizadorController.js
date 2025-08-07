@@ -389,7 +389,7 @@ controllers.list = async (req, res) => {
             stack: error.stack,
             method: 'controllers.list'
         });
-        return res.status(500).json({ error: 'Erro ao atualizar dados do utilizador' });
+        return res.status(500).json({ error: 'Erro ao listar utilizadores' });
     }
 };
 
