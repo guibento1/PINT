@@ -2,46 +2,45 @@ const Sequelize = require('sequelize');
 var initModels = require("../models/init-models.js");
 var db = require("../database.js");
 var models = initModels(db);
-const {  updateFile, deleteFile, generateSASUrl, isLink } = require('../utils.js');
+const {
+    updateFile,
+    deleteFile,
+    generateSASUrl,
+    isLink
+} = require('../utils.js');
+const logger = require('../logger.js');
+
 
 const controllers = {};
 
-
 async function findTopicos(id) {
-
-    let data = await models.cursotopico.findAll({ 
-        where: { curso: id },
+    let data = await models.cursotopico.findAll({
+        where: {
+            curso: id
+        },
         include: [{
             model: models.topico,
-            as: 'topico_topico', 
+            as: 'topico_topico',
             attributes: ['idtopico', 'designacao'],
         }],
     });
-
-    if(data){
+    if (data) {
         data = data.map(t => ({
-            idtopico: t.topico_topico.idtopico, 
+            idtopico: t.topico_topico.idtopico,
             designacao: t.topico_topico.designacao
-        })) 
-        return data
+        }));
+        return data;
     }
-
     return [];
-
 }
 
-
-
 async function updateTopicos(id, topicos) {
-
     try {
         let cursoTopicosInserts = [];
         let existingTopicos = await findTopicos(id);
         existingTopicos = existingTopicos.map(eTopico => eTopico.idtopico);
-
         const topicosToDelete = existingTopicos.filter(topico => !topicos.includes(topico));
         const topicosToInsert = topicos.filter(topico => !existingTopicos.includes(topico));
-
         if (topicosToDelete.length > 0) {
             await models.cursotopico.destroy({
                 where: {
@@ -51,131 +50,100 @@ async function updateTopicos(id, topicos) {
                 }
             });
         }
-
         for (const topico of topicosToInsert) {
-            cursoTopicosInserts.push({ topico: topico, curso: id });
+            cursoTopicosInserts.push({
+                topico: topico,
+                curso: id
+            });
         }
-
         if (cursoTopicosInserts.length > 0) {
             await models.cursotopico.bulkCreate(cursoTopicosInserts);
         }
-
     } catch (error) {
         console.error('Error in updateTopicos:', error);
+        throw error;
     }
 }
 
 async function addTipo(cursosIn) {
-
-    if(! (typeof cursosIn[Symbol.iterator] === 'function' )) cursosIn = [cursosIn];
-
+    if (!(typeof cursosIn[Symbol.iterator] === 'function')) cursosIn = [cursosIn];
     const cursosOut = await Promise.all(
-
         cursosIn.map(async (curso) => {
             const data = await models.cursosincrono.findOne({
-                where: { curso: curso.idcurso },
+                where: {
+                    curso: curso.idcurso
+                },
             });
             curso.dataValues.sincrono = !!data;
             return curso;
         })
-
     );
-
     return cursosOut;
 }
 
-
-async function addInscrito(cursosIn,idFormando) {
-
-    if(! (typeof cursosIn[Symbol.iterator] === 'function' )) cursosIn = [cursosIn];
-
+async function addInscrito(cursosIn, idFormando) {
+    if (!(typeof cursosIn[Symbol.iterator] === 'function')) cursosIn = [cursosIn];
     const cursosOut = await Promise.all(
-
         cursosIn.map(async (curso) => {
             const data = await models.inscricao.findOne({
-                where: { curso: curso.idcurso, formando: idFormando },
+                where: {
+                    curso: curso.idcurso,
+                    formando: idFormando
+                },
             });
-
             curso.dataValues.inscrito = !!data;
             return curso;
         })
-
     );
-
     return cursosOut;
 }
 
-
-async function filterCursoResults(roles,cursos) {
-
+async function filterCursoResults(roles, cursos) {
     let data;
-
     const admin = roles.find((roleEntry) => roleEntry.role === "admin")?.id || 0;
     const formando = roles.find((roleEntry) => roleEntry.role === "formando")?.id || 0;
     const formador = roles.find((roleEntry) => roleEntry.role === "formador")?.id || 0;
-
     let cursosfiltrados = null;
-
-
-    if (!admin){
-
-        let cursosLecionados=[];
-        let cursosInscritos=[];
-
+    if (!admin) {
+        let cursosLecionados = [];
+        let cursosInscritos = [];
         if (formador) {
-
             data = await models.cursosincrono.findAll({
-                where: { formador: formador },
+                where: {
+                    formador: formador
+                },
                 attributes: ["curso"]
             });
-
             data.length > 0 ? (data = data.map((c) => c.curso)) : (data = []);
-
             cursosLecionados = data;
-
         }
-
-        if (formando){
-
+        if (formando) {
             data = await models.inscricao.findAll({
-                where: { formando: formando },
+                where: {
+                    formando: formando
+                },
                 attributes: ["curso"]
             });
-
             data.length > 0 ? (data = data.map((c) => c.curso)) : (data = []);
-
             cursosInscritos = data;
-
         }
-
-
-        cursosfiltrados = cursos.filter((curso) => ( 
-            curso.disponivel || 
-            cursosInscritos.includes(curso.idcurso) || 
+        cursosfiltrados = cursos.filter((curso) => (
+            curso.disponivel ||
+            cursosInscritos.includes(curso.idcurso) ||
             cursosLecionados.includes(curso.idcurso)
         ));
-
-
     }
-
-    if ( cursosfiltrados != null ){
-
-        cursosfiltrados = await Promise.all( 
-
+    if (cursosfiltrados != null) {
+        cursosfiltrados = await Promise.all(
             cursosfiltrados.map(async (curso) => {
-
-                if(curso.thumbnail && !isLink(curso.thumbnail)){
+                if (curso.thumbnail && !isLink(curso.thumbnail)) {
                     curso.dataValues.thumbnail = await generateSASUrl(curso.thumbnail, 'thumbnailscursos');
                 }
                 return curso;
             })
-
         );
-
         return cursosfiltrados;
     }
-
-
     cursos = await Promise.all(
         cursos.map(async (curso) => {
             if (curso.thumbnail) {
@@ -184,352 +152,269 @@ async function filterCursoResults(roles,cursos) {
             return curso;
         })
     );
-
-
     return cursos;
-
 }
-
 
 async function filterCursos(cursos, topicosIn = [], areasIn = [], categoriasIn = []) {
-
-  const checkIfcursoInTopicos = async (curso, topicos) => {
-    if (!topicos.length) return false;
-
-    const nEntries = await models.cursotopico.count({
-      where: {
-        curso: curso.idcurso,
-        topico: { [Sequelize.Op.in]: topicos }
-      }
-    });
-
-    return nEntries > 0;
-  };
-
-  const checkIfcursoInAreas = async (curso, areas) => {
-    if (!areas.length) return false;
-
-    const data = await models.topicoarea.findAll({
-      where: {
-        area: { [Sequelize.Op.in]: areas }
-      }
-    });
-
-    if (!data || !data.length) return false;
-
-    const topicos = data.map((entry) => entry.topico);
-    return checkIfcursoInTopicos(curso, topicos);
-  };
-
-  const checkIfcursoInCategorias = async (curso, categorias) => {
-    if (!categorias.length) return false;
-
-    const data = await models.area.findAll({
-      where: {
-        categoria: { [Sequelize.Op.in]: categorias }
-      },
-      attributes: ['idarea']
-    });
-
-    if (!data || !data.length) return false;
-
-    const areas = data.map((entry) => entry.idarea);
-    return checkIfcursoInAreas(curso, areas);
-  };
-
-  const matchedCursos = await Promise.all(
-      cursos.map(async (curso) => {
-        const match =
-          (await checkIfcursoInTopicos(curso, topicosIn)) ||
-          (await checkIfcursoInAreas(curso, areasIn)) ||
-          (await checkIfcursoInCategorias(curso, categoriasIn));
-
-        return match ? curso : null;
-      })
+    const checkIfcursoInTopicos = async (curso, topicos) => {
+        if (!topicos.length) return false;
+        const nEntries = await models.cursotopico.count({
+            where: {
+                curso: curso.idcurso,
+                topico: {
+                    [Sequelize.Op.in]: topicos
+                }
+            }
+        });
+        return nEntries > 0;
+    };
+    const checkIfcursoInAreas = async (curso, areas) => {
+        if (!areas.length) return false;
+        const data = await models.topicoarea.findAll({
+            where: {
+                area: {
+                    [Sequelize.Op.in]: areas
+                }
+            }
+        });
+        if (!data || !data.length) return false;
+        const topicos = data.map((entry) => entry.topico);
+        return checkIfcursoInTopicos(curso, topicos);
+    };
+    const checkIfcursoInCategorias = async (curso, categorias) => {
+        if (!categorias.length) return false;
+        const data = await models.area.findAll({
+            where: {
+                categoria: {
+                    [Sequelize.Op.in]: categorias
+                }
+            },
+            attributes: ['idarea']
+        });
+        if (!data || !data.length) return false;
+        const areas = data.map((entry) => entry.idarea);
+        return checkIfcursoInAreas(curso, areas);
+    };
+    const matchedCursos = await Promise.all(
+        cursos.map(async (curso) => {
+            const match =
+                (await checkIfcursoInTopicos(curso, topicosIn)) ||
+                (await checkIfcursoInAreas(curso, areasIn)) ||
+                (await checkIfcursoInCategorias(curso, categoriasIn));
+            return match ? curso : null;
+        })
     );
-
-  return matchedCursos.filter(Boolean);
+    return matchedCursos.filter(Boolean);
 }
 
-
 async function getCursosByTopicos(topicos) {
-
-
-    let idcursos = [];
-
     try {
-
-        data = await models.cursotopico.findAll({
-
+        const data = await models.cursotopico.findAll({
             where: {
                 topico: {
                     [Sequelize.Op.in]: topicos
                 }
             },
             attributes: ["curso"]
-
         });
-
-        cursos = ( data && data.length > 0) ? data.map((entry) => parseInt(entry.curso)) : [];
-
+        const cursos = (data && data.length > 0) ? data.map((entry) => parseInt(entry.curso)) : [];
         return cursos;
-        
     } catch (error) {
         console.log(error);
-        return null;
+        throw error;
     }
-
 }
 
-
 async function getCursosByAreas(areas) {
-    
-    let topicos = [];
-
     try {
-
-        data = await models.topicoarea.findAll({
-
+        const data = await models.topicoarea.findAll({
             where: {
                 area: {
                     [Sequelize.Op.in]: areas
                 }
             },
             attributes: ["topico"]
-
         });
-
-
-        if (data && data.length > 0){
-
-            topicos = data.map((entry) => entry.topico);
-            cursos = await getCursosByTopicos(topicos)
+        if (data && data.length > 0) {
+            const topicos = data.map((entry) => entry.topico);
+            const cursos = await getCursosByTopicos(topicos);
             return cursos;
         }
-
         return [];
-
     } catch (error) {
         console.log(error);
-        return [];
+        throw error;
     }
-
 }
 
-
 async function getCursosByCategorias(categorias) {
-    
-    let areas = [];
-
-
     try {
-
-        data = await models.area.findAll({
-
+        const data = await models.area.findAll({
             where: {
                 categoria: {
                     [Sequelize.Op.in]: categorias
                 }
             },
             attributes: ["idarea"]
-
         });
-
-
-        if (data.length > 0){
-
-            areas = data.map((entry) => entry.idarea);
-            cursos = await getCursosByAreas(areas)
+        if (data.length > 0) {
+            const areas = data.map((entry) => entry.idarea);
+            const cursos = await getCursosByAreas(areas);
             return cursos;
         }
-
         return [];
-
     } catch (error) {
         console.log(error);
-        return [];
+        throw error;
     }
-
 }
 
-
-async function addLicao(idcurso,licao) {
-
+async function addLicao(idcurso, licao) {
     const createdRow = await models.licao.create(licao, {
         returning: true,
     });
-
     return createdRow;
-
 }
 
-
 async function rmLicao(idlicao) {
-
-    let data = await models.licaomaterial.findAll({ 
-        where: { licao: idlicao }
-        ,include: [{
+    const data = await models.licaomaterial.findAll({
+        where: {
+            licao: idlicao
+        },
+        include: [{
             model: models.material,
-            as: 'material_material', 
+            as: 'material_material',
             attributes: ['idmaterial', 'referencia'],
         }],
     });
-
-    let materiais = data.map((entry) => entry.material) || [];
-    let referencias = data.map((entry) => entry.material_material.referencia) || [];
-
-    for (const referencia in referencias) {
-        if (!isLink(referencia)) {
-
+    const materiais = data.map((entry) => entry.material) || [];
+    const referencias = data.map((entry) => entry.material_material.referencia) || [];
+    for (const referencia of referencias) {
+        if (referencia && !isLink(referencia)) {
             try {
-                await deleteFile(referencia,"ficheiroslicao");
+                await deleteFile(referencia, "ficheiroslicao");
             } catch (error) {
-                console.log("Could not delete the file, prop does not exist");
+                logger.warn(`Não foi possível apagar o ficheiro da lição. Referência: ${referencia}. Detalhes: ${error.message}`);
             }
         }
     }
-
-
-    await models.licaomaterial.destroy({ where: { licao: idlicao } });
-    await models.material.destroy({ 
-        where: { 
-            idmaterial : { [Sequelize.Op.in]: materiais }
-        } 
+    await models.licaomaterial.destroy({
+        where: {
+            licao: idlicao
+        }
     });
-
-    await models.licao.destroy({ 
-        where: { 
-            idlicao : idlicao 
-        } 
+    await models.material.destroy({
+        where: {
+            idmaterial: {
+                [Sequelize.Op.in]: materiais
+            }
+        }
     });
-
+    await models.licao.destroy({
+        where: {
+            idlicao: idlicao
+        }
+    });
 }
 
-async function addLicaoContent(idlicao,ficheiro,material) {
-
-    if ( material.referencia !== undefined && ficheiro ){
-        throw new error("Ambigous call, link and file provided");
+async function addLicaoContent(idlicao, ficheiro, material) {
+    if (material.referencia && ficheiro) {
+        throw new Error("Ambigous call, link and file provided");
     }
-
-    if (!material.referencia){
+    if (!material.referencia) {
         material.referencia = await updateFile(ficheiro, "ficheiroslicao");
     }
-
-
     const createdMaterial = await models.material.create(material, {
         returning: true,
     });
-
-    await models.licaomaterial.create({material : createdMaterial.idmaterial, licao : idlicao});
-
-    if ( !isLink(createdMaterial.referencia) ){
+    await models.licaomaterial.create({
+        material: createdMaterial.idmaterial,
+        licao: idlicao
+    });
+    if (!isLink(createdMaterial.referencia)) {
         createdMaterial.dataValues.referencia = await generateSASUrl(createdMaterial.referencia, 'ficheiroslicao');
     }
-
     return createdMaterial;
-
 }
 
-
-async function createCurso(thumbnail,info) {
-
-
-    const { nome, disponivel, iniciodeinscricoes, fimdeinscricoes, planocurricular, topicos } = info;
-
+async function createCurso(thumbnail, info) {
+    const {
+        nome,
+        disponivel,
+        iniciodeinscricoes,
+        fimdeinscricoes,
+        planocurricular,
+        topicos
+    } = info;
     const insertData = {
         nome,
         disponivel,
         iniciodeinscricoes
     };
-
     if (fimdeinscricoes !== undefined) insertData.fimdeinscricoes = fimdeinscricoes;
     if (planocurricular !== undefined) insertData.planocurricular = planocurricular;
-
-
-    if(thumbnail){
+    if (thumbnail) {
         insertData.thumbnail = await updateFile(thumbnail, "thumbnailscursos", null, [".jpg", ".png"]);
     }
-
-
     const createdRow = await models.curso.create(insertData, {
         returning: true,
     });
-
-
-    if (topicos == undefined || topicos==null || topicos.length==0) {
-        return res.status(400).json({ message: 'At least one topic must be provided' });
-    } 
-
-    await updateTopicos(createdRow.idcurso,topicos);
-
-    if(createdRow.thumbnail){
+    if (topicos == undefined || topicos == null || topicos.length == 0) {
+        throw new Error('At least one topic must be provided');
+    }
+    await updateTopicos(createdRow.idcurso, topicos);
+    if (createdRow.thumbnail) {
         createdRow.dataValues.thumbnail = await generateSASUrl(createdRow.thumbnail, 'thumbnailscursos');
     }
-
     createdRow.dataValues.topicos = await findTopicos(createdRow.idcurso);
     return createdRow;
-
 }
-
 
 async function updateCurso(id, thumbnail, info) {
-
-  const { nome, disponivel, iniciodeinscricoes, fimdeinscricoes, planocurricular, topicos } = info;
-
-  const existingCurso = await models.curso.findByPk(id);
-  if (!existingCurso) {
-    throw new Error(`Curso with id ${id} not found`);
-  }
-
-  const updateData = {};
-
-  if (nome !== undefined) updateData.nome = nome;
-  if (disponivel !== undefined) updateData.disponivel = disponivel;
-  if (iniciodeinscricoes !== undefined) updateData.iniciodeinscricoes = iniciodeinscricoes;
-  if (fimdeinscricoes !== undefined) updateData.fimdeinscricoes = fimdeinscricoes;
-  if (planocurricular !== undefined) updateData.planocurricular = planocurricular;
-
-  if (thumbnail) {
-    updateData.thumbnail = await updateFile(thumbnail, "thumbnailscursos", existingCurso.thumbnail, [".jpg", ".png"]);
-  }
-
-  await existingCurso.update(updateData);
-
-  if(topicos){
-
-      if (topicos.length === 0) {
-        throw new Error('At least one topic must be provided');
-      }
-
-      await updateTopicos(existingCurso.idcurso, topicos);
-  }
-
-
-  if (existingCurso.thumbnail) {
-    existingCurso.dataValues.thumbnail = await generateSASUrl(existingCurso.thumbnail, 'thumbnailscursos');
-  }
-
-  existingCurso.dataValues.topicos = await findTopicos(existingCurso.idcurso);
-
-  return existingCurso;
-
+    const {
+        nome,
+        disponivel,
+        iniciodeinscricoes,
+        fimdeinscricoes,
+        planocurricular,
+        topicos
+    } = info;
+    const existingCurso = await models.curso.findByPk(id);
+    if (!existingCurso) {
+        throw new Error(`Curso with id ${id} not found`);
+    }
+    const updateData = {};
+    if (nome !== undefined) updateData.nome = nome;
+    if (disponivel !== undefined) updateData.disponivel = disponivel;
+    if (iniciodeinscricoes !== undefined) updateData.iniciodeinscricoes = iniciodeinscricoes;
+    if (fimdeinscricoes !== undefined) updateData.fimdeinscricoes = fimdeinscricoes;
+    if (planocurricular !== undefined) updateData.planocurricular = planocurricular;
+    if (thumbnail) {
+        updateData.thumbnail = await updateFile(thumbnail, "thumbnailscursos", existingCurso.thumbnail, [".jpg", ".png"]);
+    }
+    await existingCurso.update(updateData);
+    if (topicos) {
+        if (topicos.length === 0) {
+            throw new Error('At least one topic must be provided');
+        }
+        await updateTopicos(existingCurso.idcurso, topicos);
+    }
+    if (existingCurso.thumbnail) {
+        existingCurso.dataValues.thumbnail = await generateSASUrl(existingCurso.thumbnail, 'thumbnailscursos');
+    }
+    existingCurso.dataValues.topicos = await findTopicos(existingCurso.idcurso);
+    return existingCurso;
 }
 
-
-
-
 controllers.list = async (req, res) => {
-
+    logger.debug(`Recebida requisição para listar cursos. Query: ${JSON.stringify(req.query)}`);
     let topicos = [];
     let areas = [];
     let categorias = [];
     let filter = [];
-
     const filterFlag = req.query.area || req.query.categoria || req.query.topico;
     const formando = req.user.roles.find((roleEntry) => roleEntry.role === "formando")?.id || 0;
-
     const queryOptions = {
-
         attributes: [
             "idcurso",
             "nome",
@@ -538,32 +423,25 @@ controllers.list = async (req, res) => {
             "fimdeinscricoes",
             "maxinscricoes",
             "thumbnail"
-        ]
-
+        ],
     };
-
     try {
-
         if (req.query.area) {
             areas = Array.isArray(req.query.area) ? req.query.area : [req.query.area];
             areas = [...new Set(areas)];
             filter.push(...await getCursosByAreas(areas));
         }
-
         if (req.query.categoria) {
             categorias = Array.isArray(req.query.categoria) ? req.query.categoria : [req.query.categoria];
             categorias = [...new Set(categorias)];
             filter.push(...await getCursosByCategorias(categorias));
         }
-
         if (req.query.topico) {
             topicos = Array.isArray(req.query.topico) ? req.query.topico : [req.query.topico];
             topicos = [...new Set(topicos)];
             filter.push(...await getCursosByTopicos(topicos));
         }
-
         filter = [...new Set(filter)];
-
         if (filterFlag) {
             queryOptions.where = {
                 idcurso: {
@@ -571,146 +449,125 @@ controllers.list = async (req, res) => {
                 }
             };
         }
-
         if (req.query.search) {
-
-            if (!queryOptions.where)  queryOptions.where = {};
-        
+            if (!queryOptions.where) queryOptions.where = {};
             queryOptions.where.nome = {
                 [Sequelize.Op.iLike]: `%${req.query.search}%`
             };
         }
-
-
-        const data = await models.curso.findAll(queryOptions);
+        let data = await models.curso.findAll(queryOptions);
+        if (!data || data.length === 0) {
+            logger.info(`Nenhum curso encontrado com os critérios de pesquisa.`);
+            return res.status(200).json([]);
+        }
         let cursos = await filterCursoResults(req.user.roles, data);
-        cursos = await addTipo(cursos); 
-
+        cursos = await addTipo(cursos);
         if (req.query.sincrono) {
             cursos = cursos.filter((curso) => curso.dataValues.sincrono == (req.query.sincrono == "true"));
         }
-
-        if(formando) cursos = await addInscrito(cursos,formando);
-
+        if (formando) cursos = await addInscrito(cursos, formando);
+        logger.info(`Lista de cursos retornada com sucesso. Total: ${cursos.length}`);
         return res.status(200).json(cursos);
-
     } catch (error) {
-        console.log(error);
-        return res.status(400).json({ error: "Something bad happened" });
+        logger.error(`Erro interno do servidor ao listar cursos. Detalhes: ${error.message}`, {
+            stack: error.stack
+        });
+        return res.status(500).json({
+            error: "Ocorreu um erro interno ao listar os cursos."
+        });
     }
 };
 
-
 controllers.rmCurso = async (req, res) => {
-
-    const id  = req.params.id;
-
+    const {
+        id
+    } = req.params;
+    logger.debug(`Recebida requisição para remover curso com ID: ${id}`);
     try {
-
-        let data = await models.curso.findByPk(id,{
-            attributes: [
-                "idcurso",
-                "nome",
-                "disponivel",
-                "iniciodeinscricoes",
-                "fimdeinscricoes",
-                "planocurricular",
-                "maxinscricoes",
-                "thumbnail"
-            ]
+        const curso = await models.curso.findByPk(id);
+        if (!curso) {
+            logger.warn(`Tentativa de remover curso com ID ${id} que não foi encontrado.`);
+            return res.status(404).json({
+                error: 'Curso não encontrado.'
+            });
+        }
+        const isSincrono = await models.cursosincrono.findOne({
+            where: {
+                curso: id
+            }
         });
-
-        const curso = await addTipo(data);
-
-
-        if(curso.sincrono){
-
-            //TODO
-
+        if (isSincrono) {
+            // TODO: Adicionar lógica para remover curso síncrono.
+            logger.info(`Curso síncrono com ID ${id} encontrado. A remoção precisa de mais lógica.`);
+            return res.status(501).json({
+                error: "Remoção de cursos síncronos ainda não implementada."
+            });
         } else {
-
-
-            let data = await models.licao.findAll({
-
+            const licoes = await models.licao.findAll({
                 where: {
-                    curso : id ,
+                    curso: id,
                 },
-
                 attributes: [
                     "idlicao"
                 ]
-
             });
-
             await Promise.all(
-
-                data.map(async (entry) => {
+                licoes.map(async (entry) => {
                     await rmLicao(entry.idlicao);
                 })
-
             );
-
-
-            await models.curso.destroy({
+            await models.cursotopico.destroy({
                 where: {
-                    idcurso : id
+                    curso: id
                 }
             });
-
+            await models.curso.destroy({
+                where: {
+                    idcurso: id
+                }
+            });
         }
-
-
-        return res.status(200).json({message:"Curso sucessfully deleted"});
-
-            
+        logger.info(`Curso com ID ${id} removido com sucesso.`);
+        return res.status(200).json({
+            message: "Curso removido com sucesso."
+        });
     } catch (error) {
-
-        console.log(error);
-        return res.status(500).json({message:"Something went wrong"});
-        
+        logger.error(`Erro interno do servidor ao remover curso. Detalhes: ${error.message}`, {
+            stack: error.stack
+        });
+        return res.status(500).json({
+            error: "Ocorreu um erro interno ao remover o curso."
+        });
     }
-
-
-
-}
-
+};
 
 controllers.getCurso = async (req, res) => {
-
-    const id  = req.params.id;
+    const {
+        id
+    } = req.params;
+    logger.debug(`Recebida requisição para buscar detalhes do curso com ID: ${id}`);
     let acessible = false;
-    
     const admin = req.user.roles.find((roleEntry) => roleEntry.role === "admin")?.id || 0;
     const formando = req.user.roles.find((roleEntry) => roleEntry.role === "formando")?.id || 0;
-
-    if(formando){
-
-        let data = await models.inscricao.findOne({
+    if (formando) {
+        const inscricao = await models.inscricao.findOne({
             where: {
-                curso : id ,
-                formando : formando
+                curso: id,
+                formando: formando
             },
         });
-
-        if(data){
+        if (inscricao) {
             acessible = true;
         }
-
     }
-
-    if(admin){
+    if (admin) {
         acessible = true;
     }
-
     try {
-
-
-        let data = await models.curso.findOne({
-
+        let curso = await models.curso.findOne({
             where: {
-                idcurso : id ,
+                idcurso: id,
             },
-
             attributes: [
                 "idcurso",
                 "nome",
@@ -721,563 +578,550 @@ controllers.getCurso = async (req, res) => {
                 "maxinscricoes",
                 "thumbnail"
             ]
-
         });
-
-
-        let curso = data; 
-        if( !data || ( !data.disponivel && !acessible ) ) return res.status(404).json({"message":"curso non existent or not acessible"});
-
-
+        if (!curso || (!curso.disponivel && !acessible)) {
+            logger.warn(`Curso com ID ${id} não encontrado ou não acessível.`);
+            return res.status(404).json({
+                error: "Curso não existente ou não acessível."
+            });
+        }
         curso.dataValues.topicos = await findTopicos(id);
         curso = (await addTipo(curso))[0];
-
-
         if (curso.thumbnail) {
             curso.dataValues.thumbnail = await generateSASUrl(curso.thumbnail, 'thumbnailscursos');
         }
-
-        if(curso.dataValues.sincrono){
-
-
-            if(acessible) {
-
-
-                data = await models.cursosincrono.findOne({
-                   where: {
-                       curso : id
-                   },
-
-                   attributes: [
-                        "idcursosincrono"
-                   ]
+        if (acessible) {
+            if (curso.dataValues.sincrono) {
+                const cursoSincrono = await models.cursosincrono.findOne({
+                    where: {
+                        curso: id
+                    },
+                    attributes: ["idcursosincrono"]
                 });
-
-                curso.dataValues.idcrono = data.idcursosincrono; 
-
-
-            //TODO
-            
-            }
-
-        } else {
-
-            if(acessible) {
-
-
-                data = await models.cursoassincrono.findOne({
-                   where: {
-                       curso : id
-                   },
-
-                   attributes: [
-                        "idcursoassincrono"
-                   ]
+                if (cursoSincrono) {
+                    curso.dataValues.idcrono = cursoSincrono.idcursosincrono;
+                }
+            } else {
+                const cursoAssincrono = await models.cursoassincrono.findOne({
+                    where: {
+                        curso: id
+                    },
+                    attributes: ["idcursoassincrono"]
                 });
-
-                curso.dataValues.idcrono = data.idcursoassincrono; 
-
-                data = await models.licao.findAll({
-                   where: {
-                       curso : id
-                   },
-
-                   attributes: [
-                    "idlicao",
-                    "titulo",
-                    "descricao"
-                   ]
+                if (cursoAssincrono) {
+                    curso.dataValues.idcrono = cursoAssincrono.idcursoassincrono;
+                }
+                const licoes = await models.licao.findAll({
+                    where: {
+                        curso: id
+                    },
+                    attributes: [
+                        "idlicao",
+                        "titulo",
+                        "descricao"
+                    ]
                 });
-
-                let licoes;
-
-                data && data.length > 0 ? licoes = data : licoes = [];
-
-                licoes = await Promise.all(
-
-                    licoes.map(async (licao) => {
-
-
-                        data = await models.licaomaterial.findAll({
-                            where: {
-                               licao: licao.idlicao,
-                            },
-
-                            attributes: [],
-
-                            include: [{
-                                model: models.material,
-                                as: 'material_material', 
-                                attributes: ['idmaterial', 'titulo', 'referencia', 'tipo'],
-                            }],
-                        });
-
-                        if (data) {
-                          data = await Promise.all(data.map(async (entry) => {
-                            let out = entry.material_material;
-                            if (!isLink(out.referencia)) {
-                              out.dataValues.referencia = await generateSASUrl(out.referencia, 'ficheiroslicao');
+                if (licoes.length > 0) {
+                    curso.dataValues.licoes = await Promise.all(
+                        licoes.map(async (licao) => {
+                            let materiais = await models.licaomaterial.findAll({
+                                where: {
+                                    licao: licao.idlicao,
+                                },
+                                attributes: [],
+                                include: [{
+                                    model: models.material,
+                                    as: 'material_material',
+                                    attributes: ['idmaterial', 'titulo', 'referencia', 'tipo'],
+                                }],
+                            });
+                            if (materiais) {
+                                materiais = await Promise.all(materiais.map(async (entry) => {
+                                    let out = entry.material_material;
+                                    if (!isLink(out.referencia)) {
+                                        out.dataValues.referencia = await generateSASUrl(out.referencia, 'ficheiroslicao');
+                                    }
+                                    return out;
+                                }));
                             }
-
-                            return out;
-                          }));
-                        }
-
-                        licao.dataValues.materiais = data;
-                        return licao;
-                    })
-                );
-
-
-                curso.dataValues.licoes = licoes; 
-
+                            licao.dataValues.materiais = materiais;
+                            return licao;
+                        })
+                    );
+                } else {
+                    curso.dataValues.licoes = [];
+                }
             }
-
-
         }
-
-        curso = await addTipo(curso);
-        if(formando) curso = await addInscrito(curso,formando);
-
+        curso = (await addTipo(curso))[0];
+        if (formando) curso = (await addInscrito(curso, formando))[0];
+        logger.info(`Detalhes do curso com ID ${id} retornados com sucesso.`);
         return res.status(200).json(curso);
-        
     } catch (error) {
-        console.log(error);
-        return res.status(400).json({ error: "Something bad happened" });
-        
+        logger.error(`Erro interno do servidor ao buscar curso. Detalhes: ${error.message}`, {
+            stack: error.stack
+        });
+        return res.status(500).json({
+            error: "Ocorreu um erro interno ao buscar os detalhes do curso."
+        });
     }
-
-
-}
-
+};
 
 controllers.getCursoInscritos = async (req, res) => {
-
-    const idUtilizador = req.params.idutilizador;
+    const {
+        idutilizador
+    } = req.params;
+    logger.debug(`Recebida requisição para listar cursos inscritos do utilizador ${idutilizador}. Query: ${JSON.stringify(req.query)}`);
+    if (req.user.idutilizador != idutilizador && !(req.user.roles && req.user.roles.map((roleEntry) => roleEntry.role).includes("admin"))) {
+        logger.warn(`Tentativa de acesso não autorizado aos cursos inscritos do utilizador ${idutilizador} pelo utilizador ${req.user.idutilizador}`);
+        return res.status(403).json({
+            error: 'Proibido: permissões insuficientes.'
+        });
+    }
     let topicos = [];
     let areas = [];
     let categorias = [];
     let filter = false;
-
     let cursos;
-    let data;
-
-
-    if( 
-        req.user.idutilizador == idUtilizador || 
-        ( req.user.roles && req.user.roles.map((roleEntry) => roleEntry.role).includes("admin") ) 
-    ){
-
-        const queryOptions = 
-
-            {
-
-                attributes: [
-                    "idcurso",
-                    "nome",
-                    "disponivel",
-                    "iniciodeinscricoes",
-                    "fimdeinscricoes",
-                    "planocurricular",
-                    "maxinscricoes",
-                    "thumbnail"
-                ],
-
-                where: {}
-            }
-
-        if(req.query.search){
-            queryOptions.where.nome = {
-                [Sequelize.Op.iLike]: `%${req.query.search}%`
-            };
-        }
-
-        try {
-            
-
-
-            data = await models.formando.findOne({ where: { utilizador : idUtilizador } });
-            if (!data){
-
-                return res.status(404).json({message:"User does not have formando role, no formando has found with the provided userId"})
-
-            }
-
-            const idFormando = data.idformando;
-
-            data = await models.inscricao.findAll({ where: { formando : idFormando } });
-            
-            if( data.length == 0){
-                return res.status(200).json({message:"no courses were found"});
-            }
-
-            const cursosIndexes = data.map( (inscricao) => inscricao.curso );
-
-            queryOptions.where.idcurso = {
-                [Sequelize.Op.in]: cursosIndexes
-            };
-
-            console.log(queryOptions);
-
-            cursos = await models.curso.findAll(queryOptions);
-
-            cursos = await Promise.all(
-                cursos.map(async (curso) => {
-                    if (curso.thumbnail) {
-                        curso.dataValues.thumbnail = await generateSASUrl(curso.thumbnail, 'thumbnailscursos');
-                    }
-                    return curso;
-                })
-            );
-
-
-            if (req.query.area) {
-                areas = Array.isArray(req.query.area) ? req.query.area : [req.query.area];
-                areas = [...new Set(areas)];
-                filter = true;
-            }
-
-            if (req.query.categoria) {
-                categorias = Array.isArray(req.query.categoria) ? req.query.categoria : [req.query.categoria];
-                categorias = [...new Set(categorias)];
-                filter = true;
-            }
-
-            if (req.query.topico) {
-                topicos = Array.isArray(req.query.topico) ? req.query.topico : [req.query.topico];
-                topicos = [...new Set(topicos)];
-                filter = true;
-            }
-
-            if(filter){
-                cursos = await filterCursos(cursos,topicos,areas,categorias);
-            }
-
-            return res.status(200).json(await addTipo(cursos));
-
-
-        } catch (error) {
-            return res.status(500).json({message: "Something wrong happened"});
-        }
-
+    const queryOptions = {
+        attributes: [
+            "idcurso",
+            "nome",
+            "disponivel",
+            "iniciodeinscricoes",
+            "fimdeinscricoes",
+            "planocurricular",
+            "maxinscricoes",
+            "thumbnail"
+        ],
+        where: {}
+    };
+    if (req.query.search) {
+        queryOptions.where.nome = {
+            [Sequelize.Op.iLike]: `%${req.query.search}%`
+        };
     }
-
-
-    return res.status(403).json({ message: 'Forbidden: insufficient permissions' });
-
-
-};
-
-
-controllers.getInscricoes = async (req, res) => {
-
-    const id  = req.params.id;
-    let data;
-
     try {
-
-        data = await models.inscricao.findAll({ 
-            where: { curso : id } ,
-            include: [{
-                model: models.formando,
-                as: 'formando_formando', 
-                attributes: ['utilizador'],
-            }],
-
-        });
-
-        const utilizadoresindexes = data.map((entry) => entry.formando_formando.utilizador);
-
-
-        let utilizadores = await models.utilizadores.findAll({
-
-            attributes: ["idutilizador","email","nome"],
-            where: {
-                idutilizador: {
-                    [Sequelize.Op.in]: utilizadoresindexes
-                },
-                ativo : true
-            }
-        });
-
-        utilizadores = utilizadores.map((utilizador) => {
-            utilizador.dataValues.idformando = data.find((entry) => entry.formando_formando.utilizador == utilizador.idutilizador).formando; 
-
-            return utilizador;
-        }) 
-
-        return res.status(200).json(utilizadores);
-            
-    } catch (error) {
-
-        return res.status(400).json({message:"Something Bad Happended"});
-    }
-
-};
-
-
-controllers.inscreverCurso = async (req, res) => {
-    const { utilizador: utilizadorIdDoBody } = req.body || {};
-    const cursoId = req.params.id;
-
-    let formandoId; 
-    let cursoEncontrado;
-
-    try {
-        if (utilizadorIdDoBody &&
-            !req.user.roles?.map(roleEntry => roleEntry.role).includes("admin") && 
-            req.user.idutilizador != utilizadorIdDoBody) 
-        {
-            return res.status(403).json({ message: 'Acesso Proibido: Permissões insuficientes para inscrever outro utilizador.' });
-        }
-
-        const idDoUtilizadorParaInscricao = utilizadorIdDoBody || req.user.idutilizador;
-
         const formandoData = await models.formando.findOne({
-            where: { utilizador: idDoUtilizadorParaInscricao }
+            where: {
+                utilizador: idutilizador
+            }
         });
-
         if (!formandoData) {
+            logger.warn(`Utilizador ${idutilizador} não é um formando.`);
             return res.status(404).json({
-                message: "Utilizador não é um formando ou formando não encontrado com o ID fornecido."
+                error: "Utilizador não tem o papel de formando, nenhum formando foi encontrado com o ID fornecido."
             });
         }
-        formandoId = formandoData.idformando; 
-
-        cursoEncontrado = await models.curso.findByPk(cursoId);
-
-        if (!cursoEncontrado) {
-            return res.status(404).json({ message: "Curso não encontrado." });
-        }
-
-        const maxInscricoes = cursoEncontrado.maxinscricoes;
-        const nInscricoes = await models.inscricao.count({ where: { curso: cursoId } });
-
-        const inscricaoExistente = await models.inscricao.findOne({
+        const idFormando = formandoData.idformando;
+        const inscricoes = await models.inscricao.findAll({
             where: {
-                formando: formandoId,
-                curso: cursoId
+                formando: idFormando
             }
         });
-
-        if (inscricaoExistente) {
-            return res.status(409).json({ message: 'Já se encontra inscrito neste curso.' }); 
+        if (inscricoes.length === 0) {
+            logger.info(`Nenhum curso encontrado para o formando ${idFormando}.`);
+            return res.status(200).json([]);
         }
-
-
-        if (cursoEncontrado.disponivel && (!maxInscricoes || nInscricoes < maxInscricoes)) {
-            const insertData = {
-                formando: formandoId,
-                curso: cursoId,
-                registo: new Date()
-            };
-            await models.inscricao.create(insertData);
-            return res.status(200).json({ message: 'Inscrição realizada com sucesso!' }); 
-        } else {
-            return res.status(400).json({ message: 'Vagas esgotadas ou curso não disponível para inscrição.' });
+        const cursosIndexes = inscricoes.map((inscricao) => inscricao.curso);
+        queryOptions.where.idcurso = {
+            [Sequelize.Op.in]: cursosIndexes
+        };
+        cursos = await models.curso.findAll(queryOptions);
+        cursos = await Promise.all(
+            cursos.map(async (curso) => {
+                if (curso.thumbnail) {
+                    curso.dataValues.thumbnail = await generateSASUrl(curso.thumbnail, 'thumbnailscursos');
+                }
+                return curso;
+            })
+        );
+        if (req.query.area) {
+            areas = Array.isArray(req.query.area) ? req.query.area : [req.query.area];
+            areas = [...new Set(areas)];
+            filter = true;
         }
-
+        if (req.query.categoria) {
+            categorias = Array.isArray(req.query.categoria) ? req.query.categoria : [req.query.categoria];
+            categorias = [...new Set(categorias)];
+            filter = true;
+        }
+        if (req.query.topico) {
+            topicos = Array.isArray(req.query.topico) ? req.query.topico : [req.query.topico];
+            topicos = [...new Set(topicos)];
+            filter = true;
+        }
+        if (filter) {
+            cursos = await filterCursos(cursos, topicos, areas, categorias);
+        }
+        cursos = await addTipo(cursos);
+        logger.info(`Cursos inscritos para o utilizador ${idutilizador} retornados com sucesso. Total: ${cursos.length}`);
+        return res.status(200).json(cursos);
     } catch (error) {
-        console.error("Erro na inscrição do curso:", error);
-        return res.status(500).json({ message: 'Erro interno do servidor ao tentar inscrever no curso.' });
+        logger.error(`Erro interno do servidor ao buscar cursos inscritos. Detalhes: ${error.message}`, {
+            stack: error.stack
+        });
+        return res.status(500).json({
+            error: "Ocorreu um erro interno ao buscar os cursos inscritos."
+        });
     }
 };
 
+controllers.getInscricoes = async (req, res) => {
+    const {
+        id
+    } = req.params;
+    logger.debug(`Recebida requisição para listar inscritos do curso com ID: ${id}`);
+    try {
+        const curso = await models.curso.findByPk(id);
+        if (!curso) {
+            logger.warn(`Curso com ID ${id} não encontrado.`);
+            return res.status(404).json({
+                error: "Curso não encontrado."
+            });
+        }
+        const inscricoes = await models.inscricao.findAll({
+            where: {
+                curso: id
+            },
+            include: [{
+                model: models.formando,
+                as: 'formando_formando',
+                attributes: ['utilizador'],
+            }],
+        });
+        const utilizadoresIndexes = inscricoes.map((entry) => entry.formando_formando.utilizador);
+        if (utilizadoresIndexes.length === 0) {
+            logger.info(`Nenhum inscrito encontrado para o curso com ID ${id}.`);
+            return res.status(200).json([]);
+        }
+        let utilizadores = await models.utilizadores.findAll({
+            attributes: ["idutilizador", "email", "nome"],
+            where: {
+                idutilizador: {
+                    [Sequelize.Op.in]: utilizadoresIndexes
+                },
+                ativo: true
+            }
+        });
+        utilizadores = utilizadores.map((utilizador) => {
+            const inscricao = inscricoes.find((entry) => entry.formando_formando.utilizador == utilizador.idutilizador);
+            if (inscricao) {
+                utilizador.dataValues.idformando = inscricao.formando;
+            }
+            return utilizador;
+        });
+        logger.info(`Lista de inscritos para o curso com ID ${id} retornada com sucesso. Total: ${utilizadores.length}`);
+        return res.status(200).json(utilizadores);
+    } catch (error) {
+        logger.error(`Erro interno do servidor ao listar inscritos do curso. Detalhes: ${error.message}`, {
+            stack: error.stack
+        });
+        return res.status(500).json({
+            error: "Ocorreu um erro interno ao buscar os inscritos."
+        });
+    }
+};
+
+controllers.inscreverCurso = async (req, res) => {
+    const {
+        id
+    } = req.params;
+    const {
+        utilizador: utilizadorIdDoBody
+    } = req.body || {};
+    logger.debug(`Recebida requisição para inscrever no curso ${id}. Dados: ${JSON.stringify(req.body)}`);
+    const idDoUtilizadorParaInscricao = utilizadorIdDoBody || req.user.idutilizador;
+    if (utilizadorIdDoBody && !req.user.roles?.map(roleEntry => roleEntry.role).includes("admin") && req.user.idutilizador != utilizadorIdDoBody) {
+        logger.warn(`Tentativa de inscrição não autorizada de outro utilizador (${utilizadorIdDoBody}) pelo utilizador ${req.user.idutilizador}`);
+        return res.status(403).json({
+            error: 'Proibido: permissões insuficientes para inscrever outro utilizador.'
+        });
+    }
+    try {
+        const formandoData = await models.formando.findOne({
+            where: {
+                utilizador: idDoUtilizadorParaInscricao
+            }
+        });
+        if (!formandoData) {
+            logger.warn(`O utilizador ${idDoUtilizadorParaInscricao} não possui o papel de formando.`);
+            return res.status(404).json({
+                error: "Utilizador não tem o papel de formando."
+            });
+        }
+        const cursoEncontrado = await models.curso.findByPk(id);
+        if (!cursoEncontrado) {
+            logger.warn(`Curso com ID ${id} não encontrado.`);
+            return res.status(404).json({
+                error: "Curso não encontrado."
+            });
+        }
+        const inscricaoExistente = await models.inscricao.findOne({
+            where: {
+                formando: formandoData.idformando,
+                curso: id
+            }
+        });
+        if (inscricaoExistente) {
+            logger.warn(`O formando ${formandoData.idformando} já está inscrito no curso ${id}.`);
+            return res.status(409).json({
+                error: 'Já se encontra inscrito neste curso.'
+            });
+        }
+        if (!cursoEncontrado.disponivel) {
+            logger.warn(`Curso com ID ${id} não está disponível para inscrição.`);
+            return res.status(400).json({
+                error: 'Curso não disponível para inscrição.'
+            });
+        }
+        const nInscricoes = await models.inscricao.count({
+            where: {
+                curso: id
+            }
+        });
+        if (cursoEncontrado.maxinscricoes && nInscricoes >= cursoEncontrado.maxinscricoes) {
+            logger.warn(`Limite máximo de inscrições atingido para o curso ${id}.`);
+            return res.status(400).json({
+                error: 'Vagas esgotadas para este curso.'
+            });
+        }
+        const insertData = {
+            formando: formandoData.idformando,
+            curso: id,
+            registo: new Date()
+        };
+        await models.inscricao.create(insertData);
+        logger.info(`Utilizador ${idDoUtilizadorParaInscricao} inscrito no curso ${id} com sucesso.`);
+        return res.status(201).json({
+            message: 'Inscrição realizada com sucesso!'
+        });
+    } catch (error) {
+        logger.error(`Erro interno do servidor ao inscrever no curso. Detalhes: ${error.message}`, {
+            stack: error.stack
+        });
+        return res.status(500).json({
+            error: 'Ocorreu um erro interno ao tentar inscrever no curso.'
+        });
+    }
+};
 
 controllers.sairCurso = async (req, res) => {
-
-    const id = req.params.id;
-    const { utilizador: utilizadorIdDoBody } = req.body || {}; 
-    
-    let data;
-
-    if (
-      utilizadorIdDoBody &&
-      !(
-        (req.user.roles?.map(roleEntry => roleEntry.role).includes("admin")) ||
-        req.user.idutilizador == utilizadorIdDoBody
-      )
-    ) {
-      return res.status(403).json({ message: 'Acesso Proibido: Permissões insuficientes para desinscrever outro utilizador.' });
-    }
-
-    console.log({utilizadorIdDoBody, user : req.user.idutilizador});
-
+    const {
+        id
+    } = req.params;
+    const {
+        utilizador: utilizadorIdDoBody
+    } = req.body || {};
+    logger.debug(`Recebida requisição para desinscrever do curso ${id}. Dados: ${JSON.stringify(req.body)}`);
     const idDoUtilizadorParaDesinscricao = utilizadorIdDoBody || req.user.idutilizador;
-
+    if (utilizadorIdDoBody && !(req.user.roles?.map(roleEntry => roleEntry.role).includes("admin"))) {
+        logger.warn(`Tentativa de desinscrição não autorizada de outro utilizador (${utilizadorIdDoBody}) pelo utilizador ${req.user.idutilizador}`);
+        return res.status(403).json({
+            error: 'Proibido: permissões insuficientes para desinscrever outro utilizador.'
+        });
+    }
     try {
-        console.log(idDoUtilizadorParaDesinscricao);
-        const formandoData = await models.formando.findOne({ 
-            where: { utilizador: idDoUtilizadorParaDesinscricao } 
+        const formandoData = await models.formando.findOne({
+            where: {
+                utilizador: idDoUtilizadorParaDesinscricao
+            }
         });
-
-        if (!formandoData){
-
-            return res.status(404).json({message:"Utilizador não é um formando ou formando não encontrado com o ID fornecido."});
+        if (!formandoData) {
+            logger.warn(`O utilizador ${idDoUtilizadorParaDesinscricao} não possui o papel de formando.`);
+            return res.status(404).json({
+                error: "Utilizador não é um formando ou formando não encontrado."
+            });
         }
-
         const formando = formandoData.idformando;
-
-        const inscricaoExistente = await models.inscricao.findOne({
-            where: { formando, curso: id }
+        const deletedRows = await models.inscricao.destroy({
+            where: {
+                formando,
+                curso: id
+            }
         });
-
-        if (!inscricaoExistente) {
-            console.log({ formando, curso: id });
-            return res.status(404).json({ message: 'Inscrição não encontrada para este utilizador e curso.' });
+        if (deletedRows === 0) {
+            logger.warn(`Inscrição não encontrada para o formando ${formando} no curso ${id}.`);
+            return res.status(404).json({
+                error: 'Inscrição não encontrada para este utilizador e curso.'
+            });
         }
-        
-        await models.inscricao.destroy({
-            where : { formando, curso : id }
+        logger.info(`Inscrição do formando ${formando} no curso ${id} removida com sucesso.`);
+        return res.status(200).json({
+            message: 'Inscrição removida com sucesso!'
         });
-
-        return res.status(200).json({ message: 'Inscrição removida com sucesso!' });
-
     } catch (error) {
-        console.error("Erro ao tentar desinscrever do curso:", error);
-        return res.status(500).json({ message: 'Erro interno do servidor ao tentar sair do curso.' });
+        logger.error(`Erro interno do servidor ao desinscrever do curso. Detalhes: ${error.message}`, {
+            stack: error.stack
+        });
+        return res.status(500).json({
+            error: 'Ocorreu um erro interno ao tentar sair do curso.'
+        });
     }
 };
 
-
 controllers.createCursoAssincrono = async (req, res) => {
-
+    logger.debug(`Recebida requisição para criar curso assíncrono. Body: ${req.body.info}`);
     const thumbnail = req.file;
     const info = JSON.parse(req.body.info || "{}");
-
     try {
-
-        const createdRow = await createCurso(thumbnail,info);
-
-        await models.cursoassincrono.create({curso:createdRow.idcurso});
-
-        if(createdRow.thumbnail){
+        const createdRow = await createCurso(thumbnail, info);
+        await models.cursoassincrono.create({
+            curso: createdRow.idcurso
+        });
+        if (createdRow.thumbnail) {
             createdRow.dataValues.thumbnail = await generateSASUrl(createdRow.thumbnail, 'thumbnailscursos');
         }
-
         createdRow.dataValues.topicos = await findTopicos(createdRow.idcurso);
-        return res.status(200).json(createdRow);
-            
+        logger.info(`Curso assíncrono com ID ${createdRow.idcurso} criado com sucesso.`);
+        return res.status(201).json(createdRow);
     } catch (error) {
-
-        console.error('Error creating curso:', error);
-        return res.status(500).json({ message: 'Error creating curso' });
-        
+        logger.error(`Erro ao criar curso assíncrono. Detalhes: ${error.message}`, {
+            stack: error.stack
+        });
+        return res.status(500).json({
+            error: 'Ocorreu um erro interno ao criar o curso.'
+        });
     }
-
-}
-
+};
 
 controllers.updateCursoAssincrono = async (req, res) => {
-
-    const id = req.params.id;
+    const {
+        id
+    } = req.params;
+    logger.debug(`Recebida requisição para atualizar curso assíncrono com ID: ${id}. Body: ${req.body.info}`);
     const thumbnail = req.file;
     const info = JSON.parse(req.body.info || "{}");
-
     try {
-
         const data = await models.curso.findByPk(id);
-
-        // const data = await models.cursoassincrono.findOne({
-        //     where: {
-        //        curso: id
-        //     }
-        // });
-
-        if(data){
-            updatedCurso = await updateCurso(id, thumbnail, info);
-            return res.status(200).json(updatedCurso);
+        if (!data) {
+            logger.warn(`Tentativa de atualizar curso assíncrono com ID ${id} que não foi encontrado.`);
+            return res.status(404).json({
+                error: 'Curso não encontrado.'
+            });
         }
-
+        const updatedCurso = await updateCurso(id, thumbnail, info);
+        logger.info(`Curso assíncrono com ID ${id} atualizado com sucesso.`);
+        return res.status(200).json(updatedCurso);
     } catch (error) {
-        console.error('Error updating curso:', error);
-        return res.status(500).json({ message: 'Error creating curso' });
+        logger.error(`Erro interno do servidor ao atualizar curso assíncrono. Detalhes: ${error.message}`, {
+            stack: error.stack
+        });
+        return res.status(500).json({
+            error: 'Ocorreu um erro interno ao atualizar o curso.'
+        });
     }
-
-}
-
+};
 
 controllers.addLicao = async (req, res) => {
-
-
-    const idcursoassinc = req.params.idcursoassinc;
-
-    const { titulo, descricao } = req.body;
-
-
+    const {
+        idcursoassinc
+    } = req.params;
+    const {
+        titulo,
+        descricao
+    } = req.body;
+    logger.debug(`Recebida requisição para adicionar lição ao curso assíncrono ${idcursoassinc}. Dados: ${JSON.stringify(req.body)}`);
+    if (!titulo || !descricao) {
+        logger.warn(`Tentativa de adicionar lição com campos faltando. Dados recebidos: ${JSON.stringify(req.body)}`);
+        return res.status(400).json({
+            error: 'Os campos "titulo" e "descricao" são obrigatórios.'
+        });
+    }
     try {
-
-
-        const cursoassinc =  await models.cursoassincrono.findOne({
-            where : { idcursoassincrono :  idcursoassinc },
+        const cursoassinc = await models.cursoassincrono.findOne({
+            where: {
+                idcursoassincrono: idcursoassinc
+            },
             attributes: ["curso"]
         });
-
+        if (!cursoassinc) {
+            logger.warn(`Curso assíncrono com ID ${idcursoassinc} não encontrado.`);
+            return res.status(404).json({
+                error: 'Curso assíncrono não encontrado.'
+            });
+        }
         const licao = {
-            curso : cursoassinc.curso,
+            curso: cursoassinc.curso,
             titulo,
             descricao
         };
-
-
-        const createdRow = await addLicao(cursoassinc.curso,licao);
-        return res.status(200).json(createdRow);
-
+        const createdRow = await addLicao(cursoassinc.curso, licao);
+        logger.info(`Lição com ID ${createdRow.idlicao} adicionada com sucesso ao curso assíncrono ${idcursoassinc}.`);
+        return res.status(201).json(createdRow);
     } catch (error) {
-        console.log(error);
-        return res.status(500).json({message : "Could not create licao"});
+        logger.error(`Erro interno do servidor ao adicionar lição. Detalhes: ${error.message}`, {
+            stack: error.stack
+        });
+        return res.status(500).json({
+            error: "Ocorreu um erro interno ao criar a lição."
+        });
     }
-
-
-}
-
+};
 
 controllers.rmLicao = async (req, res) => {
-
+    const {
+        idlicao
+    } = req.params;
+    logger.debug(`Recebida requisição para remover lição com ID: ${idlicao}`);
     try {
-
-        await rmLicao(req.params.idlicao);
-        return res.status(200).json({"message": "licao sucessfully deleted"});
-
+        const licao = await models.licao.findByPk(idlicao);
+        if (!licao) {
+            logger.warn(`Tentativa de remover lição com ID ${idlicao} que não foi encontrada.`);
+            return res.status(404).json({
+                error: 'Lição não encontrada.'
+            });
+        }
+        await rmLicao(idlicao);
+        logger.info(`Lição com ID ${idlicao} removida com sucesso.`);
+        return res.status(200).json({
+            message: "Lição removida com sucesso."
+        });
     } catch (error) {
-
-        return res.status(500).json({"message": "could no delete licao"});
-        
+        logger.error(`Erro interno do servidor ao remover lição. Detalhes: ${error.message}`, {
+            stack: error.stack
+        });
+        return res.status(500).json({
+            error: "Ocorreu um erro interno ao remover a lição."
+        });
     }
-
-}
-
-
+};
 
 controllers.addLicaoContent = async (req, res) => {
-
-    const idlicao = req.params.idlicao;
+    const {
+        idlicao
+    } = req.params;
+    logger.debug(`Recebida requisição para adicionar material à lição ${idlicao}. Body: ${req.body.info}`);
     const ficheiro = req.file;
-
-    const { titulo, tipo, link } = JSON.parse(req.body.info || "{}");
-
-
+    const {
+        titulo,
+        tipo,
+        link
+    } = JSON.parse(req.body.info || "{}");
+    if (!titulo || !tipo || (!ficheiro && !link)) {
+        logger.warn(`Tentativa de adicionar material com campos faltando. Dados: ${req.body.info}`);
+        return res.status(400).json({
+            error: 'Os campos "titulo", "tipo" e um "link" ou "ficheiro" são obrigatórios.'
+        });
+    }
     const material = {
         titulo,
         tipo,
-        referencia : link,
-        criador : req.user.idutilizador
+        referencia: link,
+        criador: req.user.idutilizador
     };
-
     try {
-
-        const createdMaterial = await addLicaoContent(idlicao,ficheiro,material);
-        return res.status(200).json(createdMaterial);
-        
+        const createdMaterial = await addLicaoContent(idlicao, ficheiro, material);
+        logger.info(`Material com ID ${createdMaterial.idmaterial} adicionado com sucesso à lição ${idlicao}.`);
+        return res.status(201).json(createdMaterial);
     } catch (error) {
-        console.log(error);
-        return res.status(500).json({message : "Could not create material"});
+        logger.error(`Erro interno do servidor ao adicionar material à lição. Detalhes: ${error.message}`, {
+            stack: error.stack
+        });
+        return res.status(500).json({
+            error: "Ocorreu um erro interno ao criar o material."
+        });
     }
-
-}
-
-
-
-
+};
 
 module.exports = controllers;

@@ -1,125 +1,192 @@
 var initModels = require("../models/init-models.js");
 var db = require("../database.js");
 var models = initModels(db);
+const logger = require('../logger.js');
 
 const controllers = {};
 
-controllers.list = async (req,res) => {
+controllers.list = async (req, res) => {
+
+    logger.debug(`Pedido para listar categorias.`);
 
     try {
         const data = await models.categoria.findAll();
-        res.json(data);
+        if (!data || data.length === 0) {
+            logger.info(`Nenhuma categoria encontrada.`);
+            return res.status(200).json([]);
+        }
+        logger.info(`Lista de categorias retornada com sucesso.`);
+        return res.status(200).json(data);
     } catch (error) {
-        return res.status(400).json({ error: 'Something bad happened' });
-    }
-};
-
-
-controllers.byID = async (req,res) => {
-
-  const id = req.params.id;
-
-  try {
-
-    var data = await models.categoria.findOne({ where: { idcategoria: id } }) ;
-
-    if (data == null) {
-        return res.status(404).json({ error: 'Categoria not found' });
-    } 
-     
-    res.json(data);
-
-  } catch (error) {
-    return res.status(400).json({ error: 'Something bad happened' });
-  }
-
-};
-
-
-controllers.create = async (req,res) => {
-
-
-  const { designacao } = req.body;
-  const insertData = {};
-
-  insertData.designacao = designacao;
-
-  if ( designacao != undefined && designacao != null ){
-
-    try {
-
-      const createdRow = await models.categoria.create(insertData, {returning: true});
-      res.status(200).json(createdRow);
-        
-    } catch (error) {
-        res.status(500).json({ message: 'Error creating Category' });
-    }
-  }
-
-};
-
-
-controllers.delete = async (req,res) => {
-
-  const id = req.params.id;
-
-  try {
-
-
-    const data = await models.area.findAll({ where: { categoria: id } });
-
-    if( data.length > 0){
-        return res.status(400).json({message:"Cannot delete Category : dependencies existence",dependencies : data });
-    }
-
-    await models.categoria.destroy({ where: { idcategoria: id } }) ;
-    res.status(200).json({message:"Categoria deleted"});
-
-  } catch (error) {
-    //console.log(error);
-    return res.status(401).json({ error: 'Something bad happened' });
-  }
-
-};
-
-
-controllers.update = async (req, res) => {
-    const { id } = req.params;
-    const { designacao } = req.body;
-
-    const updatedData = {};
-    if (designacao) updatedData.designacao = designacao;
-
-    try {
-        const [affectedCount, updatedRows] = await models.categoria.update(updatedData, {
-            where: { idcategoria: id },
-            returning: true,
+        logger.error(`Erro interno do servidor ao listar categorias. Detalhes: ${error.message}`, {
+            stack: error.stack
         });
+        return res.status(500).json({
+            error: 'Ocorreu um erro interno ao listar as categorias.'
+        });
+    }
+};
 
-        if (affectedCount === 0 || updatedRows.length === 0) {
-            return res.status(404).json({ message: 'Category not found or no change made' });
+controllers.byID = async (req, res) => {
+    const { id } = req.params;
+    logger.debug(`Recebida requisição para buscar categoria por ID: ${id}`);
+    try {
+        const categoria = await models.categoria.findByPk(id);
+
+        if (!categoria) {
+            logger.info(`Categoria com ID ${id} não encontrada.`);
+            return res.status(404).json({
+                error: 'Categoria não encontrada.'
+            });
         }
 
-        const result = await models.categoria.findOne({ where: { idcategoria: id } });
-        res.status(200).json(result);
+        logger.info(`Categoria com ID ${id} encontrada com sucesso.`);
 
+        return res.status(200).json(categoria);
     } catch (error) {
-        res.status(500).json({ message: 'Error updating Category' });
+        logger.error(`Erro interno do servidor ao buscar categoria por ID. Detalhes: ${error.message}`, {
+            stack: error.stack
+        });
+        return res.status(500).json({
+            error: 'Ocorreu um erro interno ao buscar a categoria.'
+        });
     }
 };
 
+controllers.create = async (req, res) => {
+    logger.debug(`Recebida requisição para criar uma nova categoria. Dados: ${JSON.stringify(req.body)}`);
+    try {
+        const { designacao } = req.body;
+
+        if (!designacao) {
+            logger.warn(`Tentativa de criar categoria sem a designação.`);
+            return res.status(400).json({
+                error: 'O campo "designacao" é obrigatório.'
+            });
+        }
+        const newCategory = await models.categoria.create({
+            designacao
+        });
+        logger.info(`Nova categoria criada com sucesso. ID: ${newCategory.idcategoria}`);
+        return res.status(201).json(newCategory);
+    } catch (error) {
+        logger.error(`Erro ao criar nova categoria. Detalhes: ${error.message}`, {
+            stack: error.stack
+        });
+        return res.status(500).json({
+            error: 'Ocorreu um erro interno ao criar a categoria.'
+        });
+    }
+};
+
+controllers.delete = async (req, res) => {
+    const {
+        id
+    } = req.params;
+    logger.debug(`Recebida requisição para deletar categoria com ID: ${id}`);
+    try {
+        const dependentAreas = await models.area.findAll({
+            where: {
+                categoria: id
+            }
+        });
+        if (dependentAreas.length > 0) {
+            logger.warn(`Tentativa de deletar categoria com ID ${id}, mas existem áreas dependentes.`);
+            return res.status(409).json({
+                error: 'Não é possível deletar a categoria, pois existem áreas associadas.',
+                dependencies: dependentAreas
+            });
+        }
+        const deletedRows = await models.categoria.destroy({
+            where: {
+                idcategoria: id
+            }
+        });
+        if (deletedRows === 0) {
+            logger.info(`Tentativa de deletar categoria com ID ${id} que não foi encontrada.`);
+            return res.status(404).json({
+                error: 'Categoria não encontrada.'
+            });
+        }
+        logger.info(`Categoria com ID ${id} deletada com sucesso.`);
+        return res.status(200).json({
+            message: 'Categoria deletada com sucesso.'
+        });
+    } catch (error) {
+        logger.error(`Erro interno do servidor ao deletar categoria. Detalhes: ${error.message}`, {
+            stack: error.stack
+        });
+        return res.status(500).json({
+            error: 'Ocorreu um erro interno ao deletar a categoria.'
+        });
+    }
+};
+
+controllers.update = async (req, res) => {
+    const {
+        id
+    } = req.params;
+    logger.debug(`Recebida requisição para atualizar categoria com ID: ${id}. Dados: ${JSON.stringify(req.body)}`);
+    try {
+        const {
+            designacao
+        } = req.body;
+        if (!designacao) {
+            logger.warn(`Tentativa de atualizar categoria sem a designação. ID: ${id}`);
+            return res.status(400).json({
+                error: 'O campo "designacao" é obrigatório para a atualização.'
+            });
+        }
+        const [affectedCount] = await models.categoria.update({
+            designacao
+        }, {
+            where: {
+                idcategoria: id
+            }
+        });
+        if (affectedCount === 0) {
+            logger.warn(`Tentativa de atualizar categoria com ID ${id} que não foi encontrada.`);
+            return res.status(404).json({
+                error: 'Categoria não encontrada ou nenhum dado foi alterado.'
+            });
+        }
+        const updatedCategory = await models.categoria.findByPk(id);
+        logger.info(`Categoria com ID ${id} atualizada com sucesso.`);
+        return res.status(200).json(updatedCategory);
+    } catch (error) {
+        logger.error(`Erro interno do servidor ao atualizar categoria. Detalhes: ${error.message}`, {
+            stack: error.stack
+        });
+        return res.status(500).json({
+            error: 'Ocorreu um erro interno ao atualizar a categoria.'
+        });
+    }
+};
 
 controllers.listAreas = async (req, res) => {
-
-    const { id } = req.params;
-
+    const {
+        id
+    } = req.params;
+    logger.debug(`Recebida requisição para listar áreas da categoria com ID: ${id}`);
     try {
-
-        const data = await models.area.findAll({ where: { categoria: id } });
-        res.status(200).json(data);
-
+        const areas = await models.area.findAll({
+            where: {
+                categoria: id
+            }
+        });
+        if (areas.length === 0) {
+            logger.info(`Nenhuma área encontrada para a categoria com ID ${id}.`);
+            return res.status(200).json([]);
+        }
+        logger.info(`Lista de áreas para a categoria com ID ${id} retornada com sucesso.`);
+        return res.status(200).json(areas);
     } catch (error) {
-        res.status(400).json({ message: 'No areas found under category' });
+        logger.error(`Erro interno do servidor ao listar áreas da categoria. Detalhes: ${error.message}`, {
+            stack: error.stack
+        });
+        return res.status(500).json({
+            error: 'Ocorreu um erro interno ao buscar as áreas.'
+        });
     }
 };
 

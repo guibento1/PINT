@@ -3,180 +3,211 @@ const { sendFCMNotification } = require('../utils.js');
 var initModels = require("../models/init-models.js");
 var db = require("../database.js");
 var models = initModels(db);
+const logger = require('../logger.js');
 
 const controllers = {};
 
-controllers.listCanais = async (req,res) => {
+controllers.listCanais = async (req, res) => {
 
+    logger.debug(`Pedido para listar canais de notificação.`);
     try {
         const data = await models.canalnotificacoes.findAll();
-        res.json(data);
+        if (!data || data.length === 0) {
+            logger.info(`Nenhum canal de notificação encontrado.`);
+            return res.status(200).json([]);
+        }
+        logger.info(`Lista de canais de notificação retornada com sucesso.`);
+        return res.status(200).json(data);
     } catch (error) {
-        return res.status(400).json({ error: 'Something bad happened' });
+        logger.error(`Erro interno do servidor ao listar canais de notificação. Detalhes: ${error.message}`, {
+            stack: error.stack
+        });
+        return res.status(500).json({
+            error: 'Ocorreu um erro interno ao listar os canais de notificação.'
+        });
     }
 };
 
+controllers.listNotificacoes = async (req, res) => {
 
-controllers.listNotificacoes = async (req,res) => {
-
-  const idCanal = req.params.idCanal;
-
-  try {
-
-    var data = await models.historiconotificacoes.findOne({ where: { idnotificacao: idCanal } }) ;
-
-    if (data == null) {
-        return res.status(404).json({ error: 'Area not found' });
-    } 
-     
-    res.status(200).json(data);
-
-  } catch (error) {
-    console.log(error);
-    return res.status(400).json({ error: 'Something bad happened' });
-  }
-
+    const { idCanal } = req.params;
+    logger.debug(`Recebida requisição para listar notificações do canal com ID: ${idCanal}`);
+    try {
+        const data = await models.historiconotificacoes.findAll({
+            where: {
+                canal: idCanal
+            }
+        });
+        if (!data || data.length === 0) {
+            logger.info(`Nenhuma notificação encontrada para o canal com ID ${idCanal}.`);
+            return res.status(200).json([]);
+        }
+        logger.info(`Lista de notificações do canal ${idCanal} retornada com sucesso.`);
+        return res.status(200).json(data);
+    } catch (error) {
+        logger.error(`Erro interno do servidor ao buscar notificações. Detalhes: ${error.message}`, {
+            stack: error.stack
+        });
+        return res.status(500).json({
+            error: 'Ocorreu um erro interno ao buscar as notificações.'
+        });
+    }
 };
 
-
-controllers.criarNotificacaoGeral = async (req,res) => {
-
-    const { titulo,conteudo } = req.body;
-
-    console.log(titulo,conteudo);
-
-
+controllers.criarNotificacaoGeral = async (req, res) => {
+    logger.debug(`Recebida requisição para criar notificação geral. Dados: ${JSON.stringify(req.body)}`);
+    const { titulo, conteudo } = req.body;
+    if (!titulo || !conteudo) {
+        logger.warn(`Tentativa de criar notificação geral sem título ou conteúdo. Dados recebidos: ${JSON.stringify(req.body)}`);
+        return res.status(400).json({
+            error: 'Os campos "titulo" e "conteudo" são obrigatórios.'
+        });
+    }
     const insertData = {
         canal: 1,
         titulo,
         conteudo
     };
-
     try {
-
-        const createdRow = await models.historiconotificacoes.create(insertData, {returning: true});
-        await sendFCMNotification('canal.'+insertData.canal, titulo, conteudo);
-        return res.status(200).json(createdRow);
-
+        const createdRow = await models.historiconotificacoes.create(insertData);
+        await sendFCMNotification('canal.' + insertData.canal, titulo, conteudo);
+        logger.info(`Notificação geral criada e enviada com sucesso. ID: ${createdRow.idnotificacao}`);
+        return res.status(201).json(createdRow);
     } catch (error) {
-        return res.status(400).json({ error: 'Could not send the notification' });
+        logger.error(`Erro ao criar e enviar notificação geral. Detalhes: ${error.message}`, {
+            stack: error.stack
+        });
+        return res.status(500).json({
+            error: 'Ocorreu um erro interno ao criar ou enviar a notificação.'
+        });
     }
+};
 
-}
-
-
-controllers.criarNotificacaoAdministrativa = async (req,res) => {
-
-    const { titulo,conteudo } = req.body;
-
-    console.log(titulo,conteudo);
-
-
+controllers.criarNotificacaoAdministrativa = async (req, res) => {
+    logger.debug(`Recebida requisição para criar notificação administrativa. Dados: ${JSON.stringify(req.body)}`);
+    const { titulo, conteudo } = req.body;
+    if (!titulo || !conteudo) {
+        logger.warn(`Tentativa de criar notificação administrativa sem título ou conteúdo. Dados recebidos: ${JSON.stringify(req.body)}`);
+        return res.status(400).json({
+            error: 'Os campos "titulo" e "conteudo" são obrigatórios.'
+        });
+    }
     const insertData = {
         canal: 2,
         titulo,
         conteudo
     };
-
     try {
-
-        const createdRow = await models.historiconotificacoes.create(insertData, {returning: true});
-        await sendFCMNotification('canal.'+insertData.canal, titulo, conteudo);
-        return res.status(200).json(createdRow);
-        
+        const createdRow = await models.historiconotificacoes.create(insertData);
+        await sendFCMNotification('canal.' + insertData.canal, titulo, conteudo);
+        logger.info(`Notificação administrativa criada e enviada com sucesso. ID: ${createdRow.idnotificacao}`);
+        return res.status(201).json(createdRow);
     } catch (error) {
-        return res.status(400).json({ error: 'Could not send the notification' });
+        logger.error(`Erro ao criar e enviar notificação administrativa. Detalhes: ${error.message}`, {
+            stack: error.stack
+        });
+        return res.status(500).json({
+            error: 'Ocorreu um erro interno ao criar ou enviar a notificação.'
+        });
     }
+};
 
-}
-
-
-controllers.criarNotificacaoCurso = async (req,res) => {
-
-    const { idcurso, titulo,conteudo } = req.body;
-
+controllers.criarNotificacaoCurso = async (req, res) => {
+    logger.debug(`Recebida requisição para criar notificação de curso. Dados: ${JSON.stringify(req.body)}`);
+    const { idcurso, titulo, conteudo } = req.body;
+    if (!idcurso || !titulo || !conteudo) {
+        logger.warn(`Tentativa de criar notificação de curso com campos faltando. Dados recebidos: ${JSON.stringify(req.body)}`);
+        return res.status(400).json({
+            error: 'Os campos "idcurso", "titulo" e "conteudo" são obrigatórios.'
+        });
+    }
     try {
-
-        const curso = await models.curso.findOne({ where: { idcurso: idcurso } });
+        const curso = await models.curso.findOne({
+            where: {
+                idcurso: idcurso
+            }
+        });
+        if (!curso) {
+            logger.warn(`Curso com ID ${idcurso} não encontrado.`);
+            return res.status(404).json({
+                error: 'Curso não encontrado.'
+            });
+        }
         const canal = curso.canal;
-
         const insertData = {
             canal,
             titulo,
             conteudo
         };
-
-        const createdRow = await models.historiconotificacoes.create(insertData, {returning: true});
-        await sendFCMNotification('canal.'+insertData.canal, titulo, conteudo);
-        return res.status(200).json(createdRow);
-        
+        const createdRow = await models.historiconotificacoes.create(insertData);
+        await sendFCMNotification('canal.' + insertData.canal, titulo, conteudo);
+        logger.info(`Notificação de curso para o curso ${idcurso} criada e enviada com sucesso. ID: ${createdRow.idnotificacao}`);
+        return res.status(201).json(createdRow);
     } catch (error) {
-        console.log(error);
-        return res.status(400).json({ error: 'Could not send the notification' });
+        logger.error(`Erro ao criar e enviar notificação de curso. Detalhes: ${error.message}`, {
+            stack: error.stack
+        });
+        return res.status(500).json({
+            error: 'Ocorreu um erro interno ao criar ou enviar a notificação.'
+        });
     }
-
-}
-
+};
 
 controllers.getCanaisInscritos = async (req, res) => {
-
-    const idUtilizador = req.params.idutilizador;
-
-    let canais = [1];
-    const admin = ( req.user.roles && req.user.roles.map((roleEntry) => roleEntry.role).includes("admin") );
-
-    if(admin) canais.push(2);
-
-    let cursos;
-    let data;
-
-
-    if( 
-        req.user.idutilizador == idUtilizador || admin
-    ){
-
-        try {
-
-            data = await models.formando.findOne({ where: { utilizador : idUtilizador } });
-            if (!data){
-
-                return res.status(404).json({message:"User does not have formando role, no formando has found with the provided userId"})
-
-            }
-
-            const idFormando = data.idformando;
-
-            data = await models.inscricao.findAll({ where: { formando : idFormando } });
-            
-            if( data.length == 0){
-                return res.status(200).json({message:"no courses were found"});
-            }
-
-            const cursosIndexes = data.map( (inscricao) => inscricao.curso );
-
-
-            cursosCanais = await models.curso.findAll({
-                atributtes:["canal"],
-                where : { 
-                    idcurso : { [Sequelize.Op.in]: cursosIndexes }
-                }
-            });
-
-            cursosCanais = cursosCanais.map((curso) => parseInt(curso.canal));
-            canais = [...canais,...cursosCanais]
-            return res.status(200).json(canais);
-
-        } catch (error) {
-            console.log(error);
-            return res.status(500).json({message: "Something wrong happened"});
-        }
-
+    const { idutilizador } = req.params;
+    logger.debug(`Recebida requisição para buscar canais inscritos para o utilizador ${idutilizador}`);
+    if (req.user.idutilizador != idutilizador && !(req.user.roles && req.user.roles.map(roleEntry => roleEntry.role).includes("admin"))) {
+        logger.warn(`Tentativa de acesso não autorizado aos canais inscritos do utilizador ${idutilizador} pelo utilizador ${req.user.idutilizador}`);
+        return res.status(403).json({
+            error: 'Proibido: permissões insuficientes.'
+        });
     }
-
-
-    return res.status(403).json({ message: 'Forbidden: insufficient permissions' });
-
-
+    let canais = [1];
+    if (req.user.roles && req.user.roles.map(roleEntry => roleEntry.role).includes("admin")) {
+        canais.push(2);
+    }
+    try {
+        const formando = await models.formando.findOne({
+            where: {
+                utilizador: idutilizador
+            }
+        });
+        if (!formando) {
+            logger.warn(`O utilizador ${idutilizador} não possui a role de formando.`);
+            return res.status(404).json({
+                error: 'Utilizador não tem o papel de formando.'
+            });
+        }
+        const inscricoes = await models.inscricao.findAll({
+            where: {
+                formando: formando.idformando
+            }
+        });
+        if (inscricoes.length === 0) {
+            logger.info(`Nenhuma inscrição encontrada para o formando ${formando.idformando}.`);
+            return res.status(200).json(canais);
+        }
+        const cursosIndexes = inscricoes.map(inscricao => inscricao.curso);
+        const cursosCanais = await models.curso.findAll({
+            attributes: ["canal"],
+            where: {
+                idcurso: {
+                    [Sequelize.Op.in]: cursosIndexes
+                }
+            }
+        });
+        const canaisCursos = cursosCanais.map(curso => parseInt(curso.canal));
+        canais = [...new Set([...canais, ...canaisCursos])];
+        logger.info(`Canais inscritos para o utilizador ${idutilizador} retornados com sucesso.`);
+        return res.status(200).json(canais);
+    } catch (error) {
+        logger.error(`Erro interno do servidor ao buscar canais inscritos. Detalhes: ${error.message}`, {
+            stack: error.stack
+        });
+        return res.status(500).json({
+            error: 'Ocorreu um erro interno ao buscar os canais inscritos.'
+        });
+    }
 };
 
 

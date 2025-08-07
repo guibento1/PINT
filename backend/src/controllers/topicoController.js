@@ -2,6 +2,7 @@ const Sequelize = require('sequelize');
 var initModels = require("../models/init-models.js");
 var db = require("../database.js");
 var models = initModels(db);
+const logger = require('../logger.js');
 
 const controllers = {};
 
@@ -56,238 +57,257 @@ async function updateAreas(id, areas) {
         await models.topicoarea.bulkCreate(topicoAreasInserts);
 
     } catch (error) {
-        console.error('Error in updateAreas:', error);
     }
 }
 
-controllers.list = async (req,res) => {
-
+controllers.list = async (req, res) => {
+    logger.debug(`Pedido para listar tópicos.`);
     try {
         const data = await models.topico.findAll();
-
-
-        for (let topico of data) {
-            topico.dataValues.areas = await findAreas(topico.idtopico);
+        if (!data || data.length === 0) {
+            logger.info(`Nenhum tópico encontrado.`);
+            return res.status(200).json([]);
         }
-
-        res.json(data);
+        const topicsWithAreas = await Promise.all(data.map(async (topico) => {
+            const areas = await findAreas(topico.idtopico);
+            return {
+                ...topico.dataValues,
+                areas
+            };
+        }));
+        logger.info(`Lista de tópicos retornada com sucesso.`);
+        return res.status(200).json(topicsWithAreas);
     } catch (error) {
-        return res.status(400).json({ error: 'Something bad happened' });
+        logger.error(`Erro interno do servidor ao listar tópicos. Detalhes: ${error.message}`, {
+            stack: error.stack
+        });
+        return res.status(500).json({
+            error: 'Ocorreu um erro interno ao listar os tópicos.'
+        });
     }
 };
-
 
 controllers.byID = async (req, res) => {
-    const id = req.params.id;
 
+    const { id } = req.params;
+    logger.debug(`Recebida requisição para buscar tópico por ID: ${id}`);
     try {
-        const data = await models.topico.findOne({ where: { idtopico: id } });
-
-        if (!data) {
-            return res.status(404).json({ error: 'topico not found' });
+        const topico = await models.topico.findByPk(id);
+        if (!topico) {
+            logger.info(`Tópico com ID ${id} não encontrado.`);
+            return res.status(404).json({
+                error: 'Tópico não encontrado.'
+            });
         }
-
-        data.dataValues.areas = await findAreas(id);
-
-        res.status(200).json(data);
+        const areas = await findAreas(id);
+        topico.dataValues.areas = areas;
+        logger.info(`Tópico com ID ${id} encontrado com sucesso.`);
+        return res.status(200).json(topico);
     } catch (error) {
-        console.log(error);
-        return res.status(500).json({ error: 'Something bad happened' });
+        logger.error(`Erro interno do servidor ao buscar tópico por ID. Detalhes: ${error.message}`, {
+            stack: error.stack
+        });
+        return res.status(500).json({
+            error: 'Ocorreu um erro interno ao buscar o tópico.'
+        });
     }
 };
 
-
-// controllers.listCursos = async (req, res) => {
-//
-//     const { id } = req.params;
-//
-//     try {
-//
-//         let data = await models.cursotopico.findAll({ 
-//             where: { topico: id }
-//             ,include: [{
-//                 model: models.curso,
-//                 as: 'curso_curso', 
-//                 attributes: ['idcurso', 'nome', 'disponivel', 'thumbnail'],
-//             }],
-//         });
-//
-//
-//         data = data.map(c => ({
-//             idcurso: c.curso_curso.idcurso, 
-//             nome: c.curso_curso.nome,
-//             disponivel: c.curso_curso.disponivel,
-//             thumbnail: c.curso_curso.thumbnail
-//         }));
-//
-//         return res.status(200).json(data);
-//
-//     } catch (error) {
-//         res.status(400).json({ message: 'Something went wrong' });
-//     }
-// };
-//
-//
-// controllers.listPosts = async (req, res) => {
-//
-//     const { id } = req.params;
-//
-//     try {
-//
-//         const data = await models.post.findAll({ where: { topico: id },attributes: ['idpost', 'titulo', 'pontuacao'] });
-//         res.status(200).json(data);
-//
-//     } catch (error) {
-//         res.status(400).json({ message: 'No post found under category' });
-//     }
-// };
-
-
 controllers.create = async (req, res) => {
-    const { designacao, areas } = req.body;
-
-    const insertData = {
-        designacao
-    };
-
+    logger.debug(`Recebida requisição para criar um novo tópico. Dados: ${JSON.stringify(req.body)}`);
     try {
-        const createdRow = await models.topico.create(insertData, {
-            returning: true,
-        });
 
+        const { designacao, areas } = req.body;
 
-        if (areas == undefined || areas==null || areas.length==0) {
-
-            return res.status(400).json({ message: 'At least one area must be provided' });
-
-        } else {
-
-            let topicoAreasInserts = [];
-
-            for (area of areas){
-                topicoAreasInserts.push({topico:createdRow.idtopico, area:area})
-            }
-
-            await models.topicoarea.bulkCreate(topicoAreasInserts);
+        if (!designacao || !areas || areas.length === 0) {
+            logger.warn(`Tentativa de criar tópico com campos faltando.`);
+            return res.status(400).json({
+                error: 'O campo "designacao" e pelo menos uma "area" são obrigatórios.'
+            });
         }
-
-        createdRow.dataValues.areas = await findAreas(createdRow.idtopico);
-        return res.status(201).json(createdRow);
-
+        const newTopic = await models.topico.create({
+            designacao
+        });
+        const topicAreasInserts = areas.map(areaId => ({
+            topico: newTopic.idtopico,
+            area: areaId
+        }));
+        await models.topicoarea.bulkCreate(topicAreasInserts);
+        const associatedAreas = await findAreas(newTopic.idtopico);
+        newTopic.dataValues.areas = associatedAreas;
+        logger.info(`Novo tópico criado com sucesso. ID: ${newTopic.idtopico}`);
+        return res.status(201).json(newTopic);
     } catch (error) {
-        console.error('Error creating topic:', error);
-        return res.status(500).json({ message: 'Error creating topic' });
-      }
+        logger.error(`Erro ao criar novo tópico. Detalhes: ${error.message}`, {
+            stack: error.stack
+        });
+        return res.status(500).json({
+            error: 'Ocorreu um erro interno ao criar o tópico.'
+        });
+    }
 };
 
 
 controllers.getNobjetos = async (req, res) => {
 
-    const id = req.params.id;
+    const { id } = req.params;
 
+    logger.debug(`Recebida requisição para contar objetos do tópico com ID: ${id}`);
     try {
-
         const nEntriesCursos = await models.cursotopico.count({
-          where: {
-            topico: id 
-          }
+            where: {
+                topico: id
+            }
         });
-
-
         const nEntriesPosts = await models.post.count({
-          where: {
-            topico: id 
-          }
+            where: {
+                topico: id
+            }
         });
-
-
-        return res.status(200).json({ nCursos: nEntriesCursos, nPosts : nEntriesPosts});
-
+        logger.info(`Contagem de objetos para o tópico ${id} realizada com sucesso. Cursos: ${nEntriesCursos}, Posts: ${nEntriesPosts}`);
+        return res.status(200).json({
+            nCursos: nEntriesCursos,
+            nPosts: nEntriesPosts
+        });
     } catch (error) {
-        console.log(error);
-        return res.status(500).json({ message: 'Something went wrong' });
-      }
-};
-
-
-controllers.delete = async (req,res) => {
-
-  const id = req.params.id;
-  var dependencies = {};
-
-
-
-  try {
-
-
-    let data = await models.cursotopico.findAll({ 
-        where: { topico: id }
-        ,include: [{
-            model: models.curso,
-            as: 'curso_curso', 
-            attributes: ['idcurso', 'nome', 'disponivel', 'thumbnail'],
-        }],
-    });
-
-
-    dependencies.cursos = data.map(c => ({
-        idcurso: c.curso_curso.idcurso, 
-        nome: c.curso_curso.nome,
-        disponivel: c.curso_curso.disponivel
-    }));
-
-
-    dependencies.posts = await models.post.findAll({ where: { topico: id },attributes: ['idpost', 'titulo', 'pontuacao'] });
-
-    if( dependencies.cursos.length > 0 || dependencies.posts.length > 0){
-        return res.status(400).json({
-            message:"Cannot delete Area : dependencies existence",
-            dependencies : dependencies        
+        logger.error(`Erro interno do servidor ao contar objetos do tópico. Detalhes: ${error.message}`, {
+            stack: error.stack
+        });
+        return res.status(500).json({
+            error: 'Ocorreu um erro interno ao buscar a contagem de objetos.'
         });
     }
-
-    await models.topico.destroy({ where: { idtopico: id } }) ;
-    return res.status(200).json({message:"Topico deleted"});
-
-  } catch (error) {
-    console.log(error);
-    return res.status(401).json({ error: 'Something bad happened' });
-  }
-
 };
 
 
-controllers.update = async (req, res) => {
-
-    const { id } = req.params;
-    const { designacao, areas } = req.body;
-
-    const updatedData = {};
-    if (designacao) updatedData.designacao = designacao;
-
+controllers.delete = async (req, res) => {
+    const {
+        id
+    } = req.params;
+    logger.debug(`Recebida requisição para deletar tópico com ID: ${id}`);
     try {
-
-        const [affectedCount, updatedRows] = await models.topico.update(updatedData, {
-            where: { idtopico: id },
-            returning: true,
+        const dependentCursos = await models.cursotopico.findAll({
+            where: {
+                topico: id
+            },
+            include: [{
+                model: models.curso,
+                as: 'curso_curso',
+                attributes: ['idcurso', 'nome', 'disponivel', 'thumbnail'],
+            }],
         });
-
-        if ((affectedCount === 0 || updatedRows.length === 0) && areas == undefined) {
-            return res.status(404).json({ message: 'Topico not found or no change made' });
+        const dependentPosts = await models.post.findAll({
+            where: {
+                topico: id
+            },
+            attributes: ['idpost', 'titulo', 'pontuacao']
+        });
+        if (dependentCursos.length > 0 || dependentPosts.length > 0) {
+            logger.warn(`Tentativa de deletar tópico com ID ${id}, mas existem dependências.`);
+            const dependencies = {
+                cursos: dependentCursos.map(c => ({
+                    idcurso: c.curso_curso.idcurso,
+                    nome: c.curso_curso.nome,
+                    disponivel: c.curso_curso.disponivel
+                })),
+                posts: dependentPosts
+            };
+            return res.status(409).json({
+                error: 'Não é possível deletar o tópico, pois existem dependências.',
+                dependencies: dependencies
+            });
         }
-
-        if(areas !== undefined && areas.length == 0 ){
-            return res.status(401).json({ message: 'At least one area must be provided' });
+        const deletedRows = await models.topico.destroy({
+            where: {
+                idtopico: id
+            }
+        });
+        if (deletedRows === 0) {
+            logger.info(`Tentativa de deletar tópico com ID ${id} que não foi encontrado.`);
+            return res.status(404).json({
+                error: 'Tópico não encontrado.'
+            });
         }
-
-        await updateAreas(id, areas);
-
-        const result = await models.topico.findOne({ where: { idtopico: id } });
-        result.dataValues.areas = await findAreas(id);
-        res.status(200).json(result);
-
+        await models.topicoarea.destroy({
+            where: {
+                topico: id
+            }
+        });
+        logger.info(`Tópico com ID ${id} e suas associações com áreas deletados com sucesso.`);
+        return res.status(200).json({
+            message: 'Tópico deletado com sucesso.'
+        });
     } catch (error) {
-        res.status(500).json({ message: 'Error updating Category' });
+        logger.error(`Erro interno do servidor ao deletar tópico. Detalhes: ${error.message}`, {
+            stack: error.stack
+        });
+        return res.status(500).json({
+            error: 'Ocorreu um erro interno ao deletar o tópico.'
+        });
+    }
+};
+
+controllers.update = async (req, res) => {
+    const {
+        id
+    } = req.params;
+    logger.debug(`Recebida requisição para atualizar tópico com ID: ${id}. Dados: ${JSON.stringify(req.body)}`);
+    try {
+        const {
+            designacao,
+            areas
+        } = req.body;
+        const updatedData = {};
+        if (designacao) updatedData.designacao = designacao;
+        if (!designacao && !areas) {
+            logger.warn(`Tentativa de atualização do tópico com ID ${id} sem dados fornecidos.`);
+            return res.status(400).json({
+                error: 'Nenhum campo fornecido para atualização.'
+            });
+        }
+        if (areas && areas.length === 0) {
+            logger.warn(`Tentativa de atualizar tópico com ID ${id} sem áreas fornecidas.`);
+            return res.status(400).json({
+                error: 'Pelo menos uma área deve ser fornecida.'
+            });
+        }
+        if (designacao) {
+            const [affectedCount] = await models.topico.update(updatedData, {
+                where: {
+                    idtopico: id
+                }
+            });
+            if (affectedCount === 0) {
+                logger.warn(`Tópico com ID ${id} não encontrado durante a atualização da designação.`);
+                return res.status(404).json({
+                    error: 'Tópico não encontrado.'
+                });
+            }
+        }
+        if (areas) {
+            await updateAreas(id, areas);
+        }
+        const result = await models.topico.findOne({
+            where: {
+                idtopico: id
+            }
+        });
+        if (!result) {
+            logger.warn(`Tópico com ID ${id} não encontrado após a atualização.`);
+            return res.status(404).json({
+                error: 'Tópico não encontrado.'
+            });
+        }
+        result.dataValues.areas = await findAreas(id);
+        logger.info(`Tópico com ID ${id} atualizado com sucesso.`);
+        return res.status(200).json(result);
+    } catch (error) {
+        logger.error(`Erro interno do servidor ao atualizar tópico. Detalhes: ${error.message}`, {
+            stack: error.stack
+        });
+        return res.status(500).json({
+            error: 'Ocorreu um erro interno ao atualizar o tópico.'
+        });
     }
 };
 
