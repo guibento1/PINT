@@ -4,11 +4,11 @@ const router = express.Router();
 
 const notificacaoController = require('../controllers/notificacaoController.js'); 
 
-router.get('/listChannels',authenticateJWT,authorizeRoles('admin'),notificacaoController.listCanais);
+router.get('/list/canais',authenticateJWT,authorizeRoles('admin'),notificacaoController.listCanais);
 router.get('/list/:idCanal',authenticateJWT,authorizeRoles('admin'),notificacaoController.listNotificacoes);
 router.get('/list/subscricoes/:idutilizador',authenticateJWT,notificacaoController.getCanaisInscritos);
-router.post('/creategeneralnotification',authenticateJWT,authorizeRoles('admin'),notificacaoController.criarNotificacaoGeral);
-router.post('/createadminnotification',authenticateJWT,authorizeRoles('admin'),notificacaoController.criarNotificacaoAdministrativa);
-router.post('/createcoursenotification',authenticateJWT,authorizeRoles('admin','formador'),notificacaoController.criarNotificacaoCurso);
+router.post('/create/general',authenticateJWT,authorizeRoles('admin'),notificacaoController.criarNotificacaoGeral);
+router.post('/create/admin',authenticateJWT,authorizeRoles('admin'),notificacaoController.criarNotificacaoAdministrativa);
+router.post('/create/course',authenticateJWT,authorizeRoles('admin','formador'),notificacaoController.criarNotificacaoCurso);
 
 module.exports = router;
