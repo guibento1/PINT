@@ -220,7 +220,10 @@ async function getCursosByTopicos(topicos) {
         const cursos = (data && data.length > 0) ? data.map((entry) => parseInt(entry.curso)) : [];
         return cursos;
     } catch (error) {
-        console.log(error);
+
+        logger.error(`Erro interno no servidor. Detalhes: ${error.message}`, {
+            stack: error.stack
+        });
         throw error;
     }
 }
@@ -242,7 +245,9 @@ async function getCursosByAreas(areas) {
         }
         return [];
     } catch (error) {
-        console.log(error);
+        logger.error(`Erro interno no servidor. Detalhes: ${error.message}`, {
+            stack: error.stack
+        });
         throw error;
     }
 }
@@ -264,7 +269,9 @@ async function getCursosByCategorias(categorias) {
         }
         return [];
     } catch (error) {
-        console.log(error);
+        logger.error(`Erro interno no servidor. Detalhes: ${error.message}`, {
+            stack: error.stack
+        });
         throw error;
     }
 }
@@ -601,6 +608,8 @@ controllers.getCurso = async (req, res) => {
                 if (cursoSincrono) {
                     curso.dataValues.idcrono = cursoSincrono.idcursosincrono;
                 }
+
+                //TODO
             } else {
                 const cursoAssincrono = await models.cursoassincrono.findOne({
                     where: {
