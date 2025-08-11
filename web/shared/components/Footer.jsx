@@ -5,7 +5,7 @@ import linkedin from '../assets/images/linkedin.png';
 
 export default function Footer() {
   return (
-    <footer className="bg-primary text-white py-3 mt-5">
+    <footer className="bg-primary text-white py-3">
       <div className="container d-flex flex-column flex-md-row justify-content-between align-items-start">
         <div className="mb-3 mb-md-0">
           <strong>Problemas?</strong>

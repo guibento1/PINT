@@ -119,7 +119,7 @@ export default function Home() {
             <div className="row g-4">
               {cursos.map((curso) => (
                 <div className="col-sm-6 col-md-4 col-lg-3" key={curso.idcurso}>
-                  <CardCurso
+                  <CardCurso className="shadow border-radius p-2"
                     curso={curso}
                   />
                 </div>
@@ -134,8 +134,8 @@ export default function Home() {
         </div>
 
         <div className="col-lg-3 mt-5 mt-lg-0 d-none d-lg-block">
-          <div className="card border-0 p-1 calendario-widget">
-            <h5 className="mb-3 fw-semibold mb-1">Sabes que dia é hoje?</h5>
+          <div className="card shadow border-radius p-2 calendario-widget">
+            <h5 className="mb-3 fw-semibold mb-1 text-center">Sabes que dia é hoje?</h5>
               <Calendar
                 onChange={setSelectedDate}
                 value={selectedDate}

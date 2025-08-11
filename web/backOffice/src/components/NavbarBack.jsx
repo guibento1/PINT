@@ -49,7 +49,7 @@ export default function NavbarBack() {
           <ul className="navbar-nav align-items-center gap-2 flex-wrap flex-lg-nowrap">
             <li className="nav-item">
               <NavLink
-                to="/"
+                to="/home"
                 className={({ isActive }) => `nav-link fw-semibold ${isActive ? 'active' : ''}`}
                 onClick={fecharMenu}
               >
@@ -113,7 +113,7 @@ export default function NavbarBack() {
               </button>
             </li>
           </ul>
-          ) : <span className="navbar-brand"> ADMIN PANEL </span>
+          ) : <span className="navbar-brand text-primary fw-bold"> ADMIN PANEL </span>
 
           }
         </div>

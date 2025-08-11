@@ -20,12 +20,12 @@ export default function HomeBackOffice() {
             <div className="col-lg-8">
               <div className="row g-4">
                 <div className="col-md-6 col-lg-6"> 
-                  <div className="card h-100">
+                  <div className="card h-100 shadow border-radius">
                     <div className="card-body d-flex flex-column align-items-center justify-content-center">
                       <i className="ri-computer-line"></i>
                       <h5 className="card-title">Cursos</h5>
                       <p className="card-text">Gerir e criar novos cursos</p>
-                      <Link to="/gerircursos" className="btn">
+                      <Link to="/cursos" className="btn">
                         Aceder <i className="ri-arrow-right-line"></i>
                       </Link>
                     </div>
@@ -33,7 +33,7 @@ export default function HomeBackOffice() {
                 </div>
 
                 <div className="col-md-6 col-lg-6"> 
-                  <div className="card h-100">
+                  <div className="card h-100 shadow border-radius">
                     <div className="card-body d-flex flex-column align-items-center justify-content-center">
                       <i className="ri-group-line"></i>
                       <h5 className="card-title">Utilizadores</h5>
@@ -46,7 +46,7 @@ export default function HomeBackOffice() {
                 </div>
 
                 <div className="col-md-6 col-lg-6"> 
-                  <div className="card h-100">
+                  <div className="card h-100 shadow border-radius">
                     <div className="card-body d-flex flex-column align-items-center justify-content-center">
                       <i className="ri-organization-chart-line"></i>
                       <h5 className="card-title">Gerir Estrutura</h5>
@@ -61,7 +61,7 @@ export default function HomeBackOffice() {
             </div>
 
             <div className="col-lg-4 d-none d-lg-block"> 
-              <div className="card">
+              <div className="card shadow border-radius">
                 <div className="card-body">
                   <Calendar />
                 </div>

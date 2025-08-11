@@ -8,7 +8,7 @@ function CardCurso({ curso, disponivel=null, inscrito=null }) {
 
   return (
     <Link to={`/curso/${id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
-      <div className="card h-100 card-sm">
+      <div className="card h-100 card-sm shadow">
         <div className="ratio-box">
           <img
             src={thumbnail || 'https://placehold.co/300x180.png?text=TheSoftskills'}

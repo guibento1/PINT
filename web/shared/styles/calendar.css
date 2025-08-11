@@ -1,3 +1,35 @@
+/* Meses e setas em negrito */
+.calendario-widget {
+  min-width: 350px;
+}
+/* Meses e setas em negrito e maiores */
+.react-calendar__navigation__label {
+  font-weight: bold;
+  font-size: 1.4em;
+}
+.react-calendar__navigation__arrow {
+  font-weight: bold;
+}
+
+/* Dias da semana alinhados com os dias em número */
+.react-calendar__month-view__weekdays {
+  display: flex;
+  justify-content: space-between;
+  text-align: center;
+}
+.react-calendar__month-view__weekdays__weekday {
+  flex: 1;
+  text-align: center;
+  font-weight: 500;
+}
+.react-calendar__month-view__days {
+  display: flex;
+  flex-wrap: wrap;
+}
+.react-calendar__tile {
+  flex: 1 0 14.28%; /* 7 dias por linha */
+  text-align: center;
+}
 .react-calendar {
   width: 100%;
   max-width: 100%;
@@ -9,6 +41,13 @@
   line-height: 1.4;
   padding: 1rem;
   box-shadow: none; /* remove sombra antiga */
+}
+
+.react-calendar__navigation {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
 }
 
 .react-calendar__navigation button {
@@ -40,6 +79,7 @@ abbr[title] {
   border: none;
   padding: 0.75em 0.5em;
   text-align: center;
+  font-size: bold;
 }
 
 .react-calendar__tile:enabled:hover,

@@ -45,6 +45,10 @@ body {
   --shadow-light: rgba(255, 255, 255, 0.08);
 }
 
+.border-radius {
+    border-radius: 30px;
+}
+
 /* =======================================
    🧱 CONTAINERS PADRÃO COM BORDA E RAIO
 ========================================== */
