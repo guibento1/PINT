@@ -498,35 +498,33 @@ controllers.rmCurso = async (req, res) => {
                 error: 'Curso não encontrado.'
             });
         }
-        const cursoSincrono = await models.cursosincrono.findOne({
+        const cursosincrono = await models.cursosincrono.findOne({
             where: {
                 curso: id
             }
         });
+
         if (cursoSincrono) {
-            // TODO: Adicionar lógica para remover curso síncrono.
-            
-            const sessoes = await models.licao.findAll({
+
+            const sessoes = await models.sessao.findAll({
                 where: {
-                    cursoSincrono: cursoSincrono.idCursoSincrono,
+                    cursosincrono: cursosincrono.idcursosincrono,
                 },
-                attributes: [
-                    "idlicao"
-                ]
             });
 
 
             await Promise.all(
                 sessoes.map(async (entry) => {
                     await rmLicao(entry.licao);
-                    sessoes.destroy({where: {idSessao : cursoSincrono.idCursoSincrono }});
+                    await models.sessao.destroy({where: {idsessao : entry.idsessao }});
                 })
             );
 
-            logger.info(`Curso síncrono com ID ${id} encontrado. A remoção precisa de mais lógica.`);
-            return res.status(501).json({
-                error: "Remoção de cursos síncronos ainda não implementada."
+            logger.info(`Curso com ID ${id} removido com sucesso.`);
+            return res.status(200).json({
+                message: "Curso removido com sucesso."
             });
+
         } else {
 
             const licoes = await models.licao.findAll({
@@ -569,9 +567,11 @@ controllers.rmCurso = async (req, res) => {
 };
 
 controllers.getCurso = async (req, res) => {
+
     const {
         id
     } = req.params;
+
     logger.debug(`Recebida requisição para buscar detalhes do curso com ID: ${id}`);
     let acessible = false;
     const admin = req.user.roles.find((roleEntry) => roleEntry.role === "admin")?.id || 0;
@@ -625,11 +625,68 @@ controllers.getCurso = async (req, res) => {
                     },
                     attributes: ["idcursosincrono"]
                 });
-                if (cursoSincrono) {
-                    curso.dataValues.idcrono = cursoSincrono.idcursosincrono;
+
+                curso.dataValues.idcrono = cursoSincrono.idcursosincrono;
+
+
+                const sessoes = await models.sessao.findAll({
+                    where: {
+                        cursosincrono : curso.dataValues.idcrono
+                    },
+                    attributes: [
+                        "idsessao",
+                        "licao",
+                        "linksessao",
+                        "datahora",
+                        "plataformavideoconferencia",
+                        "duracaohoras"
+                    ],
+                });
+
+                if( sessoes != undefined && sessoes != null && sessoes.length > 0) {
+
+
+                    curso.dataValues.sessoes = await Promise.all(
+
+                        sessoes.map(async (sessao) => {
+
+                            const licao = await models.licao.findByPk(sessao.licao);
+                            sessao.dataValues.titulo = licao.titulo;
+                            sessao.dataValues.descricao = licao.descricao;
+
+                            let materiais = await models.licaomaterial.findAll({
+                                where: {
+                                    licao: sessao.licao,
+                                },
+                                attributes: [],
+                                include: [{
+                                    model: models.material,
+                                    as: 'material_material',
+                                    attributes: ['idmaterial', 'titulo', 'referencia', 'tipo'],
+                                }],
+                            });
+
+                            if (materiais) {
+                                materiais = await Promise.all(materiais.map(async (entry) => {
+                                    let out = entry.material_material;
+                                    if (!isLink(out.referencia)) {
+                                        out.dataValues.referencia = await generateSASUrl(out.referencia, 'ficheiroslicao');
+                                    }
+                                    return out;
+                                }));
+                            }
+
+                            sessao.dataValues.materiais = materiais;
+                            return sessao;
+                        })
+
+                    );
+
+
+                } else {
+                    curso.dataValues.sessoes = [];
                 }
 
-                //TODO
             } else {
                 const cursoAssincrono = await models.cursoassincrono.findOne({
                     where: {

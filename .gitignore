@@ -11,11 +11,13 @@ backend/src/logs/*
 web/backOffice/node_modules/
 web/backOffice/package-lock.json
 web/backOffice/dist
+web/backOffice/.env
 
 # Node.js (Frontend - FrontOffice)
 web/frontOffice/node_modules/
 web/frontOffice/package-lock.json
-web/backOffice/dist
+web/frontOffice/dist
+web/frontOffice/.env
 
 
 # Flutter (Frontend - Mobile)

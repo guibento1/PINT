@@ -18,6 +18,19 @@ class _LoginPageState extends State<LoginPage> {
 
   final NotificationService _notificationService = NotificationService();
 
+
+  Future<List<int>?> _fetchUserSubscriptions(String userId) async {
+    try {
+      final response = await Servidor().getData('notificacao/list/subscricoes/$userId');
+      if (response is List && response.isNotEmpty) {
+        return List<int>.from(response);
+      }
+    } catch (e) {
+      print('Error fetching subscriptions: $e');
+    }
+    return null;
+  }
+
   Future<void> _login() async {
 
     bool googleServices = await my_prefs.googleServiceStatus();
@@ -91,17 +104,6 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
-  Future<List<int>?> _fetchUserSubscriptions(String userId) async {
-    try {
-      final response = await Servidor().getData('notificacao/list/subscricoes/$userId');
-      if (response is List && response.isNotEmpty) {
-        return List<int>.from(response);
-      }
-    } catch (e) {
-      print('Error fetching subscriptions: $e');
-    }
-    return null;
-  }
 
   @override
   Widget build(BuildContext context) {
