@@ -8,10 +8,11 @@ import LoginPage from '@shared/views/LoginPage.jsx';
 import ResetPassword from './views/ResetPassword';
 import Cursos from './views/Cursos';
 import Curso from './views/Curso';
-import Perfil from './views/Perfil';
+import Profile from './views/Profile';
 import Home from './views/Home';
 import NaoAutorizado from './views/NaoAutorizado';
-import ProtectedRoute from '@shared/components/ProtectedRoute';
+import ProtectedRoute from '@shared/components/ProtectedRoute.jsx';
+import NotificationsPage from '@shared/views/NotificationsPage.jsx';
 
 function App() {
   return (
@@ -28,6 +29,8 @@ function App() {
           <Route path="/curso/:id" element={<ProtectedRoute allowedRoles={['formando', 'formador']}><Curso /></ProtectedRoute>} />
           <Route path="/perfil" element={<ProtectedRoute allowedRoles={['formando', 'formador']}><Perfil /></ProtectedRoute>} />
           <Route path="/nao-autorizado" element={<NaoAutorizado />} />
+
+          <Route path="/notificacoes" element={<ProtectedRoute allowedRoles={['admin']}><NotificationsPage /></ProtectedRoute>} />
         </Routes>
     </LayoutFront>
     </Router>

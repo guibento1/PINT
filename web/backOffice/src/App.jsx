@@ -3,7 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import LayoutBack from './components/LayoutBack';
 import ProtectedRoute from '../../shared/components/ProtectedRoute';
 import LoginPage from '../../shared/views/LoginPage.jsx';
-import Perfil from '../../shared/views/Perfil.jsx';
+import Profile from '../../shared/views/Profile.jsx';
 
 
 import NaoAutorizado from "./views/NaoAutorizado";
@@ -19,6 +19,7 @@ import EditarArea from './views/editar/EditarArea'
 import EditarCategoria from './views/editar/EditarCategoria'
 import EditarTopico from './views/editar/EditarTopico'
 import EditarCurso from './views/editar/EditarCurso'
+import NotificationsPage from '@shared/views/NotificationsPage.jsx';
 
 
 function App() {
@@ -46,6 +47,8 @@ function App() {
         <Route path="/utilizadores" element={<ProtectedRoute allowedRoles={['admin']}><Utilizadores /></ProtectedRoute>} />
 
         <Route path="/editar/utilizador/:id" element={<ProtectedRoute allowedRoles={['admin']}><EditarUtilizador /></ProtectedRoute>} />
+
+        <Route path="/notificacoes" element={<ProtectedRoute allowedRoles={['admin']}><NotificationsPage /></ProtectedRoute>} />
 
       </Routes>
   </LayoutBack>
