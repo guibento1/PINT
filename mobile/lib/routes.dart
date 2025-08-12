@@ -53,19 +53,23 @@ final rotas = GoRouter(
             return true;
           },
           child: Scaffold(
+            backgroundColor: const Color(0xFF00B0DA),
             body: SafeArea(
-              child: Column(
-                children: [
-                  if (!hideTopBar) const TopHeaderBar(),
-                  Expanded(
-                    child: OfflineWarningWrapper(
-                      offlineMessage: "Está offline, certas funcionalidades podem não funcionar",
-                      bannerColor: Colors.orange,
-                      textStyle: const TextStyle(color: Colors.white, fontSize: 14.0, fontWeight: FontWeight.bold),
-                      child: child, 
+              child: Container(
+                color: const Color(0xFFF6F9FB),
+                child: Column(
+                  children: [
+                    if (!hideTopBar) const TopHeaderBar(),
+                    Expanded(
+                      child: OfflineWarningWrapper(
+                        offlineMessage: "Está offline, certas funcionalidades podem não funcionar",
+                        bannerColor: Colors.orange,
+                        textStyle: const TextStyle(color: Colors.white, fontSize: 14.0, fontWeight: FontWeight.bold),
+                        child: child,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
             bottomNavigationBar: !hideTopBar

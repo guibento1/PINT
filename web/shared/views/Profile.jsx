@@ -1,9 +1,9 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../services/axios.js';
-import Modal from '../components/Modal';
+import Modal from '../components/Modal.jsx';
 
-const Perfil = () => {
+const Profile = () => {
 
     const user = JSON.parse(sessionStorage.getItem('user'));
     const id = user?.id; 
@@ -360,4 +360,4 @@ const Perfil = () => {
     );
 };
 
-export default Perfil;
+export default Profile;
