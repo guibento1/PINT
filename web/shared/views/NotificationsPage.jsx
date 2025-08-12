@@ -3,39 +3,50 @@ import api from "../services/axios.js";
 import "@shared/styles/global.css";
 
 const NotificationsPage = () => {
-  const user = JSON.parse(sessionStorage.getItem("user"));
-  const [notifications, setNotifications] = useState(null); // null = ainda não carregou
+  const [notifications, setNotifications] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  const user = React.useMemo(() => {
+    try {
+      return JSON.parse(sessionStorage.getItem("user"));
+    } catch {
+      return null;
+    }
+  }, []);
+
   const fetchNotifications = async () => {
+    if (!user || !user.id) {
+      setNotifications([]);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
-      const response = await api.get(`/notificacao/list/subscricoes/${user.id}`);
+      const response = await api.get(
+        `/notificacao/list/subscricoes/${user.id}`
+      );
       setNotifications(response.data);
     } catch (error) {
       setError("Não foi possível carregar as notificações.");
-      setNotifications([]);
+      setNotifications(null);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchNotifications(); // Só chama uma vez ao montar
-
+    fetchNotifications();
     const handleNovaNotificacao = () => {
       fetchNotifications();
     };
-
     window.addEventListener("novaNotificacao", handleNovaNotificacao);
-
     return () => {
       window.removeEventListener("novaNotificacao", handleNovaNotificacao);
     };
-  }, [user.id]); 
-  
+  }, [user?.id]);
+
   if (loading) {
     return (
       <div className="container mt-5 text-center">
@@ -44,15 +55,17 @@ const NotificationsPage = () => {
     );
   }
 
-  if (notifications === null) {
-    return (
-      <div className="container mt-5 text-center">Não tem notificações.</div>
-    );
-  }
-
   if (error) {
     return (
       <div className="container mt-5 text-center text-danger">{error}</div>
+    );
+  }
+
+  if (Array.isArray(notifications) && notifications.length === 0) {
+    return (
+      <div className="container mt-5 text-center">
+        Nenhuma notificação recebida.
+      </div>
     );
   }
 

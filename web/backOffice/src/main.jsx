@@ -1,30 +1,29 @@
 // web/frontend/backOffice/src/main.jsx
-import { StrictMode } from 'react';
-import { createRoot } from 'react-dom/client';
-import { messaging } from '../config/firebase';
-import App from './App.jsx';
-import '../../shared/styles/global.css';
-
+import { StrictMode } from "react";
+import { createRoot } from "react-dom/client";
+import { messaging } from "../../shared/config/firebase.js";
+import App from "./App.jsx";
+import "../../shared/styles/global.css";
 
 const urlParams = new URLSearchParams(window.location.search);
-const token = urlParams.get('token');
-const user = urlParams.get('user');
+const token = urlParams.get("token");
+const user = urlParams.get("user");
 
 if (token) {
-  sessionStorage.setItem('token', token);
-  window.history.replaceState({}, document.title, '/'); 
+  sessionStorage.setItem("token", token);
+  window.history.replaceState({}, document.title, "/");
 }
 
 if (user) {
   try {
     const decodedUser = JSON.parse(decodeURIComponent(user));
-    sessionStorage.setItem('user', JSON.stringify(decodedUser));
+    sessionStorage.setItem("user", JSON.stringify(decodedUser));
   } catch (err) {
-    console.error('Erro ao decodificar o user:', err);
+    console.error("Erro ao decodificar o user:", err);
   }
 }
 
-const root = createRoot(document.getElementById('root'));
+const root = createRoot(document.getElementById("root"));
 
 root.render(
   <StrictMode>

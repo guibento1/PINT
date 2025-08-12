@@ -137,6 +137,7 @@ export default function LoginPage({ admin = false }) {
             roles: data.roles,
           })
         );
+        window.dispatchEvent(new Event("loginSucesso"));
 
         setLoginStatus(0);
         handleOpenModal();

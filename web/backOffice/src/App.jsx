@@ -1,7 +1,7 @@
 //web\frontend\backOffice\src\App.jsx
 import React, { useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import { messaging } from "../config/firebase";
+import { messaging } from "../../shared/config/firebase.js";
 import LayoutBack from "./components/LayoutBack";
 import ProtectedRoute from "@shared/components/ProtectedRoute";
 import LoginPage from "@shared/views/LoginPage.jsx";
