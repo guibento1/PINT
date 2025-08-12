@@ -8,7 +8,6 @@ const NotificationsPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
   const fetchNotifications = async () => {
     setLoading(true);
     setError(null);
@@ -23,19 +22,20 @@ const NotificationsPage = () => {
     }
   };
 
-  fetchNotifications();
+  useEffect(() => {
+    fetchNotifications(); // Só chama uma vez ao montar
 
-  const handleNovaNotificacao = () => {
-    fetchNotifications();
-  };
+    const handleNovaNotificacao = () => {
+      fetchNotifications();
+    };
 
-  window.addEventListener("novaNotificacao", handleNovaNotificacao);
+    window.addEventListener("novaNotificacao", handleNovaNotificacao);
 
-  return () => {
-    window.removeEventListener("novaNotificacao", handleNovaNotificacao);
-  };
-}, [user]);
-
+    return () => {
+      window.removeEventListener("novaNotificacao", handleNovaNotificacao);
+    };
+  }, [user.id]); 
+  
   if (loading) {
     return (
       <div className="container mt-5 text-center">

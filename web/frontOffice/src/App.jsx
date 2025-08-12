@@ -86,7 +86,7 @@ function App() {
           <Route
             path="/notificacoes"
             element={
-              <ProtectedRoute allowedRoles={["admin"]}>
+              <ProtectedRoute allowedRoles={["formando", "formador"]}>
                 <NotificationsPage />
               </ProtectedRoute>
             }
