@@ -1,9 +1,9 @@
 //web\frontend\backOffice\src\App.jsx
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import LayoutBack from './components/LayoutBack';
-import ProtectedRoute from '../../shared/components/ProtectedRoute';
-import LoginPage from '../../shared/views/LoginPage.jsx';
-import Perfil from '../../shared/views/Perfil.jsx';
+import ProtectedRoute from '@shared/components/ProtectedRoute';
+import LoginPage from '@shared/views/LoginPage.jsx';
+import Perfil from '@shared/views/Perfil.jsx';
 
 
 import NaoAutorizado from "./views/NaoAutorizado";

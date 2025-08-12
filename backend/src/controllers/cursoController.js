@@ -498,18 +498,37 @@ controllers.rmCurso = async (req, res) => {
                 error: 'Curso não encontrado.'
             });
         }
-        const isSincrono = await models.cursosincrono.findOne({
+        const cursoSincrono = await models.cursosincrono.findOne({
             where: {
                 curso: id
             }
         });
-        if (isSincrono) {
+        if (cursoSincrono) {
             // TODO: Adicionar lógica para remover curso síncrono.
+            
+            const sessoes = await models.licao.findAll({
+                where: {
+                    cursoSincrono: cursoSincrono.idCursoSincrono,
+                },
+                attributes: [
+                    "idlicao"
+                ]
+            });
+
+
+            await Promise.all(
+                sessoes.map(async (entry) => {
+                    await rmLicao(entry.licao);
+                    sessoes.destroy({where: {idSessao : cursoSincrono.idCursoSincrono }});
+                })
+            );
+
             logger.info(`Curso síncrono com ID ${id} encontrado. A remoção precisa de mais lógica.`);
             return res.status(501).json({
                 error: "Remoção de cursos síncronos ainda não implementada."
             });
         } else {
+
             const licoes = await models.licao.findAll({
                 where: {
                     curso: id,
@@ -518,6 +537,7 @@ controllers.rmCurso = async (req, res) => {
                     "idlicao"
                 ]
             });
+
             await Promise.all(
                 licoes.map(async (entry) => {
                     await rmLicao(entry.idlicao);

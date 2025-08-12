@@ -55,6 +55,7 @@ controllers.listNotificacoes = async (req, res) => {
 };
 
 controllers.criarNotificacaoGeral = async (req, res) => {
+
     logger.debug(`Recebida requisição para criar notificação geral. Dados: ${JSON.stringify(req.body)}`);
     const { titulo, conteudo } = req.body;
     if (!titulo || !conteudo) {
@@ -70,7 +71,7 @@ controllers.criarNotificacaoGeral = async (req, res) => {
     };
     try {
         const createdRow = await models.historiconotificacoes.create(insertData);
-        await sendFCMNotification('canal.' + insertData.canal, titulo, conteudo);
+        await sendFCMNotification('canal_' + insertData.canal, titulo, conteudo);
         logger.info(`Notificação geral criada e enviada com sucesso. ID: ${createdRow.idnotificacao}`);
         return res.status(201).json(createdRow);
     } catch (error) {
@@ -99,7 +100,7 @@ controllers.criarNotificacaoAdministrativa = async (req, res) => {
     };
     try {
         const createdRow = await models.historiconotificacoes.create(insertData);
-        await sendFCMNotification('canal.' + insertData.canal, titulo, conteudo);
+        await sendFCMNotification('canal_' + insertData.canal, titulo, conteudo);
         logger.info(`Notificação administrativa criada e enviada com sucesso. ID: ${createdRow.idnotificacao}`);
         return res.status(201).json(createdRow);
     } catch (error) {
@@ -140,7 +141,7 @@ controllers.criarNotificacaoCurso = async (req, res) => {
             conteudo
         };
         const createdRow = await models.historiconotificacoes.create(insertData);
-        await sendFCMNotification('canal.' + insertData.canal, titulo, conteudo);
+        await sendFCMNotification('canal_' + insertData.canal, titulo, conteudo);
         logger.info(`Notificação de curso para o curso ${idcurso} criada e enviada com sucesso. ID: ${createdRow.idnotificacao}`);
         return res.status(201).json(createdRow);
     } catch (error) {
@@ -163,9 +164,20 @@ controllers.getCanaisInscritos = async (req, res) => {
         });
     }
     let canais = [1];
-    if (req.user.roles && req.user.roles.map(roleEntry => roleEntry.role).includes("admin")) {
-        canais.push(2);
+
+    if (
+        req.user.idutilizador == idutilizador && 
+        req.user.roles && 
+        req.user.roles.map(roleEntry => roleEntry.role).includes("admin")
+       ) {
+       canais.push(2);
+    } else {
+      const isAdmin = await models.admin.count({ where: { utilizador: idutilizador, ativo: true }, limit: 1 });
+      if(isAdmin) canais.push(2);
     }
+
+    if(idutilizador == undefined || idutilizador == null) idutilizador = req.user.idutilizador;
+
     try {
         const formando = await models.formando.findOne({
             where: {
