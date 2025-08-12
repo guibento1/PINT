@@ -1,5 +1,5 @@
-import firebase from 'firebase/app';
-import 'firebase/messaging';
+import { initializeApp } from 'firebase/app';
+import { getMessaging } from 'firebase/messaging';
 
 const firebaseConfig = {
   apiKey: "AIzaSyCjhzGENdSl7SHv8G7lYBW36aAj0HBVyxI",
@@ -10,6 +10,5 @@ const firebaseConfig = {
   appId: "1:336298599663:web:37466f1906c3ab1bc0e71a"
 };
 
-firebase.initializeApp(firebaseConfig);
-
-export const messaging = firebase.messaging();
+const app = initializeApp(firebaseConfig);
+export const messaging = getMessaging(app);
