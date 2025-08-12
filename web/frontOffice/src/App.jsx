@@ -8,7 +8,7 @@ import LoginPage from '@shared/views/LoginPage.jsx';
 import ResetPassword from './views/ResetPassword';
 import Cursos from './views/Cursos';
 import Curso from './views/Curso';
-import Perfil from './views/Perfil';
+import Perfil from '@shared/views/Profile';
 import Home from './views/Home';
 import NaoAutorizado from './views/NaoAutorizado';
 import ProtectedRoute from '@shared/components/ProtectedRoute';
