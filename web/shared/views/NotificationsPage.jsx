@@ -8,11 +8,6 @@ const NotificationsPage = () => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    if (!user?.id) {
-      setError("Utilizador não autenticado.");
-      setLoading(false);
-      return;
-    }
     api
       .get(`/notificacoes/utilizador/${user.id}`)
       .then((res) => {

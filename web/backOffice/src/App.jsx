@@ -1,15 +1,10 @@
 //web\frontend\backOffice\src\App.jsx
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { messaging } from '@shared/config/firebase';
 import LayoutBack from './components/LayoutBack';
-<<<<<<< HEAD
-import ProtectedRoute from '../../shared/components/ProtectedRoute';
-import LoginPage from '../../shared/views/LoginPage.jsx';
-import Profile from '../../shared/views/Profile.jsx';
-=======
 import ProtectedRoute from '@shared/components/ProtectedRoute';
 import LoginPage from '@shared/views/LoginPage.jsx';
-import Perfil from '@shared/views/Profile.jsx';
->>>>>>> 88120a6e95cf06a9cd1f38ab05e015184d36911d
+import Profile from '@shared/views/Profile.jsx';
 
 
 import NaoAutorizado from "./views/NaoAutorizado";
@@ -27,6 +22,18 @@ import EditarTopico from './views/editar/EditarTopico'
 import EditarCurso from './views/editar/EditarCurso'
 import NotificationsPage from '@shared/views/NotificationsPage.jsx';
 
+function pedirPermissaoENotificar() {
+  Notification.requestPermission().then(permission => {
+    if (permission === 'granted') {
+      messaging.getToken().then(currentToken => {
+        if (currentToken) {
+          // Guarda o token no backend ou localStorage
+          console.log('Token:', currentToken);
+        }
+      });
+    }
+  });
+}
 
 function App() {
   return (
@@ -37,7 +44,7 @@ function App() {
         <Route path="/" element={<LoginPage admin={true} />} />
         <Route path="/nao-autorizado" element={<NaoAutorizado />} />
         <Route path="/home" element={<ProtectedRoute allowedRoles={['admin']}><Home /></ProtectedRoute>} />
-        <Route path="/perfil" element={<ProtectedRoute allowedRoles={['admin']}><Perfil /></ProtectedRoute>} />
+        <Route path="/profile" element={<ProtectedRoute allowedRoles={['admin']}><Profile /></ProtectedRoute>} />
         <Route path="/gerir-estrutura" element={<ProtectedRoute allowedRoles={['admin']}><GerirEstrutura /></ProtectedRoute>} />
         <Route path="/criar/estrutura" element={<ProtectedRoute allowedRoles={['admin']}><CriarEstrutura /></ProtectedRoute>} />
         <Route path="/criar/curso" element={<ProtectedRoute allowedRoles={['admin']}><CriarCurso /></ProtectedRoute>} />
