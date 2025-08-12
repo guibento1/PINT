@@ -239,7 +239,7 @@ async function sendFCMNotification(topic, title, body, imageUrl = null) {
 
         logger.info(`Attempting to send FCM notification to topic: "${topic}" with title: "${title}".`);
         const accessToken = await getGoogleAuthToken();
-        const fcmEndpoint = process.env.AZURESTORAGE_ACCOUNTNAME + '/messages:send';
+        const fcmEndpoint = process.env.FCM_ENDPOINT + '/messages:send';
 
         const messagePayload = {
             message: {

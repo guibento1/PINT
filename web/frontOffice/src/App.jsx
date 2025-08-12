@@ -8,7 +8,11 @@ import LoginPage from '@shared/views/LoginPage.jsx';
 import ResetPassword from './views/ResetPassword';
 import Cursos from './views/Cursos';
 import Curso from './views/Curso';
+<<<<<<< HEAD
 import Profile from './views/Profile';
+=======
+import Perfil from '@shared/views/Profile';
+>>>>>>> 88120a6e95cf06a9cd1f38ab05e015184d36911d
 import Home from './views/Home';
 import NaoAutorizado from './views/NaoAutorizado';
 import ProtectedRoute from '@shared/components/ProtectedRoute.jsx';
