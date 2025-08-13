@@ -1,7 +1,6 @@
 // web/frontend/backOffice/src/main.jsx
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { messaging } from "../../shared/config/firebase.js";
 import App from "./App.jsx";
 import "../../shared/styles/global.css";
 

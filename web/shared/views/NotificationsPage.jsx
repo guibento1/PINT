@@ -24,10 +24,29 @@ const NotificationsPage = () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await api.get(
+      // Buscar canais do utilizador
+      const canaisResp = await api.get(
         `/notificacao/list/subscricoes/${user.id}`
       );
-      setNotifications(response.data);
+      const canais = Array.isArray(canaisResp.data) ? canaisResp.data : [];
+      let todasNotificacoes = [];
+      // Buscar notificações de cada canal
+      const canaisValidos = canais.filter(c => c.idcanal);
+      for (const canal of canaisValidos) {
+        try {
+          const notifsResp = await api.get(
+            `/notificacao/list/${canal.idcanal}`
+          );
+          if (Array.isArray(notifsResp.data)) {
+            todasNotificacoes = todasNotificacoes.concat(notifsResp.data);
+          }
+        } catch {
+          // Ignorar erro de canal individual
+        }
+      }
+      // Ordenar por data (mais recente primeiro)
+      todasNotificacoes.sort((a, b) => new Date(b.data) - new Date(a.data));
+      setNotifications(todasNotificacoes);
     } catch (error) {
       setError("Não foi possível carregar as notificações.");
       setNotifications(null);
@@ -64,33 +83,126 @@ const NotificationsPage = () => {
   if (Array.isArray(notifications) && notifications.length === 0) {
     return (
       <div className="container mt-5 text-center">
-        Nenhuma notificação recebida.
+        <i
+          className="ri-notifications-off-line text-secondary"
+          style={{ fontSize: "3rem" }}
+        ></i>
+        <div className="mt-3" style={{ fontSize: "1.2rem", color: "#888" }}>
+          Ainda não tem notificações
+        </div>
       </div>
     );
   }
 
-  return (
-    <div className="container py-5">
-      <div className="row g-3 justify-content-center">
-        {notifications.map((notif, idx) => (
-          <div className="col-12 col-md-8" key={notif.idnotificacao || idx}>
-            <div className="card shadow border-radius p-3">
-              <div className="d-flex align-items-center gap-3">
-                <i
-                  className="ri-notification-3-line text-primary"
-                  style={{ fontSize: "2rem" }}
-                ></i>
-                <div>
-                  <h5 className="mb-1">{notif.titulo || "Notificação"}</h5>
-                  <p className="mb-1">{notif.mensagem}</p>
-                  <small className="text-muted">
-                    {new Date(notif.data).toLocaleString("pt-PT")}
-                  </small>
-                </div>
-              </div>
-            </div>
+  // Separar notificações em 'Hoje' e 'Anteriores'
+  const today = new Date();
+  const isToday = (dateStr) => {
+    const d = new Date(dateStr);
+    return (
+      d.getDate() === today.getDate() &&
+      d.getMonth() === today.getMonth() &&
+      d.getFullYear() === today.getFullYear()
+    );
+  };
+  const notificationsToday = notifications.filter((n) => isToday(n.data));
+  const notificationsOlder = notifications.filter((n) => !isToday(n.data));
+
+  // Função para formatar data/hora
+  const formatDateTime = (dateStr) => {
+    const d = new Date(dateStr);
+    const date = d.toLocaleDateString("pt-PT");
+    const time = d.toLocaleTimeString("pt-PT", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+    return `${date} às ${time}`;
+  };
+
+  const SectionTitle = ({ title }) => (
+    <div
+      className="mb-3"
+      style={{ fontSize: "1.15rem", fontWeight: "bold", color: "#1D1B20" }}
+    >
+      {title}
+    </div>
+  );
+
+  const NotificationCard = ({ notif }) => (
+    <div
+      className="card mb-3 shadow-sm border-0"
+      style={{ borderRadius: "16px", background: "#ECECEC" }}
+    >
+      <div className="d-flex align-items-start p-3 gap-3">
+        <div
+          className="d-flex align-items-center justify-content-center"
+          style={{
+            background: "#e3f2fd",
+            borderRadius: "12px",
+            padding: "12px",
+          }}
+        >
+          <i
+            className="ri-notification-3-line text-primary"
+            style={{ fontSize: "2rem" }}
+          ></i>
+        </div>
+        <div className="flex-grow-1">
+          <div
+            style={{
+              fontSize: "1.08rem",
+              fontWeight: "bold",
+              color: "#1D1B20",
+              fontFamily: "ADLaM Display, sans-serif",
+            }}
+          >
+            {notif.titulo || "Notificação"}
           </div>
-        ))}
+          <div
+            style={{
+              fontSize: "0.98rem",
+              color: "#49454F",
+              marginTop: "4px",
+              fontFamily: "Roboto, sans-serif",
+            }}
+          >
+            {notif.mensagem}
+          </div>
+          <div
+            className="text-end mt-2"
+            style={{ fontSize: "0.85rem", color: "#888" }}
+          >
+            {formatDateTime(notif.data)}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  return (
+    <div
+      className="container py-5"
+      style={{ background: "#F6F9FB", minHeight: "70vh" }}
+    >
+      <div className="row justify-content-center">
+        <div className="col-12 col-md-8">
+          {notificationsToday.length > 0 && <SectionTitle title="Hoje" />}
+          {notificationsToday.map((notif, idx) => (
+            <NotificationCard
+              notif={notif}
+              key={notif.idnotificacao || `today-${idx}`}
+            />
+          ))}
+          {notificationsOlder.length > 0 && (
+            <div style={{ height: "24px" }}></div>
+          )}
+          {notificationsOlder.length > 0 && <SectionTitle title="Anteriores" />}
+          {notificationsOlder.map((notif, idx) => (
+            <NotificationCard
+              notif={notif}
+              key={notif.idnotificacao || `old-${idx}`}
+            />
+          ))}
+        </div>
       </div>
     </div>
   );
