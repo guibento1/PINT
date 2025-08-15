@@ -8,9 +8,9 @@ export default function LayoutBack({ children }) {
   const isUnauthorizedPage = location.pathname === '/nao-autorizado';
 
   return (
-    <div className="d-flex flex-column min-vh-100">
+    <div className="app-container">
       {!isUnauthorizedPage && <NavbarBack />}
-      <main className="flex-grow-1">{children}</main>
+      <main>{children}</main>
       <Footer />
     </div>
   );

@@ -153,13 +153,13 @@ export default function NavbarBack() {
                     }
                     onClick={fecharMenu}
                   >
-                    <i className="ri-account-circle-line"></i>{" "}
+                    <i className="ri-account-circle-line text-nowrap"></i>{" "}
                     {user?.nome.split(" ")[0]}
                   </NavLink>
                 </li>
                 <li className="nav-item">
                   <button
-                    className="btn btn-outline-danger fw-semibold rounded-pill px-3"
+                    className="btn btn-custom-logout fw-semibold rounded-pill px-3"
                     onClick={handleLogout}
                   >
                     Sair
