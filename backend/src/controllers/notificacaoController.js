@@ -1,5 +1,5 @@
 const Sequelize = require('sequelize');
-const { sendFCMNotification } = require('../utils.js');
+const { sendNotification, subscribeToCanal, unsubscribeFromCanal } = require('../utils.js');
 var initModels = require("../models/init-models.js");
 var db = require("../database.js");
 var models = initModels(db);
@@ -71,7 +71,7 @@ controllers.criarNotificacaoGeral = async (req, res) => {
     };
     try {
         const createdRow = await models.historiconotificacoes.create(insertData);
-        await sendFCMNotification('canal_' + insertData.canal, titulo, conteudo);
+        await sendNotification('canal_' + insertData.canal, titulo, conteudo);
         logger.info(`Notificação geral criada e enviada com sucesso. ID: ${createdRow.idnotificacao}`);
         return res.status(201).json(createdRow);
     } catch (error) {
@@ -85,6 +85,7 @@ controllers.criarNotificacaoGeral = async (req, res) => {
 };
 
 controllers.criarNotificacaoAdministrativa = async (req, res) => {
+
     logger.debug(`Recebida requisição para criar notificação administrativa. Dados: ${JSON.stringify(req.body)}`);
     const { titulo, conteudo } = req.body;
     if (!titulo || !conteudo) {
@@ -100,7 +101,7 @@ controllers.criarNotificacaoAdministrativa = async (req, res) => {
     };
     try {
         const createdRow = await models.historiconotificacoes.create(insertData);
-        await sendFCMNotification('canal_' + insertData.canal, titulo, conteudo);
+        await sendNotification('canal_' + insertData.canal, titulo, conteudo);
         logger.info(`Notificação administrativa criada e enviada com sucesso. ID: ${createdRow.idnotificacao}`);
         return res.status(201).json(createdRow);
     } catch (error) {
@@ -114,6 +115,7 @@ controllers.criarNotificacaoAdministrativa = async (req, res) => {
 };
 
 controllers.criarNotificacaoCurso = async (req, res) => {
+
     logger.debug(`Recebida requisição para criar notificação de curso. Dados: ${JSON.stringify(req.body)}`);
     const { idcurso, titulo, conteudo } = req.body;
     if (!idcurso || !titulo || !conteudo) {
@@ -141,7 +143,7 @@ controllers.criarNotificacaoCurso = async (req, res) => {
             conteudo
         };
         const createdRow = await models.historiconotificacoes.create(insertData);
-        await sendFCMNotification('canal_' + insertData.canal, titulo, conteudo);
+        await sendNotification('canal_' + insertData.canal, titulo, conteudo);
         logger.info(`Notificação de curso para o curso ${idcurso} criada e enviada com sucesso. ID: ${createdRow.idnotificacao}`);
         return res.status(201).json(createdRow);
     } catch (error) {
@@ -155,6 +157,7 @@ controllers.criarNotificacaoCurso = async (req, res) => {
 };
 
 controllers.getCanaisInscritos = async (req, res) => {
+
     const { idutilizador } = req.params;
     logger.debug(`Recebida requisição para buscar canais inscritos para o utilizador ${idutilizador}`);
     if (req.user.idutilizador != idutilizador && !(req.user.roles && req.user.roles.map(roleEntry => roleEntry.role).includes("admin"))) {
@@ -221,6 +224,66 @@ controllers.getCanaisInscritos = async (req, res) => {
         });
     }
 };
+
+
+controllers.subscribeDeviceToCanais = async (req, res) => {
+
+  const { device } = req.body;
+
+  logger.debug(`Recebida requisição para inscrição automática do dispositivo nos canais. Token: ${device}`);
+
+  if (!device || typeof device !== 'string') {
+    logger.warn(`Token de dispositivo inválido ou ausente na requisição.`);
+    return res.status(400).json({
+      error: 'Campo "device" (string) é obrigatório.'
+    });
+  }
+
+  try {
+
+    const allCanais = await models.canaisutilizadores.findAll({
+      attributes: ['canal'],
+      group: ['canal']
+    });
+
+    const allCanalIds = allCanais.map(c => parseInt(c.canal)).filter(Boolean);
+
+    for (const canal of allCanalIds) {
+      console.log(`canal_${canal}`);
+      await unsubscribeFromCanal(device, `canal_${canal}`); 
+    }
+
+    logger.info(`Dispositivo desinscrito de todos os canais conhecidos: ${allCanalIds.join(', ')}`);
+
+    const canaisDB = await models.canaisutilizadores.findAll({
+      where: { utilizador: req.user.idutilizador }
+    });
+
+    const userCanais = canaisDB.map(c => parseInt(c.canal)).filter(Boolean);
+
+    for (const canal of userCanais) {
+      console.log(`canal_${canal}`);
+      await subscribeToCanal(device, `canal_${canal}`); 
+    }
+
+    logger.info(`Dispositivo inscrito com sucesso nos canais do utilizador: ${userCanais.join(', ')}`);
+    return res.status(200).json({
+      success: true,
+      message: 'Dispositivo desinscrito de canais antigos e inscrito nos canais do utilizador.',
+      canais: userCanais
+    });
+
+  } catch (error) {
+    logger.error(`Erro ao processar inscrição do dispositivo. Detalhes: ${error.message}`, {
+      stack: error.stack
+    });
+    return res.status(500).json({
+      error: 'Erro interno ao processar a inscrição do dispositivo.'
+    });
+  }
+};
+
+
 
 
 module.exports = controllers;

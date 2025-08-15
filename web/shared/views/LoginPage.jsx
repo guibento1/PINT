@@ -5,6 +5,7 @@ import Modal from "@shared/components/Modal.jsx";
 import logoSoftinsa from "../assets/images/softinsaLogo.svg";
 import logoSoftSkills from "../assets/images/thesoftskillsLogo.svg";
 import "@shared/styles/global.css";
+import { subscribeToTopics } from "@shared/services/firebase"
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
@@ -138,6 +139,10 @@ export default function LoginPage({ admin = false }) {
           })
         );
         window.dispatchEvent(new Event("loginSucesso"));
+
+        console.log("starting to subscribe to notifications . . .");
+
+        await subscribeToTopics();
 
         setLoginStatus(0);
         handleOpenModal();

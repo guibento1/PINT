@@ -10,5 +10,6 @@ router.get('/list/subscricoes/:idutilizador',authenticateJWT,notificacaoControll
 router.post('/create/general',authenticateJWT,authorizeRoles('admin'),notificacaoController.criarNotificacaoGeral);
 router.post('/create/admin',authenticateJWT,authorizeRoles('admin'),notificacaoController.criarNotificacaoAdministrativa);
 router.post('/create/course',authenticateJWT,authorizeRoles('admin','formador'),notificacaoController.criarNotificacaoCurso);
+router.post('/devicesub',authenticateJWT,notificacaoController.subscribeDeviceToCanais);
 
 module.exports = router;
