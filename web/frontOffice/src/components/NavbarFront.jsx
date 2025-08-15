@@ -6,6 +6,7 @@ import logoSoftinsa from "../../../shared/assets/images/softinsaLogo.svg";
 import logoSoftskills from "../../../shared/assets/images/thesoftskillsLogo.svg";
 import useUserRole from "../../../shared/hooks/useUserRole";
 
+
 export default function NavbarFront() {
   const location = useLocation();
 
