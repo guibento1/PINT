@@ -2,9 +2,19 @@
    🌐 VARIÁVEIS GLOBAIS DE TEMA
 ================================== */
 
-body {
+html, body {
   color: var(--text-dark);
-  background-color: var(--background-light); /* Adicionado para um fundo geral mais claro */
+  background-color: var(
+    --background-light
+  ); /* Adicionado para um fundo geral mais claro */
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+main {
+  flex: 1;
+  min-height: 100vh;
 }
 
 :root {
@@ -23,6 +33,12 @@ body {
   --border-light: #e0e0e0; /* Borda clara para elementos como cartões */
   --border-medium: #ced4da; /* Borda um pouco mais escura (gray-light original) */
   --shadow-light: rgba(0, 0, 0, 0.08); /* Sombra suave para os cartões */
+}
+
+.app-container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
 .dark {
@@ -46,7 +62,7 @@ body {
 }
 
 .border-radius {
-    border-radius: 30px;
+  border-radius: 30px;
 }
 
 /* =======================================
@@ -70,7 +86,6 @@ body {
   text-align: center;
   box-shadow: 0 2px 4px var(--shadow-light); /* Adicionado sombra */
 }
-
 
 /* ================================
    🔘 BOTÕES
@@ -143,6 +158,18 @@ body {
   border-color: var(--softinsa-blue); /* Alinhar com o tema */
 }
 
+.btn-custom-logout {
+  color: #ff0004;
+  border: 1.5px solid #ff0004;
+  background-color: transparent;
+  transition: background-color 0.2s, color 0.2s;
+}
+.btn-custom-logout:hover,
+.btn-custom-logout:focus {
+  background-color: #ff0004;
+  color: #fff;
+  border-color: #ff0004;
+}
 
 /* ================================
    🔗 LINKS
@@ -195,31 +222,31 @@ a {
   /* filter: brightness(0) invert(1); */
 }
 
-
 /* ================================
    👤 USUÁRIO SEMPRE VISÍVEL
 ================================== */
 
 /* Ajuste para os ícones dentro dos NavLinks na Navbar para que fiquem bem */
 .navbar-nav .nav-link i {
-    font-size: 1.3rem; /* Tamanho ligeiramente maior para os ícones */
-    vertical-align: middle; /* Ajuda a alinhar o ícone com o texto */
-    line-height: 1; /* Para evitar problemas de altura da linha */
-    display: inline-block; /* Garante que as propriedades de alinhamento funcionem */
-    margin-right: 0.25rem; /* Pequena margem à direita do ícone */
-    color: var(--header-text-light); /* Cor branca para ícones normais na navbar */
+  font-size: 1.3rem; /* Tamanho ligeiramente maior para os ícones */
+  vertical-align: middle; /* Ajuda a alinhar o ícone com o texto */
+  line-height: 1; /* Para evitar problemas de altura da linha */
+  display: inline-block; /* Garante que as propriedades de alinhamento funcionem */
+  margin-right: 0.25rem; /* Pequena margem à direita do ícone */
+  color: var(
+    --header-text-light
+  ); /* Cor branca para ícones normais na navbar */
 }
 
 /* Para o ícone de notificação que tem um ponto, ajustar se necessário */
 .navbar-nav .nav-item .ri-notification-line {
-    color: var(--header-text-light); /* Ícone branco */
+  color: var(--header-text-light); /* Ícone branco */
 }
-
 
 /* Estilo específico para o ícone de perfil */
 .navbar-nav .nav-link .ri-account-circle-fill {
-    color: var(--softinsa-blue); /* Ícone azul do perfil */
-    font-size: 1.5rem; /* Pode ser maior para o perfil */
+  color: var(--softinsa-blue); /* Ícone azul do perfil */
+  font-size: 1.5rem; /* Pode ser maior para o perfil */
 }
 
 /* ================================
@@ -249,30 +276,37 @@ nav.navbar {
 
 /* Alinhar verticalmente os itens da navbar */
 .navbar-nav {
-    align-items: center !important; /* Centraliza verticalmente os nav-items */
+  align-items: center !important; /* Centraliza verticalmente os nav-items */
 }
 
 .navbar-nav .nav-item {
-    height: 100%; /* Garante que os itens ocupam a altura total para alinhamento */
-    display: flex; /* Permite alinhar conteúdo dentro do nav-item */
-    align-items: center; /* Centraliza o conteúdo (NavLink) dentro do nav-item */
+  height: 100%; /* Garante que os itens ocupam a altura total para alinhamento */
+  display: flex; /* Permite alinhar conteúdo dentro do nav-item */
+  align-items: center; /* Centraliza o conteúdo (NavLink) dentro do nav-item */
 }
 
 .navbar-nav .nav-link {
-    /* ... (seu código nav-link anterior) ... */
-    display: flex; /* Para alinhar o texto e o ícone dentro do NavLink */
-    align-items: center; /* Alinha o texto e o ícone */
-    gap: 0.25rem; /* Pequeno espaçamento entre o ícone e o texto */
+  /* ... (seu código nav-link anterior) ... */
+  display: flex; /* Para alinhar o texto e o ícone dentro do NavLink */
+  align-items: center; /* Alinha o texto e o ícone */
+  gap: 0.25rem; /* Pequeno espaçamento entre o ícone e o texto */
 }
 
 /* Ajustes para o botão "Sair" e "Login/Registar" na navbar */
 .navbar-nav .nav-item .btn {
-    /* Garantir que os botões na navbar não herdem estilos indesejados */
-    height: auto; /* Deixa o Bootstrap gerir a altura do botão */
-    padding-top: 0.4rem; /* Garante padding consistente */
-    padding-bottom: 0.4rem;
+  /* Garantir que os botões na navbar não herdem estilos indesejados */
+  height: auto; /* Deixa o Bootstrap gerir a altura do botão */
+  padding-top: 0.4rem; /* Garante padding consistente */
+  padding-bottom: 0.4rem;
 }
 
+.navbar-bg-custom-red {
+  background-color: #ff0004;
+}
+
+.navbar-bg-custom-blue {
+  background-color: #00b0da;
+}
 
 /* ================================
    🦶 LINKS
@@ -283,18 +317,19 @@ a {
   text-decoration: none;
 }
 
-
 /* ================================
    🦶 FOOTER
 ================================== */
 
 footer {
-  background-color: var(--softinsa-blue-dark); /* Azul mais escuro para o footer */
+  background-color: var(
+    --softinsa-blue-dark
+  ); /* Azul mais escuro para o footer */
   font-size: 0.85rem;
-  border-top-left-radius: 15px;
-  border-top-right-radius: 15px;
+  border-top-left-radius: 30px;
+  border-top-right-radius: 30px;
   color: var(--text-light); /* Texto branco no footer */
-  padding: 1.5rem 0; /* Adicionado padding para mais espaço */
+  margin-top: auto;
 }
 
 @media (max-width: 768px) {
@@ -336,7 +371,6 @@ footer {
   background-color: var(--softinsa-blue); /* Azul principal no hover */
   color: var(--text-light);
 }
-
 
 /* =======================================
    🧱 GRUPO DE BOTÕES RESPONSIVO
@@ -382,7 +416,6 @@ footer {
   background-color: var(--border-light); /* Um pouco mais escuro no hover */
 }
 
-
 /* =======================================
    🛠️ BOTÃO QUE SE ADAPTA AO CONTEÚDO (SEM FORÇAR WIDTH)
 ========================================== */
@@ -408,11 +441,9 @@ footer {
   color: var(--text-light);
 }
 
-
 /* =======================================
    🛠️ Modal
 ========================================== */
-
 
 .modal-overlay {
   position: fixed;
@@ -439,7 +470,6 @@ footer {
   animation-duration: 0.3s;
 }
 
-
 @media (max-width: 576px) {
   .modal-content-box {
     width: 95%;
@@ -447,11 +477,9 @@ footer {
   }
 }
 
-
 /* =======================================
    🛠️ CardCurso
 ========================================== */
-
 
 .ratio-box {
   position: relative;
@@ -460,7 +488,9 @@ footer {
   overflow: hidden;
   border-top-left-radius: 0.375rem;
   border-top-right-radius: 0.375rem;
-  background-color: var(--background-light); /* Fundo claro para o placeholder */
+  background-color: var(
+    --background-light
+  ); /* Fundo claro para o placeholder */
 }
 
 .ratio-img {
@@ -477,117 +507,130 @@ footer {
 ========================================== */
 
 /* Estilo para os "botões" de Tópicos */
-.btn.btn-primary { /* Alvo os botões com .btn e .btn-primary */
-    background-color: var(--softinsa-blue); /* Azul vibrante */
-    color: var(--text-light);
-    border-radius: 50px; /* Mais arredondado, estilo pílula */
-    padding: 0.3rem 1rem; /* Padding ajustado */
-    font-size: 0.9rem;
-    font-weight: 500;
-    border: none;
-    transition: all 0.2s ease;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); /* Sombra suave */
+.btn.btn-primary {
+  /* Alvo os botões com .btn e .btn-primary */
+  background-color: var(--softinsa-blue); /* Azul vibrante */
+  color: var(--text-light);
+  border-radius: 50px; /* Mais arredondado, estilo pílula */
+  padding: 0.3rem 1rem; /* Padding ajustado */
+  font-size: 0.9rem;
+  font-weight: 500;
+  border: none;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); /* Sombra suave */
 }
 
 .btn.btn-primary:hover {
-    background-color: var(--softinsa-blue-light);
-    transform: translateY(-1px); /* Pequeno efeito de elevação */
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15); /* Sombra mais proeminente */
+  background-color: var(--softinsa-blue-light);
+  transform: translateY(-1px); /* Pequeno efeito de elevação */
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15); /* Sombra mais proeminente */
 }
 
 /* Estilo para os links "Mostrar mais/menos" */
 .btn-link.mt-2 {
-    color: var(--softinsa-blue); /* Azul Softinsa para links */
-    font-weight: 500;
-    text-decoration: none;
-    transition: color 0.2s ease;
+  color: var(--softinsa-blue); /* Azul Softinsa para links */
+  font-weight: 500;
+  text-decoration: none;
+  transition: color 0.2s ease;
 }
 
 .btn-link.mt-2:hover {
-    color: var(--softinsa-blue-dark);
-    text-decoration: underline;
+  color: var(--softinsa-blue-dark);
+  text-decoration: underline;
 }
 
 /* Estilo para as lições (list-group-item) */
 .list-group-item.list-group-item-action {
-    background-color: var(--card-bg);
-    border: 1px solid var(--border-light);
-    border-radius: 15px; /* Bordas arredondadas */
-    padding: 1.25rem 1.5rem; /* Mais padding */
-    transition: all 0.2s ease;
-    box-shadow: 0 2px 5px var(--shadow-light); /* Sombra sutil */
+  background-color: var(--card-bg);
+  border: 1px solid var(--border-light);
+  border-radius: 15px; /* Bordas arredondadas */
+  padding: 1.25rem 1.5rem; /* Mais padding */
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 5px var(--shadow-light); /* Sombra sutil */
 }
 
 .list-group-item.list-group-item-action:hover {
-    background-color: var(--background-light); /* Levemente mais escuro no hover */
-    transform: translateY(-2px); /* Efeito de elevação */
-    box-shadow: 0 4px 8px var(--shadow-light);
+  background-color: var(
+    --background-light
+  ); /* Levemente mais escuro no hover */
+  transform: translateY(-2px); /* Efeito de elevação */
+  box-shadow: 0 4px 8px var(--shadow-light);
 }
 
 /* Estilo para os ícones de expansão/colapso nas lições */
 .list-group-item small.text-muted i {
-    font-size: 1.2em; /* Tamanho do ícone */
-    color: var(--text-muted); /* Cor para ser discreto */
-    transition: transform 0.2s ease;
+  font-size: 1.2em; /* Tamanho do ícone */
+  color: var(--text-muted); /* Cor para ser discreto */
+  transition: transform 0.2s ease;
 }
 
 .list-group-item small.text-muted i.ri-arrow-up-s-line {
-    transform: rotate(0deg); /* Garante que a seta para cima não esteja rodada */
+  transform: rotate(0deg); /* Garante que a seta para cima não esteja rodada */
 }
 
 .list-group-item small.text-muted i.ri-arrow-down-s-line {
-    transform: rotate(0deg); /* Garante que a seta para baixo não esteja rodada */
+  transform: rotate(0deg); /* Garante que a seta para baixo não esteja rodada */
 }
-
 
 /* Estilo para os títulos das lições */
 .list-group-item h5 {
-    color: var(--text-dark); /* Cor de texto principal */
-    font-weight: 600;
+  color: var(--text-dark); /* Cor de texto principal */
+  font-weight: 600;
 }
 
 /* Estilo para os materiais da lição (sub-itens) */
 .list-group-item ul.list-unstyled {
-    margin-top: 1rem;
-    padding-left: 0; /* Remover padding padrão da lista */
+  margin-top: 1rem;
+  padding-left: 0; /* Remover padding padrão da lista */
 }
 
 .list-group-item ul.list-unstyled li {
-    display: flex;
-    align-items: center;
-    margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  margin-bottom: 0.5rem;
 }
 
 .list-group-item ul.list-unstyled li i {
-    font-size: 1.1rem; /* Tamanho do ícone do material */
-    color: var(--softinsa-blue); /* Cor do ícone */
-    margin-right: 0.5rem;
+  font-size: 1.1rem; /* Tamanho do ícone do material */
+  color: var(--softinsa-blue); /* Cor do ícone */
+  margin-right: 0.5rem;
 }
 
 .list-group-item ul.list-unstyled li a {
-    color: var(--text-dark); /* Cor do link */
-    font-weight: 500;
-    transition: color 0.2s ease;
+  color: var(--text-dark); /* Cor do link */
+  font-weight: 500;
+  transition: color 0.2s ease;
 }
 
 .list-group-item ul.list-unstyled li a:hover {
-    color: var(--softinsa-blue); /* Cor no hover do link */
+  color: var(--softinsa-blue); /* Cor no hover do link */
 }
 
 /* Ajustes gerais de padding e margem para consistência */
 .container.mt-5 {
-    padding-top: 3rem !important; /* Mais padding no topo para o conteúdo principal */
-    padding-bottom: 3rem !important; /* Padding na parte inferior */
+  padding-top: 3rem !important; /* Mais padding no topo para o conteúdo principal */
+  padding-bottom: 3rem !important; /* Padding na parte inferior */
 }
 
-.h1, .h2, .h3, .h4, .h5, .h6, h1, h2, h3, h4, h5, h6 {
-    color: var(--text-dark); /* Cores dos títulos */
+.h1,
+.h2,
+.h3,
+.h4,
+.h5,
+.h6,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  color: var(--text-dark); /* Cores dos títulos */
 }
 
 .static-button {
   /* Anula o comportamento padrão do botão no hover */
   pointer-events: none; /* Desativa completamente eventos do rato nesta div */
-  cursor: default;     /* Define o cursor para o padrão */
+  cursor: default; /* Define o cursor para o padrão */
   opacity: 1 !important; /* Garante que a opacidade não muda se houver transições */
   box-shadow: none !important; /* Remove qualquer sombra de foco/hover */
   transform: none !important; /* Evita qualquer transição de transformação */
@@ -609,13 +652,12 @@ footer {
   transform: none !important;
 }
 
-
 .accordion-button:focus {
-    outline: 0;
-    box-shadow: none;
+  outline: 0;
+  box-shadow: none;
 }
 .accordion-button:not(.collapsed) {
-    background-color: transparent;
-    color: #212529;
-    box-shadow: none;
+  background-color: transparent;
+  color: #212529;
+  box-shadow: none;
 }

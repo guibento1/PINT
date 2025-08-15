@@ -6,9 +6,9 @@ import Footer from '../../../shared/components/Footer';
 export default function LayoutFront({ children }) {
 
   return (
-    <div className="d-flex flex-column min-vh-100">
+    <div className="app-container">
       <NavbarFront />
-        <main className="flex-grow-1">{children}</main>
+        <main>{children}</main>
       <Footer />
     </div>
   );

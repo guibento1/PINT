@@ -151,7 +151,7 @@ export default function NavbarFront() {
                       </NavLink>
                     </li>
                   )}
-                  <li className="nav-item">
+                  <li className="nav-item text-nowrap">
                     <NavLink
                       to="/perfil"
                       className={({ isActive }) =>
@@ -164,7 +164,7 @@ export default function NavbarFront() {
                   </li>
                   <li className="nav-item">
                     <button
-                      className="btn btn-outline-danger fw-semibold rounded-pill px-3"
+                      className="btn btn-custom-logout fw-semibold rounded-pill px-3"
                       onClick={handleLogout}
                     >
                       Sair
