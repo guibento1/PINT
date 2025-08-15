@@ -5,6 +5,7 @@ const formData = require('form-data');
 const axios = require('axios');
 const { GoogleAuth } = require('google-auth-library');
 const logger = require('./logger');
+const firebaseAdmin = require('../config/firebaseAdmin.js');
 
 require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
 
@@ -230,56 +231,72 @@ async function getGoogleAuthToken() {
     }
 }
 
-async function sendFCMNotification(topic, title, body, imageUrl = null) {
-    try {
-        if (typeof topic !== 'string' || typeof title !== 'string' || typeof body !== 'string') {
-            logger.warn('Invalid input data types for FCM notification.', { topic, title, body });
-            throw new Error('Invalid input data types');
-        }
-
-        logger.info(`Attempting to send FCM notification to topic: "${topic}" with title: "${title}".`);
-        const accessToken = await getGoogleAuthToken();
-        const fcmEndpoint = process.env.FCM_ENDPOINT + '/messages:send';
-
-        const messagePayload = {
-            message: {
-                topic: topic,
-                notification: {
-                    title: title,
-                    body: body,
-                },
-            },
-        };
-
-        if (imageUrl) {
-            messagePayload.message.notification.imageUrl = imageUrl;
-            logger.debug(`FCM notification includes image URL: ${imageUrl}`);
-        }
-
-        logger.debug('FCM message payload:', messagePayload); 
-
-        const response = await axios.post(fcmEndpoint, messagePayload, {
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${accessToken}`,
-            },
-        });
-
-        logger.info(`FCM notification sent successfully to topic: "${topic}".`, {
-            response: response.data
-        });
-        return response.data;
-    } catch (error) {
-        const errorDetails = error.response ? error.response.data.error.details : error.message;
-        logger.error(`Error sending FCM notification to topic "${topic}": ${error.message}`, {
-            topic,
-            title,
-            body,
-            fcmError: errorDetails,
-            stack: error.stack
-        });
-        throw error;
+async function sendNotification(topic, title, body, imageUrl = null) {
+  try {
+    if (typeof topic !== 'string' || typeof title !== 'string' || typeof body !== 'string') {
+      logger.warn('Invalid input data types for FCM notification.', { topic, title, body });
+      throw new Error('Invalid input data types');
     }
+
+    const message = {
+      notification: {
+        title,
+        body,
+        ...(imageUrl && { imageUrl }),
+      },
+      topic,
+    };
+
+    logger.debug('FCM message payload:', message);
+
+    const response = await firebaseAdmin.messaging().send(message);
+
+    logger.info(`FCM notification sent successfully to topic: "${topic}".`, {
+      messageId: response,
+    });
+
+    return response;
+
+  } catch (error) {
+    logger.error(`Error sending FCM notification to topic "${topic}": ${error.message}`, {
+      topic,
+      title,
+      body,
+      stack: error.stack,
+    });
+    throw error;
+  }
 }
 
-module.exports = { isLink, uploadFile, deleteFile, updateFile, generateSASUrl, sendEmail, sendFCMNotification };
+
+
+async function subscribeToCanal(deviceTokens, topic) {
+  try {
+    const response = await firebaseAdmin.messaging().subscribeToTopic(deviceTokens, topic);
+    logger.info(`Subscribed ${deviceTokens.length} token(s) to topic "${topic}".`, response);
+    return response;
+  } catch (error) {
+    logger.error(`Error subscribing tokens to topic "${topic}": ${error.message}`, {
+      tokens: deviceTokens,
+      stack: error.stack,
+    });
+    throw error;
+  }
+}
+
+
+async function unsubscribeFromCanal(deviceTokens, topic) {
+  try {
+    const response = await firebaseAdmin.messaging().unsubscribeFromTopic(deviceTokens, topic);
+    logger.info(`Unsubscribed ${deviceTokens.length} token(s) from topic "${topic}".`, response);
+    return response;
+  } catch (error) {
+    logger.error(`Error unsubscribing tokens from topic "${topic}": ${error.message}`, {
+      tokens: deviceTokens,
+      stack: error.stack,
+    });
+    throw error;
+  }
+}
+
+module.exports = { isLink, uploadFile, deleteFile, updateFile, generateSASUrl, sendEmail, sendNotification, subscribeToCanal, unsubscribeFromCanal};
