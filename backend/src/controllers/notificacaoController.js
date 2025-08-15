@@ -230,9 +230,9 @@ controllers.subscribeDeviceToCanais = async (req, res) => {
 
   const { device } = req.body;
 
-  logger.debug(`Recebida requisição para inscrição automática do dispositivo nos canais. Token: ${deviceToken}`);
+  logger.debug(`Recebida requisição para inscrição automática do dispositivo nos canais. Token: ${device}`);
 
-  if (!deviceToken || typeof deviceToken !== 'string') {
+  if (!device || typeof device !== 'string') {
     logger.warn(`Token de dispositivo inválido ou ausente na requisição.`);
     return res.status(400).json({
       error: 'Campo "device" (string) é obrigatório.'
@@ -249,7 +249,8 @@ controllers.subscribeDeviceToCanais = async (req, res) => {
     const allCanalIds = allCanais.map(c => parseInt(c.canal)).filter(Boolean);
 
     for (const canal of allCanalIds) {
-      await unsubscribeFromCanal(deviceToken, canal); 
+      console.log(`canal_${canal}`);
+      await unsubscribeFromCanal(device, `canal_${canal}`); 
     }
 
     logger.info(`Dispositivo desinscrito de todos os canais conhecidos: ${allCanalIds.join(', ')}`);
@@ -261,7 +262,8 @@ controllers.subscribeDeviceToCanais = async (req, res) => {
     const userCanais = canaisDB.map(c => parseInt(c.canal)).filter(Boolean);
 
     for (const canal of userCanais) {
-      await subscribeToCanal(deviceToken, canal); 
+      console.log(`canal_${canal}`);
+      await subscribeToCanal(device, `canal_${canal}`); 
     }
 
     logger.info(`Dispositivo inscrito com sucesso nos canais do utilizador: ${userCanais.join(', ')}`);

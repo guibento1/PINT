@@ -1,7 +1,7 @@
 // web/frontend/backOffice/src/main.jsx
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { messaging } from '../config/firebase';
+import { messaging, getToken, onMessage } from "@shared/services/firebase";
 import App from './App.jsx';
 import '../../shared/styles/global.css';
 
@@ -9,6 +9,10 @@ import '../../shared/styles/global.css';
 const urlParams = new URLSearchParams(window.location.search);
 const token = urlParams.get('token');
 const user = urlParams.get('user');
+
+onMessage(messaging, (payload) => {
+  console.log('Foreground message received:', payload);
+});
 
 if (token) {
   sessionStorage.setItem('token', token);
@@ -31,3 +35,14 @@ root.render(
     <App />
   </StrictMode>
 );
+
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/firebase-messaging-sw.js')
+    .then((registration) => {
+      console.log('Service Worker registered:', registration);
+    })
+    .catch((error) => {
+      console.error('Service Worker registration failed:', error);
+    });
+};

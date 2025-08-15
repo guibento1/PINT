@@ -1,7 +1,6 @@
 // web\frontend\frontOffice\src\App.jsx
 import React, { useEffect } from "react";
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
-import { messaging } from "../config/firebase";
 import LayoutFront from "./components/LayoutFront";
 import Profile from "@shared/views/Profile.jsx";
 
@@ -16,29 +15,7 @@ import NaoAutorizado from "./views/NaoAutorizado";
 import ProtectedRoute from "@shared/components/ProtectedRoute.jsx";
 import NotificationsPage from "@shared/views/NotificationsPage.jsx";
 
-function pedirPermissaoENotificar() {
-  Notification.requestPermission().then((permission) => {
-    if (permission === "granted") {
-      messaging.getToken().then((currentToken) => {
-        if (currentToken) {
-          // Guarda o token no backend ou localStorage
-          console.log("Token:", currentToken);
-        }
-      });
-    }
-  });
-}
-
 function App() {
-  useEffect(() => {
-    if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.addEventListener("message", (event) => {
-        if (event.data && event.data.type === "novaNotificacao") {
-          window.dispatchEvent(new Event("novaNotificacao"));
-        }
-      });
-    }
-  }, []);
 
   return (
     <Router>
