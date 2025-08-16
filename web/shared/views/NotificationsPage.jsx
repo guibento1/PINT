@@ -24,30 +24,57 @@ const NotificationsPage = () => {
     setLoading(true);
     setError(null);
     try {
-      // Buscar canais do utilizador
+      // 1. Buscar canais do utilizador (pode retornar array de números OU objetos)
       const canaisResp = await api.get(
         `/notificacao/list/subscricoes/${user.id}`
       );
-      const canais = Array.isArray(canaisResp.data) ? canaisResp.data : [];
+      const rawCanais = Array.isArray(canaisResp.data) ? canaisResp.data : [];
+
+      // Normalizar para array de IDs
+      const canalIds = rawCanais
+        .map((c) => {
+          if (typeof c === "number") return c;
+          if (c && typeof c === "object") return c.idcanal || c.canal || c.id; // fallback de chaves possíveis
+          return null;
+        })
+        .filter(Boolean);
+
+      // Evitar pedidos duplicados
+      const uniqueCanalIds = [...new Set(canalIds)];
+
       let todasNotificacoes = [];
-      // Buscar notificações de cada canal
-      const canaisValidos = canais.filter(c => c.idcanal);
-      for (const canal of canaisValidos) {
+      // 2. Buscar notificações de cada canal
+      for (const canalId of uniqueCanalIds) {
         try {
-          const notifsResp = await api.get(
-            `/notificacao/list/${canal.idcanal}`
-          );
+          const notifsResp = await api.get(`/notificacao/list/${canalId}`);
           if (Array.isArray(notifsResp.data)) {
-            todasNotificacoes = todasNotificacoes.concat(notifsResp.data);
+            todasNotificacoes = todasNotificacoes.concat(
+              notifsResp.data.map((n) => ({ ...n, canal: n.canal || canalId }))
+            );
           }
-        } catch {
-          // Ignorar erro de canal individual
+        } catch (e) {
+          // Ignorar falha de canal individual mas registar
+          console.warn(`Falha ao carregar notificações do canal ${canalId}`, e);
         }
       }
-      // Ordenar por data (mais recente primeiro)
-      todasNotificacoes.sort((a, b) => new Date(b.data) - new Date(a.data));
-      setNotifications(todasNotificacoes);
+
+      // 3. Normalizar campos (backend pode enviar conteudo vs mensagem, data vs createdAt)
+      const normalizadas = todasNotificacoes.map((n) => ({
+        ...n,
+        mensagem: n.mensagem || n.conteudo || n.body || "",
+        data: n.data || n.createdAt || n.updatedAt || null,
+      }));
+
+      // 4. Filtrar sem data (colocar ao fim) e ordenar
+      normalizadas.sort((a, b) => {
+        const da = a.data ? new Date(a.data).getTime() : 0;
+        const db = b.data ? new Date(b.data).getTime() : 0;
+        return db - da; // descendente
+      });
+
+      setNotifications(normalizadas);
     } catch (error) {
+      console.error(error);
       setError("Não foi possível carregar as notificações.");
       setNotifications(null);
     } finally {
@@ -104,8 +131,12 @@ const NotificationsPage = () => {
       d.getFullYear() === today.getFullYear()
     );
   };
-  const notificationsToday = notifications.filter((n) => isToday(n.data));
-  const notificationsOlder = notifications.filter((n) => !isToday(n.data));
+  const notificationsToday = notifications.filter(
+    (n) => n.data && isToday(n.data)
+  );
+  const notificationsOlder = notifications.filter(
+    (n) => !n.data || !isToday(n.data)
+  );
 
   // Função para formatar data/hora
   const formatDateTime = (dateStr) => {
@@ -165,7 +196,7 @@ const NotificationsPage = () => {
               fontFamily: "Roboto, sans-serif",
             }}
           >
-            {notif.mensagem}
+            {notif.mensagem || notif.conteudo || "—"}
           </div>
           <div
             className="text-end mt-2"
