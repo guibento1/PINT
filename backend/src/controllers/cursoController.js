@@ -6,7 +6,8 @@ const {
     updateFile,
     deleteFile,
     generateSASUrl,
-    isLink
+    isLink,
+    sendEmail
 } = require('../utils.js');
 const logger = require('../logger.js');
 
@@ -979,6 +980,11 @@ controllers.inscreverCurso = async (req, res) => {
         };
         await models.inscricao.create(insertData);
         logger.info(`Utilizador ${idDoUtilizadorParaInscricao} inscrito no curso ${id} com sucesso.`);
+        sendEmail({
+            to: req.user.email,
+            subject: 'Inscrição confirmada',
+            text: `Você foi inscrito no curso ${cursoEncontrado.nome}.`
+        });
         return res.status(201).json({
             message: 'Inscrição realizada com sucesso!'
         });
