@@ -20,6 +20,7 @@
       <a href="#tecnologias">Tecnologias</a>
       <a href="#galeria">Galeria</a>
       <a href="#equipa">Equipa</a>
+      <a href="#documentação">Documentação</a>
       <a href="#contactos">Contactos</a>
     </nav>
   </header>
@@ -53,19 +54,42 @@
       </ul>
     </section>
 
-    <section id="galeria">
-      <h2>Galeria</h2>
-      <p>Imagens e demonstrações do funcionamento da plataforma (a inserir futuramente).</p>
-    </section>
+<section id="galeria">
+  <h2>Galeria</h2>
+  <p>Algumas imagens da aplicação The SoftSkills:</p>
+  <div class="galeria-grid">
+    <div class="imagem">
+      <img src="imagens/login.png" alt="Ecrã de Login">
+      <p>Login</p>
+    </div>
+    <div class="imagem">
+      <img src="imagens/Pesquisa de cursos.png" alt="Pesquisa de Cursos">
+      <p>Pesquisa de Cursos</p>
+    </div>
+    <div class="imagem">
+      <img src="imagens/listagem de cursos.png" alt="Listagem de Cursos">
+      <p>Listagem de Cursos</p>
+    </div>
+    
+  </div>
+</section>
+
 
     <section id="equipa">
       <h2>Equipa de Desenvolvimento</h2>
       <ul>
         <li>Tiago Portugal nº30816 – All in</li>
         <li>César Cabral nº6802</li>
-        <li>Guilherme Bento</li>
-        <li>Lucas Santos</li>
+        <li>Guilherme Bento nº25193</li>
+        <li>Lucas Santos nº27440</li>
       </ul>
+    </section>
+
+    <section id="documentação">
+      <h2>Documentação</h2>
+      <p>Documentação do projeto disponível no GitHub:</p>
+      <p>Informação sobre a base de dados: <a href="https://github.com/guibento1/PINT/blob/main/documenta%C3%A7%C3%A3o/Relat%C3%B3rio%20BD1.pdf" target="_blank">Link</a></p>
+      <p>Informação sobre a aplicação Web: <a href="https://github.com/guibento1/PINT/blob/main/documenta%C3%A7%C3%A3o/relatorio%20AI2.pdf" target="_blank">Link</a></p>
     </section>
 
     <section id="contactos">
@@ -78,5 +102,13 @@
   <footer>
     <p>&copy; 2025 The SoftSkills – Todos os direitos reservados.</p>
   </footer>
+  <div id="modal" class="modal">
+  <span class="fechar" id="fecharModal">&times;</span>
+  <img class="modal-conteudo" id="imagemModal">
+  <div id="descricaoModal" class="descricao"></div>
+</div>
+
+<script src="script.js"></script>
+
 </body>
 </html>
