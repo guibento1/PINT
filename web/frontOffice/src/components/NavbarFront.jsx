@@ -1,11 +1,10 @@
 // web\frontend\frontOffice\src\components\NavbarFront.jsx
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { NavLink, Link } from "react-router-dom";
 import { useNavigate, useLocation } from "react-router-dom";
 import logoSoftinsa from "../../../shared/assets/images/softinsaLogo.svg";
 import logoSoftskills from "../../../shared/assets/images/thesoftskillsLogo.svg";
 import useUserRole from "../../../shared/hooks/useUserRole";
-
 
 export default function NavbarFront() {
   const location = useLocation();
@@ -13,15 +12,23 @@ export default function NavbarFront() {
   const [menuAberto, setMenuAberto] = useState(false);
   const navigate = useNavigate();
   const { isFormador, loading } = useUserRole();
+  const [notificacoesAtivas, setNotificacoesAtivas] = useState(false); // tem de estar antes de qualquer return condicional
 
   const user = JSON.parse(sessionStorage.getItem("user") || "{}");
   const nomeUsuario = user?.nome || "Utilizador";
 
-  if (loading) {
-    return <div className="text-center mt-4">A carregar...</div>;
-  }
+  useEffect(() => {
+    const handler = () => setNotificacoesAtivas(true);
+    window.addEventListener("novaNotificacao", handler);
+    return () => window.removeEventListener("novaNotificacao", handler);
+  }, []);
 
-  const notificacoesAtivas = true;
+  // Quando o utilizador entra em /notificacoes limpa badge
+  useEffect(() => {
+    if (location.pathname === "/notificacoes" && notificacoesAtivas) {
+      setNotificacoesAtivas(false);
+    }
+  }, [location.pathname, notificacoesAtivas]);
 
   const toggleMenu = () => setMenuAberto(!menuAberto);
   const fecharMenu = () => setMenuAberto(false);
@@ -31,6 +38,10 @@ export default function NavbarFront() {
     fecharMenu();
     navigate("/");
   };
+
+  if (loading) {
+    return <div className="text-center mt-4">A carregar...</div>; // agora depois de todos os hooks declarados
+  }
 
   return (
     <nav className="navbar navbar-expand-lg bg-white border-bottom">
