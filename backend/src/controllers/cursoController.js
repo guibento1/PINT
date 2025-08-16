@@ -978,6 +978,7 @@ controllers.inscreverCurso = async (req, res) => {
             registo: new Date()
         };
         await models.inscricao.create(insertData);
+        logger.info(`Email -> ${req.user.email}`);
         logger.info(`Utilizador ${idDoUtilizadorParaInscricao} inscrito no curso ${id} com sucesso.`);
         return res.status(201).json({
             message: 'Inscrição realizada com sucesso!'
