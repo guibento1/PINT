@@ -198,7 +198,6 @@ CREATE TABLE Curso (
     inicioDeInscricoes TIMESTAMP NOT NULL,
     canal BIGINT NOT NULL,
     fimDeInscricoes TIMESTAMP,
-    maxInscricoes INT,
     planoCurricular TEXT,
     thumbnail VARCHAR(300),
 
@@ -229,6 +228,7 @@ CREATE TABLE CursoSincrono (
     nHoras INTEGER NOT NULL,
     inicio DATE NOT NULL,
     fim DATE NOT NULL,
+    maxinscricoes BIGINT,
 
 
     CONSTRAINT CURSOSINCRONO_PK PRIMARY KEY(idCursoSincrono,curso),

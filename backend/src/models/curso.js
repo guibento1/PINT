@@ -32,10 +32,6 @@ module.exports = function(sequelize, DataTypes) {
       type: DataTypes.DATE,
       allowNull: true
     },
-    maxinscricoes: {
-      type: DataTypes.INTEGER,
-      allowNull: true
-    },
     planocurricular: {
       type: DataTypes.TEXT,
       allowNull: true

@@ -15,10 +15,12 @@ router.get('/inscricoes/:id', authenticateJWT, authorizeRoles('admin'), cursoCon
 router.post('/:id/inscrever', authenticateJWT, authorizeRoles('admin','formando'), cursoController.inscreverCurso );
 router.post('/:id/sair', authenticateJWT, authorizeRoles('admin','formando'), cursoController.sairCurso );
 router.post('/cursoassincrono', authenticateJWT, authorizeRoles('admin'), upload.single('thumbnail'), cursoController.createCursoAssincrono);
+router.post('/cursosincrono', authenticateJWT, authorizeRoles('admin'), upload.single('thumbnail'), cursoController.createCursoSincrono);
 router.post('/licao/:idcursoassinc', authenticateJWT, authorizeRoles('admin'), cursoController.addLicao);
 router.post('/licao/:idlicao/addContent', authenticateJWT, authorizeRoles('admin'), upload.single('ficheiro'), cursoController.addLicaoContent);
 router.delete('/licao/:idlicao', authenticateJWT, authorizeRoles('admin'), cursoController.rmLicao );
 router.put('/cursoassincrono/:id', authenticateJWT, authorizeRoles('admin'), upload.single('thumbnail'), cursoController.updateCursoAssincrono );
+router.put('/cursosincrono/:id', authenticateJWT, authorizeRoles('admin'), upload.single('thumbnail'), cursoController.updateCursoSincrono );
 router.delete('/:id', authenticateJWT, authorizeRoles('admin'), cursoController.rmCurso );
 
 module.exports = router;

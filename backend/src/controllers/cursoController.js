@@ -482,7 +482,6 @@ controllers.list = async (req, res) => {
       "disponivel",
       "iniciodeinscricoes",
       "fimdeinscricoes",
-      "maxinscricoes",
       "thumbnail",
     ],
   };
@@ -665,7 +664,6 @@ controllers.getCurso = async (req, res) => {
         "iniciodeinscricoes",
         "fimdeinscricoes",
         "planocurricular",
-        "maxinscricoes",
         "thumbnail",
       ],
     });
@@ -684,15 +682,28 @@ controllers.getCurso = async (req, res) => {
       );
     }
     if (acessible) {
+
+
+      logger.debug(`Curso acessivel.`);
+
+      
       if (curso.dataValues.sincrono) {
+
+        logger.debug(`Curso sincrono.`);
+
         const cursoSincrono = await models.cursosincrono.findOne({
           where: {
             curso: id,
           },
-          attributes: ["idcursosincrono"],
+          attributes: ["idcursosincrono","formador","inicio","fim","nhoras","maxincricoes"],
         });
 
         curso.dataValues.idcrono = cursoSincrono.idcursosincrono;
+        curso.dataValues.formador = cursoSincrono.formador;
+        curso.dataValues.inicio = cursoSincrono.inicio;
+        curso.dataValues.fim = cursoSincrono.fim;
+        curso.dataValues.nhoras = cursoSincrono.nhoras;
+        curso.dataValues.maxincricoes = cursoSincrono.maxincricoes;
 
         const sessoes = await models.sessao.findAll({
           where: {
@@ -857,7 +868,6 @@ controllers.getCursoInscritos = async (req, res) => {
       "iniciodeinscricoes",
       "fimdeinscricoes",
       "planocurricular",
-      "maxinscricoes",
       "thumbnail",
     ],
     where: {},
@@ -1077,20 +1087,32 @@ controllers.inscreverCurso = async (req, res) => {
         error: "Curso não disponível para inscrição.",
       });
     }
-    const nInscricoes = await models.inscricao.count({
-      where: {
-        curso: id,
-      },
-    });
-    if (
-      cursoEncontrado.maxinscricoes &&
-      nInscricoes >= cursoEncontrado.maxinscricoes
-    ) {
-      logger.warn(`Limite máximo de inscrições atingido para o curso ${id}.`);
-      return res.status(400).json({
-        error: "Vagas esgotadas para este curso.",
-      });
+
+    const cursoSincronoEncontrado = await models.cursosincrono.findOne({where : {curso : id}});
+
+    if(cursoSincronoEncontrado){
+
+      if( cursoSincronoEncontrado.maxinscricoes ) {
+
+        const nInscricoes = await models.inscricao.count({
+          where: {
+            curso: id,
+          },
+        });
+
+        if (
+          nInscricoes >= cursoEncontrado.maxinscricoes
+        ) {
+          logger.warn(`Limite máximo de inscrições atingido para o curso ${id}.`);
+          return res.status(400).json({
+            error: "Vagas esgotadas para este curso.",
+          });
+        }
+
+      }
+
     }
+
     const insertData = {
       formando: formandoData.idformando,
       curso: id,
@@ -1256,6 +1278,146 @@ controllers.updateCursoAssincrono = async (req, res) => {
     });
   }
 };
+
+
+controllers.createCursoSincrono = async (req, res) => {
+  logger.debug(
+    `Recebida requisição para criar curso Síncrono. Body: ${req.body.info}`
+  );
+
+  const thumbnail = req.file;
+  let info;
+
+  try {
+    info = JSON.parse(req.body.info || "{}");
+  } catch (parseErr) {
+    return res.status(400).json({ error: "JSON inválido no campo 'info'." });
+  }
+
+  if (!info.formador) {
+    return res.status(400).json({ error: "O campo 'formador' é obrigatório." });
+  }
+
+  if (
+    info.nhoras === undefined ||
+    typeof info.nhoras !== 'number' ||
+    info.nhoras <= 0
+  ) {
+    return res.status(400).json({ error: "O campo 'nhoras' é obrigatório e deve ser um número positivo." });
+  }
+
+  if (!info.inicio || isNaN(new Date(info.inicio))) {
+    return res.status(400).json({ error: "O campo 'inicio' é obrigatório e deve ser uma data válida." });
+  }
+
+  if (!info.fim || isNaN(new Date(info.fim))) {
+    return res.status(400).json({ error: "O campo 'fim' é obrigatório e deve ser uma data válida." });
+  }
+
+  if (new Date(info.inicio) >= new Date(info.fim)) {
+    return res.status(400).json({ error: "O campo 'fim' deve ser posterior ao campo 'inicio'." });
+  }
+
+  try {
+    const createdRow = await createCurso(thumbnail, info);
+
+    await models.cursosincrono.create({
+      curso: createdRow.idcurso,
+      formador: info.formador,
+      nhoras: info.nhoras,
+      inicio: info.inicio,
+      fim: info.fim,
+      maxinscricoes: info.maxinscricoes !== undefined ? info.maxinscricoes : null,
+    });
+
+    if (createdRow.thumbnail) {
+      createdRow.dataValues.thumbnail = await generateSASUrl(
+        createdRow.thumbnail,
+        "thumbnailscursos"
+      );
+    }
+
+    createdRow.dataValues.topicos = await findTopicos(createdRow.idcurso);
+    createdRow.dataValues.formador = info.formador;
+    createdRow.dataValues.nHoras = info.nhoras;
+    createdRow.dataValues.inicio = info.inicio;
+    createdRow.dataValues.fim = info.fim;
+    createdRow.dataValues.maxinscricoes= info.maxinscricoes !== undefined ? info.maxinscricoes : null;
+
+    logger.info(`Curso Síncrono com ID ${createdRow.idcurso} criado com sucesso.`);
+
+    return res.status(201).json(createdRow);
+  } catch (error) {
+    logger.error(`Erro ao criar curso síncrono. Detalhes: ${error.message}`, {
+      stack: error.stack,
+    });
+
+    return res.status(500).json({
+      error: "Ocorreu um erro interno ao criar o curso.",
+    });
+  }
+};
+
+
+controllers.updateCursoSincrono = async (req, res) => {
+
+  const { id } = req.params;
+  logger.debug(
+    `Recebida requisição para atualizar curso síncrono com ID: ${id}. Body: ${req.body.info}`
+  );
+
+  const thumbnail = req.file;
+  const info = JSON.parse(req.body.info || "{}");
+
+  try {
+    const data = await models.curso.findByPk(id);
+    if (!data) {
+      logger.warn(`Tentativa de atualizar curso síncrono com ID ${id} que não foi encontrado.`);
+      return res.status(404).json({ error: "Curso não encontrado." });
+    }
+
+    const updatedCurso = await updateCurso(id, thumbnail, info);
+
+    const invalidFields = ["inicio", "fim", "formador", "nhoras"].filter(
+      (field) => field in info && info[field] === null
+    );
+
+    if (invalidFields.length > 0) {
+      logger.info(`Validação de argumentos para o update do curso sincrono falhou.`);
+      return res.status(400).json({
+        error: `Os seguintes campos não podem ser nulos se forem enviados: ${invalidFields.join(", ")}`,
+      });
+    }
+
+    const updateData = {};
+
+    if (info.maxinscricoes !== undefined) updateData.maxincricoes = info.maxinscricoes;
+    if (info.inicio !== undefined) updateData.inicio = info.inicio;
+    if (info.fim !== undefined) updateData.fim = info.fim;
+    if (info.formador !== undefined) updateData.formador = info.formador;
+    if (info.nhoras !== undefined) updateData.nhoras = info.nhoras;
+
+    let cursoSincrono = await models.cursosincrono.findOne({ where: { curso: id } });
+
+    cursoSincrono = await cursoSincrono.update(updateData);
+
+    updatedCurso.dataValues.formador = cursoSincrono.formador;
+    updatedCurso.dataValues.nHoras = cursoSincrono.nhoras;
+    updatedCurso.dataValues.inicio = cursoSincrono.inicio;
+    updatedCurso.dataValues.fim = cursoSincrono.fim;
+    updatedCurso.dataValues.maxinscricoes = cursoSincrono.maxincricoes;
+
+    logger.info(`Curso síncrono com ID ${id} atualizado com sucesso.`);
+    return res.status(200).json(updatedCurso);
+  } catch (error) {
+    logger.error(
+      `Erro interno do servidor ao atualizar curso síncrono. Detalhes: ${error.message}`,
+      { stack: error.stack }
+    );
+    return res.status(500).json({ error: "Ocorreu um erro interno ao atualizar o curso." });
+  }
+};
+
 
 controllers.addLicao = async (req, res) => {
   const { idcursoassinc } = req.params;
