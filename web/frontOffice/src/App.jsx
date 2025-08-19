@@ -16,7 +16,6 @@ import ProtectedRoute from "@shared/components/ProtectedRoute.jsx";
 import NotificationsPage from "@shared/views/NotificationsPage.jsx";
 
 function App() {
-
   return (
     <Router>
       <LayoutFront>
