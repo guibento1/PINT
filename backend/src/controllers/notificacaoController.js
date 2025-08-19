@@ -28,7 +28,7 @@ controllers.listCanais = async (req, res) => {
     }
 };
 
-controllers.listNotificacoes = async (req, res) => {
+controllers.listNotificacoesByCanal = async (req, res) => {
 
     const { idCanal } = req.params;
     logger.debug(`Recebida requisição para listar notificações do canal com ID: ${idCanal}`);
@@ -158,7 +158,7 @@ controllers.criarNotificacaoCurso = async (req, res) => {
 
 controllers.getCanaisInscritos = async (req, res) => {
 
-    const { idutilizador } = req.params;
+    var { idutilizador } = req.params;
     logger.debug(`Recebida requisição para buscar canais inscritos para o utilizador ${idutilizador}`);
     if (req.user.idutilizador != idutilizador && !(req.user.roles && req.user.roles.map(roleEntry => roleEntry.role).includes("admin"))) {
         logger.warn(`Tentativa de acesso não autorizado aos canais inscritos do utilizador ${idutilizador} pelo utilizador ${req.user.idutilizador}`);
@@ -179,7 +179,6 @@ controllers.getCanaisInscritos = async (req, res) => {
       if(isAdmin) canais.push(2);
     }
 
-    if(idutilizador == undefined || idutilizador == null) idutilizador = req.user.idutilizador;
 
     try {
         const formando = await models.formando.findOne({
@@ -223,6 +222,62 @@ controllers.getCanaisInscritos = async (req, res) => {
             error: 'Ocorreu um erro interno ao buscar os canais inscritos.'
         });
     }
+};
+
+
+controllers.listUserNotifications = async (req, res) => {
+
+    var idutilizador = req.user.idutilizador;
+    logger.debug(`Recebida requisição para buscar notificaoes para o utilizador ${idutilizador}`);
+
+    let canais = [1];
+
+    if (
+        req.user.roles && 
+        req.user.roles.map(roleEntry => roleEntry.role).includes("admin")
+       ) {
+       canais.push(2);
+    } else {
+      const isAdmin = await models.admin.count({ where: { utilizador: idutilizador, ativo: true }, limit: 1 });
+      if(isAdmin) canais.push(2);
+    }
+
+
+    logger.debug(`Canais subscritos pelo utilizador: ${canais}`);
+
+    try {
+
+        const notificacoes = await models.historiconotificacoes.findAll({
+
+            where : {
+
+                canal : {
+                 [Sequelize.Op.in]: canais
+                }
+            },
+
+            order: [
+                ['instante','DESC']
+            ],
+
+            limit : 10
+        })
+
+
+        logger.info(`Notificacoes encontradas com sucesso`);
+        return res.status(200).json(notificacoes);
+        
+    } catch (error) {
+
+        logger.error(`Erro ao ir buscar notificacoes do utilizador. Detalhes: ${error.message}`, {
+          stack: error.stack
+        });
+        return res.status(500).json({
+          error: 'Erro ao ir buscar notificacoes do utilizador.'
+        });
+        
+    }
+
 };
 
 
