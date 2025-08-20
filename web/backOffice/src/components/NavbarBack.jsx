@@ -145,7 +145,7 @@ export default function NavbarBack() {
                 </li>
                 <li className="nav-item d-flex align-items-center">
                   <NavLink
-                    to="/perfil"
+                    to="/profile"
                     className={({ isActive }) =>
                       `nav-link fw-semibold d-flex align-items-center gap-1 ${
                         isActive ? "active" : ""
