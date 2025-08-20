@@ -145,7 +145,7 @@ export default function LoginPage({ admin = false }) {
         await subscribeToTopics();
 
         setLoginStatus(0);
-        handleOpenModal();
+        navigate("/home");
       }
     } catch (error) {
       console.log(error);

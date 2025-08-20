@@ -14,7 +14,6 @@ function isLink(str) {
         new URL(str);
         return true;
     } catch (error) {
-        logger.debug(`"${str}" is not a valid URL: ${error.message}`); 
         return false;
     }
 }

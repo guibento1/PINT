@@ -11,6 +11,9 @@ const {
 } = require("../utils.js");
 const logger = require("../logger.js");
 
+//TODO
+// Adicionar verificação do formador para os controladores que necessitam
+
 const controllers = {};
 
 async function findTopicos(id) {
@@ -30,8 +33,7 @@ async function findTopicos(id) {
     data = data.map((t) => ({
       idtopico: t.topico_topico.idtopico,
       designacao: t.topico_topico.designacao,
-    }));
-    return data;
+    })); return data;
   }
   return [];
 }
@@ -303,6 +305,65 @@ async function addLicao(idcurso, licao) {
   return createdRow;
 }
 
+async function updateLicao(idlicao, params){
+
+  const {titulo,descricao} = params;
+  const updateData = {};
+
+  if(titulo == undefined && descricao == undefined) return;
+  if(titulo === null || descricao === null) throw new Error("fields must not be null");
+
+  if (titulo != undefined) updateData.titulo = titulo;
+  if (descricao != undefined) updateData.descricao = descricao;
+
+  let licao = await models.licao.findOne({where : { idlicao:idlicao }});
+
+  licao = await licao.update(updateData);
+
+  return licao;
+
+}
+
+
+async function formatSessao(sessao){
+
+  const licao = await models.licao.findByPk(sessao.licao);
+  sessao.dataValues.titulo = licao.titulo;
+  sessao.dataValues.descricao = licao.descricao;
+  sessao.dataValues.curso = licao.curso;
+
+  let materiaisData = await models.licaomaterial.findAll({
+    where: { licao: sessao.licao },
+    include: [
+      {
+        model: models.material,
+        as: "material_material",
+        attributes: ["idmaterial", "titulo", "tipo", "referencia"],
+      },
+    ],
+  });
+
+  const materiais = await Promise.all(
+    materiaisData.map(async (entry) => {
+      let material = {
+        idmaterial: entry.material,
+        titulo: entry.material_material.titulo,
+        tipo: entry.material_material.tipo,
+        referencia: entry.material_material.referencia,
+      };
+
+      if (!isLink(material.referencia)) {
+        material.referencia = await generateSASUrl(material.referencia, "ficheiroslicao");
+      }
+
+      return material;
+    })
+  );
+
+  sessao.dataValues.materiais = materiais;
+  return sessao;
+}
+
 async function rmLicao(idlicao) {
   const data = await models.licaomaterial.findAll({
     where: {
@@ -350,6 +411,11 @@ async function rmLicao(idlicao) {
 }
 
 async function addLicaoContent(idlicao, ficheiro, material) {
+
+  const licaoExists = await models.licao.findByPk(idlicao);
+  if (!licaoExists) {
+    throw new Error(`Lição com ID ${idlicao} não existe.`);
+  }
   if (material.referencia && ficheiro) {
     throw new Error("Ambigous call, link and file provided");
   }
@@ -370,6 +436,42 @@ async function addLicaoContent(idlicao, ficheiro, material) {
     );
   }
   return createdMaterial;
+}
+
+
+async function rmLicaoContent(idlicao, idmaterial) {
+
+  try {
+
+    await models.licaomaterial.destroy({ 
+
+      where : {
+       licao: idlicao,
+       material: idmaterial,
+      }
+
+    });
+
+    const material = await models.material.findByPk(idmaterial);
+
+    if (material.referencia && !isLink(material.referencia)){
+
+      try {
+        await deleteFile(material.referencia, "ficheiroslicao");
+      } catch (error) {
+        logger.warn(
+          `Não foi possível apagar o ficheiro da lição na object storage. Referência: ${referencia}. Detalhes: ${error.message}`
+        );
+      }
+
+    }
+    
+  } catch (error) {
+      logger.warn(
+        `Não foi possível apagar o conteudo da lição. Detalhes: ${error.message}`
+      );
+  }
+
 }
 
 async function createCurso(thumbnail, info) {
@@ -568,7 +670,8 @@ controllers.rmCurso = async (req, res) => {
       },
     });
 
-    if (cursoSincrono) {
+    if (cursosincrono) {
+
       const sessoes = await models.sessao.findAll({
         where: {
           cursosincrono: cursosincrono.idcursosincrono,
@@ -582,10 +685,8 @@ controllers.rmCurso = async (req, res) => {
         })
       );
 
-      logger.info(`Curso com ID ${id} removido com sucesso.`);
-      return res.status(200).json({
-        message: "Curso removido com sucesso.",
-      });
+      await models.cursosincrono.destroy({where: {curso: id} })
+
     } else {
       const licoes = await models.licao.findAll({
         where: {
@@ -599,17 +700,23 @@ controllers.rmCurso = async (req, res) => {
           await rmLicao(entry.idlicao);
         })
       );
-      await models.cursotopico.destroy({
-        where: {
-          curso: id,
-        },
-      });
-      await models.curso.destroy({
-        where: {
-          idcurso: id,
-        },
-      });
+
+      await models.cursoassincrono.destroy({where: {curso: id} })
     }
+
+
+    await models.cursotopico.destroy({
+      where: {
+        curso: id,
+      },
+    });
+
+    await models.curso.destroy({
+      where: {
+        idcurso: id,
+      },
+    });
+
     logger.info(`Curso com ID ${id} removido com sucesso.`);
     return res.status(200).json({
       message: "Curso removido com sucesso.",
@@ -722,40 +829,7 @@ controllers.getCurso = async (req, res) => {
         if (sessoes != undefined && sessoes != null && sessoes.length > 0) {
           curso.dataValues.sessoes = await Promise.all(
             sessoes.map(async (sessao) => {
-              const licao = await models.licao.findByPk(sessao.licao);
-              sessao.dataValues.titulo = licao.titulo;
-              sessao.dataValues.descricao = licao.descricao;
-
-              let materiais = await models.licaomaterial.findAll({
-                where: {
-                  licao: sessao.licao,
-                },
-                attributes: [],
-                include: [
-                  {
-                    model: models.material,
-                    as: "material_material",
-                    attributes: ["idmaterial", "titulo", "referencia", "tipo"],
-                  },
-                ],
-              });
-
-              if (materiais) {
-                materiais = await Promise.all(
-                  materiais.map(async (entry) => {
-                    let out = entry.material_material;
-                    if (!isLink(out.referencia)) {
-                      out.dataValues.referencia = await generateSASUrl(
-                        out.referencia,
-                        "ficheiroslicao"
-                      );
-                    }
-                    return out;
-                  })
-                );
-              }
-
-              sessao.dataValues.materiais = materiais;
+              sessao = await formatSessao(sessao);
               return sessao;
             })
           );
@@ -1136,10 +1210,7 @@ controllers.inscreverCurso = async (req, res) => {
       `Erro interno do servidor ao inscrever no curso. Detalhes: ${error.message}`,
       {
         stack: error.stack,
-      }
-    );
-    return res.status(500).json({
-      error: "Ocorreu um erro interno ao tentar inscrever no curso.",
+      }); return res.status(500).json({ error: "Ocorreu um erro interno ao tentar inscrever no curso.",
     });
   }
 };
@@ -1419,6 +1490,273 @@ controllers.updateCursoSincrono = async (req, res) => {
 };
 
 
+controllers.addSessao = async (req, res) => {
+
+  const { idcursosinc } = req.params;
+  const { 
+
+      titulo, 
+      descricao, 
+      linksessao, 
+      datahora, 
+      duracaohoras, 
+      plataformavideoconferencia 
+
+  } = req.body;
+
+
+  logger.debug(
+    `Recebida requisição para adicionar lição ao curso síncrono ${idcursosinc}. Dados: ${JSON.stringify(
+      req.body
+    )}`
+  );
+
+  if (!titulo || !descricao || !linksessao || !datahora || !duracaohoras || !plataformavideoconferencia ) {
+    logger.warn(
+      `Tentativa de adicionar sessao com campos faltando. Dados recebidos: ${JSON.stringify(
+        req.body
+      )}`
+    );
+    return res.status(400).json({
+      error: 'Os campos "titulo", "descricao", "linkSessão", "dataHora", "duracaoHoras", "plataformaVideoConferencia" são obrigatórios.',
+    });
+  }
+
+  try {
+
+    const cursosinc = await models.cursosincrono.findOne({
+      where: {
+        idcursosincrono: idcursosinc,
+      },
+      attributes: ["curso"],
+    });
+    if (!cursosinc) {
+      logger.warn(`Curso síncrono com ID ${idcursosinc} não encontrado.`);
+      return res.status(404).json({
+        error: "Curso assíncrono não encontrado.",
+      });
+    }
+
+    const licao = {
+      curso: cursosinc.curso,
+      titulo,
+      descricao,
+    };
+
+    let createdRow = await addLicao(cursosinc.curso, licao);
+
+    logger.info(
+      `Lição com ID ${createdRow.idsessao} creada com sucesso.`
+    );
+
+    insertData = {
+      licao : createdRow.idlicao,
+      cursosincrono : idcursosinc,
+      linksessao,
+      datahora, 
+      duracaohoras, 
+      plataformavideoconferencia 
+    }
+
+    createdRow = await models.sessao.create(insertData, {
+      returning: true,
+    });
+
+
+    logger.info(
+      `Sessão com ID ${createdRow.idsessao} adicionada com sucesso ao curso síncrono ${idcursosinc}.`
+    );
+
+    const result = await formatSessao(createdRow);
+
+    return res.status(201).json(result);
+    
+  } catch (error) {
+
+    logger.error(
+      `Erro interno do servidor ao adicionar sessão. Detalhes: ${error.message}`,
+      {
+        stack: error.stack,
+      }
+    );
+    return res.status(500).json({
+      error: "Ocorreu um erro interno.",
+    });
+    
+  }
+
+};
+
+
+controllers.rmSessao = async (req, res) => {
+
+  const { idsessao } = req.params;
+  logger.debug(`Recebida requisição para remover sessão com ID: ${idsessao}`);
+  try {
+    const sessao = await models.sessao.findByPk(idsessao);
+    if (!sessao) {
+      logger.warn(
+        `Tentativa de remover sessão com ID ${idsessao} que não foi encontrada.`
+      );
+      return res.status(404).json({
+        error: "Sessão não encontrada.",
+      });
+    }
+
+    const idlicao = sessao.licao;
+    await sessao.destroy();
+
+    await rmLicao(idlicao);
+    logger.debug(`Lição associada a sessão eleminada com sucesso.`);
+
+
+    return res.status(201).json({
+      message: "Sessão removida com sucesso.",
+    });
+  } catch (error) {
+    logger.error(
+      `Erro interno do servidor ao remover sessão. Detalhes: ${error.message}`,
+      {
+        stack: error.stack,
+      }
+    );
+    return res.status(500).json({
+      error: "Ocorreu um erro interno ao remover a sessão.",
+    });
+  }
+};
+
+
+controllers.updateSessao = async (req, res) => {
+
+  const { idsessao } = req.params;
+  const { 
+
+      titulo, 
+      descricao, 
+      linksessao, 
+      datahora, 
+      duracaohoras, 
+      plataformavideoconferencia 
+
+  } = req.body;
+
+  logger.debug(`Recebida requisição para atualizar sessão com ID: ${idsessao}`);
+  try {
+
+    let sessao = await models.licao.findByPk(idsessao);
+    let updateData = {};
+
+    sessao = await sessao.update({linksessao,datahora,duracaohoras,plataformavideoconferencia});
+    await updateLicao(sessao.licao,{titulo,descricao})
+
+    const result = await formatSessao(sessao);
+    return res.status(201).json(result);
+
+  } catch (error) {
+    logger.error(
+      `Erro interno do servidor ao atualizar sessão. Detalhes: ${error.message}`,
+      {
+        stack: error.stack,
+      }
+    );
+    return res.status(500).json({
+      error: "Ocorreu um erro interno ao atualizar a sessão.",
+    });
+  }
+
+};
+
+
+controllers.addSessaoContent = async (req, res) => {
+
+  const { idsessao } = req.params;
+  const sessao = await models.sessao.findByPk(idsessao);
+  const idlicao = sessao.licao;
+
+  logger.debug(
+    `Recebida requisição para adicionar material à sessão ${idsessao}. Body: ${req.body.info}`
+  );
+  const ficheiro = req.file;
+  const { titulo, tipo, link } = JSON.parse(req.body.info || "{}");
+  if (!titulo || !tipo || (!ficheiro && !link)) {
+    logger.warn(
+      `Tentativa de adicionar material com campos faltando. Dados: ${req.body.info}`
+    );
+    return res.status(400).json({
+      error:
+        'Os campos "titulo", "tipo" e um "link" ou "ficheiro" são obrigatórios.',
+    });
+  }
+  const material = {
+    titulo,
+    tipo,
+    referencia: link,
+    criador: req.user.idutilizador,
+  };
+  try {
+
+    const createdMaterial = await addLicaoContent(idlicao, ficheiro, material);
+    logger.info(
+      `Material com ID ${createdMaterial.idmaterial} adicionado com sucesso à sessão ${idsessao}.`
+    );
+    return res.status(201).json(createdMaterial);
+  } catch (error) {
+    logger.error(
+      `Erro interno do servidor ao adicionar material à sessão. Detalhes: ${error.message}`,
+      {
+        stack: error.stack,
+      }
+    );
+    return res.status(500).json({
+      error: "Ocorreu um erro interno ao criar o material.",
+    });
+  }
+
+};
+
+
+controllers.rmSessaoContent = async (req, res) => {
+
+  const { idsessao, idmaterial } = req.params;
+  const sessao = await models.sessao.findByPk(idsessao);
+  const idlicao = sessao.licao;
+
+  logger.debug(
+    `Recebida requisição para remover material à sessão ${idlicao}.`
+  );
+
+  if (!idlicao || !idmaterial) {
+    logger.warn(
+      `Tentativa de remover material com campos faltando.`
+    );
+    return res.status(400).json({
+      error:
+        'Os campos "idlicao" e "idmaterial" são obrigatórios.',
+    });
+  }
+
+  try {
+
+    await rmLicaoContent(idlicao, idmaterial);
+
+    logger.info(
+      `Conteudo da sessão ${idsessao} e id ${idmaterial} removido com sucesso`
+    );
+
+    return res.status(201).json({message:"material removido com sucesso"});
+    
+  } catch (error) {
+
+    return res.status(500).json({
+      error: "Ocorreu um erro interno ao criar o material.",
+    });
+    
+  }
+
+};
+
+
 controllers.addLicao = async (req, res) => {
   const { idcursoassinc } = req.params;
   const { titulo, descricao } = req.body;
@@ -1474,6 +1812,7 @@ controllers.addLicao = async (req, res) => {
 };
 
 controllers.rmLicao = async (req, res) => {
+
   const { idlicao } = req.params;
   logger.debug(`Recebida requisição para remover lição com ID: ${idlicao}`);
   try {
@@ -1504,7 +1843,39 @@ controllers.rmLicao = async (req, res) => {
   }
 };
 
+
+controllers.updateLicao = async (req, res) => {
+  const { idlicao } = req.params;
+  const { titulo, descricao } = req.body;
+  logger.debug(`Recebida requisição para atualizar lição com ID: ${idlicao}`);
+  try {
+    let licao = await models.licao.findByPk(idlicao);
+    if (!licao) {
+      logger.warn(
+        `Tentativa de atualizar lição com ID ${idlicao} que não foi encontrada.`
+      );
+      return res.status(404).json({
+        error: "Lição não encontrada.",
+      });
+    }
+    licao = await updateLicao(idlicao, {titulo,descricao});
+    logger.info(`Lição com ID ${idlicao} atualizada com sucesso.`);
+    return res.status(200).json(licao);
+  } catch (error) {
+    logger.error(
+      `Erro interno do servidor ao atualizar lição. Detalhes: ${error.message}`,
+      {
+        stack: error.stack,
+      }
+    );
+    return res.status(500).json({
+      error: "Ocorreu um erro interno ao atualizar a lição.",
+    });
+  }
+};
+
 controllers.addLicaoContent = async (req, res) => {
+
   const { idlicao } = req.params;
   logger.debug(
     `Recebida requisição para adicionar material à lição ${idlicao}. Body: ${req.body.info}`
@@ -1543,6 +1914,44 @@ controllers.addLicaoContent = async (req, res) => {
       error: "Ocorreu um erro interno ao criar o material.",
     });
   }
+};
+
+
+controllers.rmLicaoContent = async (req, res) => {
+
+  const { idlicao, idmaterial } = req.params;
+  logger.debug(
+    `Recebida requisição para remover material à lição ${idlicao}.`
+  );
+
+  if (!idlicao || !idmaterial) {
+    logger.warn(
+      `Tentativa de remover material com campos faltando.`
+    );
+    return res.status(400).json({
+      error:
+        'Os campos "idlicao" e "idmaterial" são obrigatórios.',
+    });
+  }
+
+  try {
+
+    await rmLicaoContent(idlicao, idmaterial);
+
+    logger.info(
+      `Conteudo da licao ${idlicao} e id ${idmaterial} removido com sucesso`
+    );
+
+    return res.status(201).json({message:"material removido com sucesso"});
+    
+  } catch (error) {
+
+    return res.status(500).json({
+      error: "Ocorreu um erro interno ao criar o material.",
+    });
+    
+  }
+
 };
 
 module.exports = controllers;
