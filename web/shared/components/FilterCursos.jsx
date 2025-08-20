@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import api from '../services/axios.js';
+import React, { useState, useEffect } from "react";
+import api from "../services/axios.js";
 
 export const getCategorias = async () => {
   try {
-    const response = await api.get('/categoria/list');
+    const response = await api.get("/categoria/list");
     return response.data;
   } catch (error) {
     console.error("Erro ao listar categorias:", error);
@@ -31,12 +31,14 @@ export const getTopicosByAreaId = async (areaId) => {
   }
 };
 
-
 export default function FiltrosCursos({ onApplyFilters }) {
-  const [search, setSearch] = useState('');
-  const [selectedCategoria, setSelectedCategoria] = useState('');
-  const [selectedArea, setSelectedArea] = useState('');
-  const [selectedTopico, setSelectedTopico] = useState('');
+  const [search, setSearch] = useState("");
+  const [selectedCategoria, setSelectedCategoria] = useState("");
+  const [selectedArea, setSelectedArea] = useState("");
+  const [selectedTopico, setSelectedTopico] = useState("");
+
+  const [showSincronos, setShowSincronos] = useState(false);
+  const [showAssincronos, setShowAssincronos] = useState(false);
 
   const [categorias, setCategorias] = useState([]);
   const [areas, setAreas] = useState([]);
@@ -48,7 +50,6 @@ export default function FiltrosCursos({ onApplyFilters }) {
   const [errorCategorias, setErrorCategorias] = useState(null);
   const [errorAreas, setErrorAreas] = useState(null);
   const [errorTopicos, setErrorTopicos] = useState(null);
-
 
   useEffect(() => {
     const fetchCategorias = async () => {
@@ -75,8 +76,8 @@ export default function FiltrosCursos({ onApplyFilters }) {
         try {
           const data = await getAreasByCategoriaId(selectedCategoria);
           setAreas(data);
-          setSelectedArea(''); 
-          setSelectedTopico('');
+          setSelectedArea("");
+          setSelectedTopico("");
         } catch (err) {
           setErrorAreas("Erro ao carregar áreas.");
           console.error(err);
@@ -88,9 +89,9 @@ export default function FiltrosCursos({ onApplyFilters }) {
       fetchAreas();
     } else {
       setAreas([]);
-      setSelectedArea('');
+      setSelectedArea("");
       setTopicos([]);
-      setSelectedTopico('');
+      setSelectedTopico("");
     }
   }, [selectedCategoria]);
 
@@ -102,7 +103,7 @@ export default function FiltrosCursos({ onApplyFilters }) {
         try {
           const data = await getTopicosByAreaId(selectedArea);
           setTopicos(data);
-          setSelectedTopico(''); 
+          setSelectedTopico("");
         } catch (err) {
           setErrorTopicos("Erro ao carregar tópicos.");
           console.error(err);
@@ -114,27 +115,37 @@ export default function FiltrosCursos({ onApplyFilters }) {
       fetchTopicos();
     } else {
       setTopicos([]);
-      setSelectedTopico('');
+      setSelectedTopico("");
     }
   }, [selectedArea]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    let sincronoParam;
+    if (showSincronos && !showAssincronos) sincronoParam = true;
+    else if (!showSincronos && showAssincronos) sincronoParam = false;
+
     onApplyFilters({
       search,
       categoria: selectedCategoria || undefined,
       area: selectedArea || undefined,
       topico: selectedTopico || undefined,
+      sincrono: sincronoParam,
     });
   };
 
   const handleClearFilters = () => {
-    setSearch('');
-    setSelectedCategoria('');
-    setSelectedArea('');
-    setSelectedTopico('');
-    onApplyFilters({}); 
+    setSearch("");
+    setSelectedCategoria("");
+    setSelectedArea("");
+    setSelectedTopico("");
+    setShowSincronos(false);
+    setShowAssincronos(false);
+    onApplyFilters({});
   };
+
+  const handleToggleSincrono = () => setShowSincronos((v) => !v);
+  const handleToggleAssincrono = () => setShowAssincronos((v) => !v);
 
   return (
     <div className="card-rounded mb-4 p-4">
@@ -142,7 +153,9 @@ export default function FiltrosCursos({ onApplyFilters }) {
       <form onSubmit={handleSubmit}>
         <div className="row g-3">
           <div className="col-md-12">
-            <label htmlFor="search" className="form-label">Pesquisar por Título/Descrição:</label>
+            <label htmlFor="search" className="form-label">
+              Pesquisar por Título/Descrição:
+            </label>
             <input
               type="text"
               className="form-control"
@@ -152,17 +165,48 @@ export default function FiltrosCursos({ onApplyFilters }) {
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
+          <div className="col-md-12">
+            <label className="form-label d-block">Tipo de Curso:</label>
+            <div className="d-flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={handleToggleSincrono}
+                aria-pressed={showSincronos}
+                className={`btn btn-sm filter-tipo-btn ${
+                  showSincronos ? "btn-primary" : "btn-outline-primary"
+                }`}
+              >
+                Síncronos
+              </button>
+              <button
+                type="button"
+                onClick={handleToggleAssincrono}
+                aria-pressed={showAssincronos}
+                className={`btn btn-sm filter-tipo-btn ${
+                  showAssincronos ? "btn-primary" : "btn-outline-primary"
+                }`}
+              >
+                Assíncronos
+              </button>
+            </div>
+          </div>
           <div className="col-md-4">
-            <label htmlFor="categoria" className="form-label">Categoria:</label>
+            <label htmlFor="categoria" className="form-label">
+              Categoria:
+            </label>
             <select
               id="categoria"
-              className="form-select"
+              className="form-select form-select-hover-effect"
               value={selectedCategoria}
               onChange={(e) => setSelectedCategoria(e.target.value)}
               disabled={loadingCategorias}
             >
-              <option value="">{loadingCategorias ? 'A carregar...' : 'Todas as Categorias'}</option>
-              {errorCategorias && <option value="" disabled>{errorCategorias}</option>}
+              <option value="">Todas as Categorias</option>
+              {errorCategorias && (
+                <option value="" disabled>
+                  {errorCategorias}
+                </option>
+              )}
               {categorias.map((cat) => (
                 <option key={cat.idcategoria} value={cat.idcategoria}>
                   {cat.designacao}
@@ -171,16 +215,24 @@ export default function FiltrosCursos({ onApplyFilters }) {
             </select>
           </div>
           <div className="col-md-4">
-            <label htmlFor="area" className="form-label">Área:</label>
+            <label htmlFor="area" className="form-label">
+              Área:
+            </label>
             <select
               id="area"
-              className="form-select"
+              className="form-select form-select-hover-effect"
               value={selectedArea}
               onChange={(e) => setSelectedArea(e.target.value)}
-              disabled={!selectedCategoria || loadingAreas || areas.length === 0}
+              disabled={
+                !selectedCategoria || loadingAreas || areas.length === 0
+              }
             >
-              <option value="">{loadingAreas ? 'A carregar...' : 'Todas as Áreas'}</option>
-              {errorAreas && <option value="" disabled>{errorAreas}</option>}
+              <option value="">Todas as Áreas</option>
+              {errorAreas && (
+                <option value="" disabled>
+                  {errorAreas}
+                </option>
+              )}
               {areas.map((area) => (
                 <option key={area.idarea} value={area.idarea}>
                   {area.designacao}
@@ -189,16 +241,22 @@ export default function FiltrosCursos({ onApplyFilters }) {
             </select>
           </div>
           <div className="col-md-4">
-            <label htmlFor="topico" className="form-label">Tópico:</label>
+            <label htmlFor="topico" className="form-label">
+              Tópico:
+            </label>
             <select
               id="topico"
-              className="form-select"
+              className="form-select form-select-hover-effect"
               value={selectedTopico}
               onChange={(e) => setSelectedTopico(e.target.value)}
               disabled={!selectedArea || loadingTopicos || topicos.length === 0}
             >
-              <option value="">{loadingTopicos ? 'A carregar...' : 'Todos os Tópicos'}</option>
-              {errorTopicos && <option value="" disabled>{errorTopicos}</option>}
+              <option value="">Todos os Tópicos</option>
+              {errorTopicos && (
+                <option value="" disabled>
+                  {errorTopicos}
+                </option>
+              )}
               {topicos.map((top) => (
                 <option key={top.idtopico} value={top.idtopico}>
                   {top.designacao}
@@ -208,7 +266,11 @@ export default function FiltrosCursos({ onApplyFilters }) {
           </div>
         </div>
         <div className="d-flex justify-content-end gap-2 mt-4">
-          <button type="button" className="btn btn-outline-secondary" onClick={handleClearFilters}>
+          <button
+            type="button"
+            className="btn btn-outline-secondary"
+            onClick={handleClearFilters}
+          >
             Limpar Filtros
           </button>
           <button type="submit" className="btn btn-soft">

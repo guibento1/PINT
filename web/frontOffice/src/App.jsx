@@ -9,7 +9,9 @@ import RegisterPage from "./views/RegisterPage";
 import LoginPage from "@shared/views/LoginPage.jsx";
 import ResetPassword from "./views/ResetPassword";
 import Cursos from "./views/Cursos";
-import Curso from "./views/Curso";
+import CursoAssincrono from "./views/CursoAssincrono";
+import CursoSincrono from "./views/CursoSincrono";
+import Forums from "./views/Forums";
 import Home from "./views/Home";
 import NaoAutorizado from "./views/NaoAutorizado";
 import ProtectedRoute from "@shared/components/ProtectedRoute.jsx";
@@ -45,7 +47,15 @@ function App() {
             path="/curso/:id"
             element={
               <ProtectedRoute allowedRoles={["formando", "formador"]}>
-                <Curso />
+                <CursoAssincrono />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/curso-sincrono/:id"
+            element={
+              <ProtectedRoute allowedRoles={["formando", "formador"]}>
+                <CursoSincrono />
               </ProtectedRoute>
             }
           />
@@ -64,6 +74,14 @@ function App() {
             element={
               <ProtectedRoute allowedRoles={["formando", "formador"]}>
                 <NotificationsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/forums"
+            element={
+              <ProtectedRoute allowedRoles={["formando", "formador"]}>
+                <Forums />
               </ProtectedRoute>
             }
           />

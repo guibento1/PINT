@@ -1,10 +1,9 @@
 // src/pages/Cursos/CursosPage.jsx
-import React, { useState, useEffect, useCallback } from 'react';
-import api from '@shared/services/axios';
-import FiltrosCursos from '@shared/components/FilterCursos.jsx';
-import { useSearchParams } from 'react-router-dom';
-import CardCurso from '../components/CardCurso.jsx';
-
+import React, { useState, useEffect, useCallback } from "react";
+import api from "@shared/services/axios";
+import FiltrosCursos from "@shared/components/FilterCursos.jsx";
+import { useSearchParams } from "react-router-dom";
+import CardCurso from "../components/CardCurso.jsx";
 
 const getCursos = async (params) => {
   try {
@@ -17,7 +16,6 @@ const getCursos = async (params) => {
 };
 
 export default function CursosPage() {
-
   const [cursos, setCursos] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -27,13 +25,14 @@ export default function CursosPage() {
     setLoading(true);
     setError(null);
     try {
-      const apiParams = {
-          sincrono: false,
-      };
+      const apiParams = {};
       if (currentFilters.search) apiParams.search = currentFilters.search;
-      if (currentFilters.categoria) apiParams.categoria = currentFilters.categoria;
+      if (currentFilters.categoria)
+        apiParams.categoria = currentFilters.categoria;
       if (currentFilters.area) apiParams.area = currentFilters.area;
       if (currentFilters.topico) apiParams.topico = currentFilters.topico;
+      if (typeof currentFilters.sincrono === "boolean")
+        apiParams.sincrono = currentFilters.sincrono;
 
       const data = await getCursos(apiParams);
       setCursos(data);
@@ -46,21 +45,26 @@ export default function CursosPage() {
   }, []);
 
   useEffect(() => {
+    const sincronoParam = searchParams.get("sincrono");
     const currentFiltersFromUrl = {
-      search: searchParams.get('search') || '',
-      categoria: searchParams.get('categoria') || '',
-      area: searchParams.get('area') || '',
-      topico: searchParams.get('topico') || '',
+      search: searchParams.get("search") || "",
+      categoria: searchParams.get("categoria") || "",
+      area: searchParams.get("area") || "",
+      topico: searchParams.get("topico") || "",
+      sincrono: sincronoParam === null ? undefined : sincronoParam === "true",
     };
     fetchCursos(currentFiltersFromUrl);
   }, [searchParams, fetchCursos]);
 
   const handleApplyFilters = (newFilters) => {
     const newSearchParams = new URLSearchParams();
-    if (newFilters.search) newSearchParams.set('search', newFilters.search);
-    if (newFilters.categoria) newSearchParams.set('categoria', newFilters.categoria);
-    if (newFilters.area) newSearchParams.set('area', newFilters.area);
-    if (newFilters.topico) newSearchParams.set('topico', newFilters.topico);
+    if (newFilters.search) newSearchParams.set("search", newFilters.search);
+    if (newFilters.categoria)
+      newSearchParams.set("categoria", newFilters.categoria);
+    if (newFilters.area) newSearchParams.set("area", newFilters.area);
+    if (newFilters.topico) newSearchParams.set("topico", newFilters.topico);
+    if (typeof newFilters.sincrono === "boolean")
+      newSearchParams.set("sincrono", newFilters.sincrono);
 
     setSearchParams(newSearchParams);
   };
@@ -93,15 +97,20 @@ export default function CursosPage() {
       )}
 
       <div className="row g-4">
-        {!loading && !error && cursos.map((curso) => (
-          <div className="col-sm-6 col-md-4 col-lg-3" key={curso.idcurso || curso.id}>
-            <CardCurso
-              curso={curso}
-              inscrito={curso.inscrito}
-              disponivel={curso.disponivel}
-            />
-          </div>
-        ))}
+        {!loading &&
+          !error &&
+          cursos.map((curso) => (
+            <div
+              className="col-sm-6 col-md-4 col-lg-3"
+              key={curso.idcurso || curso.id}
+            >
+              <CardCurso
+                curso={curso}
+                inscrito={curso.inscrito}
+                disponivel={curso.disponivel}
+              />
+            </div>
+          ))}
       </div>
     </div>
   );
