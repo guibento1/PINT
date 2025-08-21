@@ -1,28 +1,46 @@
-import { useState } from "react";
-import { NavLink, Link } from "react-router-dom";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { NavLink, Link, useNavigate, useLocation } from "react-router-dom";
 import logoSoftinsa from "@shared/assets/images/softinsaLogo.svg";
 import logoSoftskills from "@shared/assets/images/thesoftskillsLogo.svg";
+import Notifications from "@shared/assets/images/notification.svg?react";
+import Profile from "@shared/assets/images/profile.svg?react";
 
 export default function NavbarBack() {
-  const [menuAberto, setMenuAberto] = useState(false);
-  let user = null;
-
-  if (sessionStorage.getItem("user")) {
-    user = JSON.parse(sessionStorage.getItem("user"));
-  }
-
-  const notificacoesAtivas = true;
-
-  const toggleMenu = () => {
-    setMenuAberto(!menuAberto);
-  };
-
-  const fecharMenu = () => {
-    setMenuAberto(false);
-  };
-
+  const location = useLocation();
   const navigate = useNavigate();
+
+  const STORAGE_KEY = "hasUnreadNotificationsBack";
+  const [menuAberto, setMenuAberto] = useState(false);
+  const [notificacoesAtivas, setNotificacoesAtivas] = useState(
+    () => sessionStorage.getItem(STORAGE_KEY) === "1"
+  );
+
+  let user = null;
+  if (sessionStorage.getItem("user")) {
+    try {
+      user = JSON.parse(sessionStorage.getItem("user"));
+    } catch {
+      user = null;
+    }
+  }
+  const nomeUsuario = user?.nome ? user.nome.split(" ")[0] : "Admin";
+
+  // Recebe novas notificações
+  useEffect(() => {
+    const handler = () => setNotificacoesAtivas(true);
+    window.addEventListener("novaNotificacao", handler);
+    return () => window.removeEventListener("novaNotificacao", handler);
+  }, []);
+
+  useEffect(() => {
+    if (location.pathname === "/notificacoes" && notificacoesAtivas) {
+      setNotificacoesAtivas(false);
+    }
+  }, [location.pathname, notificacoesAtivas]);
+
+  const toggleMenu = () => setMenuAberto((v) => !v);
+  const fecharMenu = () => setMenuAberto(false);
+
   const handleLogout = () => {
     sessionStorage.clear();
     fecharMenu();
@@ -35,17 +53,14 @@ export default function NavbarBack() {
         className="container-fluid d-flex align-items-center"
         style={{ minHeight: "70px" }}
       >
-        {/* Esquerda: Logo Softinsa */}
         <div
           className="d-flex align-items-center justify-content-start"
-          style={{ minWidth: "180px", paddingLeft: "24px" }}
+          style={{ minWidth: "180px", paddingLeft: "30px" }}
         >
           <Link to="/">
-            <img src={logoSoftinsa} alt="Softinsa" style={{ height: "25px" }} />
+            <img src={logoSoftinsa} alt="Softinsa" style={{ height: "20px" }} />
           </Link>
         </div>
-
-        {/* Centro: Logo SoftSkills */}
         <div
           className="d-flex align-items-center justify-content-start"
           style={{ flex: "1 1 0%" }}
@@ -56,8 +71,6 @@ export default function NavbarBack() {
             style={{ height: "65px" }}
           />
         </div>
-
-        {/* Direita: Menu */}
         <div
           className="d-flex align-items-center justify-content-end"
           style={{ minWidth: "260px", paddingRight: "24px" }}
@@ -125,36 +138,58 @@ export default function NavbarBack() {
                     Utilizadores
                   </NavLink>
                 </li>
-                <li className="nav-item position-relative">
+                <li className="nav-item">
                   <NavLink
                     to="/notificacoes"
                     className={({ isActive }) =>
                       `nav-link ${isActive ? "active" : ""}`
                     }
-                    onClick={fecharMenu}
+                    onClick={() => {
+                      setNotificacoesAtivas(false);
+                      sessionStorage.setItem(STORAGE_KEY, "0");
+                      fecharMenu();
+                    }}
                   >
-                    <i className="ri-notification-line"></i>
-                    {notificacoesAtivas && (
-                      <span className="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-light rounded-circle">
-                        <span className="visually-hidden">
-                          Nova notificação
-                        </span>
-                      </span>
-                    )}
+                    <span
+                      className="position-relative d-inline-block"
+                      style={{ width: 22, height: 22 }}
+                    >
+                      <Notifications
+                        style={{ width: 22, height: 22, display: "block" }}
+                      />
+                      {notificacoesAtivas && (
+                        <span
+                          className="position-absolute bg-danger rounded-circle"
+                          style={{
+                            top: -2,
+                            right: -2,
+                            width: 10,
+                            height: 10,
+                            border: "2px solid #fff",
+                          }}
+                          aria-label="Nova notificação"
+                        />
+                      )}
+                    </span>
                   </NavLink>
                 </li>
                 <li className="nav-item d-flex align-items-center">
                   <NavLink
                     to="/profile"
                     className={({ isActive }) =>
-                      `nav-link fw-semibold d-flex align-items-center gap-1 ${
-                        isActive ? "active" : ""
-                      }`
+                      `nav-link ${isActive ? "active" : ""}`
                     }
                     onClick={fecharMenu}
                   >
-                    <i className="ri-account-circle-line text-nowrap"></i>{" "}
-                    {user?.nome.split(" ")[0]}
+                    <Profile
+                      style={{
+                        width: 22,
+                        height: 22,
+                        marginRight: 4,
+                        verticalAlign: "text-bottom",
+                      }}
+                    />{" "}
+                    {nomeUsuario}
                   </NavLink>
                 </li>
                 <li className="nav-item">

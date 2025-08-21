@@ -1,4 +1,3 @@
-// web\frontend\frontOffice\src\components\NavbarFront.jsx
 import { useState, useEffect } from "react";
 import { NavLink, Link } from "react-router-dom";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -14,7 +13,7 @@ export default function NavbarFront() {
   const [menuAberto, setMenuAberto] = useState(false);
   const navigate = useNavigate();
   const { isFormador, loading } = useUserRole();
-  const [notificacoesAtivas, setNotificacoesAtivas] = useState(false); // tem de estar antes de qualquer return condicional
+  const [notificacoesAtivas, setNotificacoesAtivas] = useState(false);
 
   const user = JSON.parse(sessionStorage.getItem("user") || "{}");
   const nomeUsuario = user?.nome || "Utilizador";
@@ -25,7 +24,6 @@ export default function NavbarFront() {
     return () => window.removeEventListener("novaNotificacao", handler);
   }, []);
 
-  // Quando o utilizador entra em /notificacoes limpa badge
   useEffect(() => {
     if (location.pathname === "/notificacoes" && notificacoesAtivas) {
       setNotificacoesAtivas(false);
@@ -54,10 +52,10 @@ export default function NavbarFront() {
         {/* Esquerda: Logo Softinsa */}
         <div
           className="d-flex align-items-center justify-content-start"
-          style={{ minWidth: "180px", paddingLeft: "24px" }}
+          style={{ minWidth: "180px", paddingLeft: "30px" }}
         >
           <Link to="/">
-            <img src={logoSoftinsa} alt="Softinsa" style={{ height: "25px" }} />
+            <img src={logoSoftinsa} alt="Softinsa" style={{ height: "20px" }} />
           </Link>
         </div>
 
@@ -135,28 +133,39 @@ export default function NavbarFront() {
                     </NavLink>
                   </li>
                   <li className="nav-item position-relative">
-                    <NavLink
-                      to="/notificacoes"
-                      className={({ isActive }) =>
-                        `nav-link ${isActive ? "active" : ""}`
-                      }
-                      onClick={fecharMenu}
+                  <NavLink
+                    to="/notificacoes"
+                    className={({ isActive }) =>
+                      `nav-link ${isActive ? "active" : ""}`
+                    }
+                    onClick={() => {
+                      setNotificacoesAtivas(false);
+                      sessionStorage.setItem(STORAGE_KEY, "0");
+                      fecharMenu();
+                    }}
+                  >
+                    <span
+                      className="position-relative d-inline-block"
+                      style={{ width: 22, height: 22 }}
                     >
                       <Notifications
-                        style={{
-                          width: 22,
-                          height: 22,
-                          display: "inline-block",
-                        }}
+                        style={{ width: 22, height: 22, display: "block" }}
                       />
                       {notificacoesAtivas && (
-                        <span className="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-light rounded-circle">
-                          <span className="visually-hidden">
-                            Nova notificação
-                          </span>
-                        </span>
+                        <span
+                          className="position-absolute bg-danger rounded-circle"
+                          style={{
+                            top: -2,
+                            right: -2,
+                            width: 10,
+                            height: 10,
+                            border: "2px solid #fff",
+                          }}
+                          aria-label="Nova notificação"
+                        />
                       )}
-                    </NavLink>
+                    </span>
+                  </NavLink>
                   </li>
                   <li className="nav-item text-nowrap">
                     <NavLink
