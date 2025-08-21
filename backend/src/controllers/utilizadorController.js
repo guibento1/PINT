@@ -49,7 +49,7 @@ async function updateRoles(id, roles) {
 
 const controllers = {};
 
-controllers.byEmail = async (req, res) => {
+controllers.getByEmail = async (req, res) => {
 
     const { email } = req.query; 
 
@@ -102,6 +102,96 @@ controllers.byEmail = async (req, res) => {
             email,
             stack: error.stack,
             method: 'controllers.utilizadores.byEmail',
+            query: req.query 
+        });
+        return res.status(500).json({
+            error: 'Ocorreu um erro interno no servidor.'
+        });
+    }
+};
+
+
+controllers.getAdmin = async (req, res) => {
+
+    const { id } = req.query; 
+
+    logger.debug(`Requisição para procurar admin'}.`);
+
+    try {
+        const idutilizador = await models.admin.findOne({
+            where : { idadmin : id, ativo : true }
+        })?.utilizador;
+
+        if(idutilizador && idutilizador != undefined){
+
+            const utilizador = await models.utilizadores.findByPk(idutilizador,{
+                attributes: ["email", "nome", "foto"]
+            });
+
+            if (utilizador.dataValues.foto) 
+                utilizador.dataValues.foto = await generateSASUrl(utilizador.dataValues.foto, 'userprofiles');
+
+            return res.status(200).json(utilizador);
+
+        } else {
+
+            logger.info(`Tentativa de acesso a admin não encontrado para o id: ${id}.`);
+            return res.status(404).json({
+                error: 'Utilizador não encontrado.'
+            });
+
+        }
+
+    } catch (error) {
+        logger.error(`Erro interno ao procurar admin. Detalhes: ${error.message}`, {
+            email,
+            stack: error.stack,
+            method: 'controllers.utilizadores.getAdmin',
+            query: req.query 
+        });
+        return res.status(500).json({
+            error: 'Ocorreu um erro interno no servidor.'
+        });
+    }
+};
+
+
+controllers.getFormador = async (req, res) => {
+
+    const { id } = req.query; 
+
+    logger.debug(`Requisição para procurar formador'}.`);
+
+    try {
+        const idutilizador = await models.formador.findOne({
+            where : { idformador : id, ativo : true }
+        })?.utilizador;
+
+        if(idutilizador && idutilizador != undefined){
+
+            const utilizador = await models.utilizadores.findByPk(idutilizador,{
+                attributes: ["email", "nome", "foto"]
+            });
+
+            if (utilizador.dataValues.foto) 
+                utilizador.dataValues.foto = await generateSASUrl(utilizador.dataValues.foto, 'userprofiles');
+
+            return res.status(200).json(utilizador);
+
+        } else {
+
+            logger.info(`Tentativa de acesso a formador não encontrado para o id: ${id}.`);
+            return res.status(404).json({
+                error: 'Utilizador não encontrado.'
+            });
+
+        }
+
+    } catch (error) {
+        logger.error(`Erro interno ao procurar admin. Detalhes: ${error.message}`, {
+            email,
+            stack: error.stack,
+            method: 'controllers.utilizadores.getFormador',
             query: req.query 
         });
         return res.status(500).json({
@@ -187,7 +277,7 @@ controllers.loginUser = async (req, res) => {
                 roles: data.dataValues.roles,
                 email: data.email
             });
-            logger.debug(`Access Token gerado para o utilizador ${data.idutilizador}.`);
+            logger.debug(`Access Token gerado para o utilizador ${data.idutilizador}, ${accessToken}, roles: ${JSON.stringify(data.dataValues.roles)}.`);
 
             const responseData = {
                 idutilizador: data.idutilizador,
