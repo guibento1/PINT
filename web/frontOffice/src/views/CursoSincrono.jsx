@@ -7,28 +7,28 @@ import useUserRole from "@shared/hooks/useUserRole";
 
 const CursoSincrono = () => {
   const { id } = useParams();
-  const user = JSON.parse(sessionStorage.getItem("user"));
+  const user = JSON.parse(sessionStorage.getItem("user") || "{}");
   const { isFormador } = useUserRole();
 
   const [curso, setCurso] = useState(null);
   const [loading, setLoading] = useState(true);
   const [inscrito, setInscrito] = useState(false);
 
-  // Estado de operações
   const [operationStatus, setOperationStatus] = useState(null);
   const [operationMessage, setOperationMessage] = useState("");
   const [isResultModalOpen, setIsResultModalOpen] = useState(false);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [actionToConfirm, setActionToConfirm] = useState(null);
 
-  // Tabs (apenas overview + agenda agora)
   const [activeTab, setActiveTab] = useState("overview");
 
-  // Sessões (sincrono)
-  const [newSessaoData, setNewSessaoData] = useState("");
-  const [newSessaoInicio, setNewSessaoInicio] = useState("");
-  const [newSessaoFim, setNewSessaoFim] = useState("");
-  const [newSessaoTitulo, setNewSessaoTitulo] = useState("");
+  // Campos corretos para sessão (backend exige estes)
+  const [sessaoTitulo, setSessaoTitulo] = useState("");
+  const [sessaoDescricao, setSessaoDescricao] = useState("");
+  const [sessaoLink, setSessaoLink] = useState("");
+  const [sessaoDataHora, setSessaoDataHora] = useState(""); // datetime-local
+  const [sessaoDuracao, setSessaoDuracao] = useState("");
+  const [sessaoPlataforma, setSessaoPlataforma] = useState("");
 
   const openResultModal = () => setIsResultModalOpen(true);
   const closeResultModal = () => {
@@ -45,7 +45,9 @@ const CursoSincrono = () => {
     setActionToConfirm(null);
   };
 
-  const isFormadorDoCurso = isFormador && (curso?.formador == user?.id) ;
+  // id do papel de formador (formador.id) não é o idutilizador
+  const idFormadorRole = user?.roles?.find(r => r.role === "formador")?.id;
+  const isFormadorDoCurso = !!idFormadorRole && curso?.formador === idFormadorRole && isFormador;
 
   // Carregar curso
   const fetchCurso = useCallback(async () => {
@@ -55,7 +57,6 @@ const CursoSincrono = () => {
       setCurso(res.data);
       setInscrito(!!res.data?.inscrito);
     } catch (err) {
-      console.error("Erro ao obter curso síncrono:", err);
       setCurso(null);
     } finally {
       setLoading(false);
@@ -63,7 +64,6 @@ const CursoSincrono = () => {
   }, [id]);
 
   useEffect(() => {
-    console.log(curso);
     fetchCurso();
   }, [fetchCurso]);
 
@@ -77,12 +77,10 @@ const CursoSincrono = () => {
       setOperationStatus(0);
       setOperationMessage(res.data.message || "Inscrição realizada.");
       setInscrito(true);
+      await fetchCurso();
     } catch (err) {
-      console.error("Erro inscrição:", err);
       setOperationStatus(1);
-      setOperationMessage(
-        err?.response?.data?.message || "Falha na inscrição."
-      );
+      setOperationMessage(err?.response?.data?.error || "Falha na inscrição.");
     } finally {
       setLoading(false);
       openResultModal();
@@ -97,10 +95,10 @@ const CursoSincrono = () => {
       setOperationStatus(0);
       setOperationMessage(res.data.message || "Saída realizada.");
       setInscrito(false);
+      await fetchCurso();
     } catch (err) {
-      console.error("Erro saída:", err);
       setOperationStatus(1);
-      setOperationMessage("Falha ao sair.");
+      setOperationMessage(err?.response?.data?.error || "Falha ao sair.");
     } finally {
       setLoading(false);
       openResultModal();
@@ -111,48 +109,75 @@ const CursoSincrono = () => {
     if (actionToConfirm === "sair") await executeSairCurso();
   };
 
-  // Sessões (usar endpoints sincronos: POST /sessao/:idcursosinc  | DELETE /sessao/:idsessao)
+  // Criar sessão usando idcrono (id do cursosincrono) e campos corretos
   const handleAddSessao = async (e) => {
     e.preventDefault();
-    if (!newSessaoData || !newSessaoInicio || !newSessaoFim) return;
+    if (!curso?.idcrono) {
+      setOperationStatus(1);
+      setOperationMessage("ID do curso síncrono não carregado.");
+      openResultModal();
+      return;
+    }
+    if (!sessaoTitulo || !sessaoDescricao || !sessaoLink || !sessaoDataHora || !sessaoDuracao || !sessaoPlataforma) {
+      setOperationStatus(1);
+      setOperationMessage("Preencha todos os campos da sessão.");
+      openResultModal();
+      return;
+    }
     try {
-      await api.post(`/sessao/${id}`, {
-        data: newSessaoData,
-        horainicio: newSessaoInicio,
-        horafim: newSessaoFim,
-        titulo: newSessaoTitulo || "Sessão",
+      await api.post(`/sessao/${curso.idcrono}`, {
+        titulo: sessaoTitulo,
+        descricao: sessaoDescricao,
+        linksessao: sessaoLink,
+        datahora: sessaoDataHora,
+        duracaohoras: Number(sessaoDuracao),
+        plataformavideoconferencia: sessaoPlataforma
       });
-      setNewSessaoData("");
-      setNewSessaoInicio("");
-      setNewSessaoFim("");
-      setNewSessaoTitulo("");
+      setSessaoTitulo("");
+      setSessaoDescricao("");
+      setSessaoLink("");
+      setSessaoDataHora("");
+      setSessaoDuracao("");
+      setSessaoPlataforma("");
       await fetchCurso();
       setOperationStatus(0);
-      setOperationMessage("Sessão agendada.");
+      setOperationMessage("Sessão criada.");
     } catch (err) {
-      console.error("Erro agendar sessão:", err);
       setOperationStatus(1);
-      setOperationMessage("Erro ao agendar sessão.");
+      setOperationMessage(err?.response?.data?.error || "Erro ao criar sessão.");
     } finally {
       openResultModal();
     }
   };
-  const handleDeleteSessao = async (sessaoId) => {
+  const handleDeleteSessao = async (idsessao) => {
     try {
-      await api.delete(`/sessao/${sessaoId}`);
+      await api.delete(`/sessao/${idsessao}`);
       await fetchCurso();
       setOperationStatus(0);
       setOperationMessage("Sessão removida.");
     } catch (err) {
-      console.error("Erro remover sessão:", err);
       setOperationStatus(1);
-      setOperationMessage("Erro ao remover sessão.");
+      setOperationMessage(err?.response?.data?.error || "Erro ao remover sessão.");
     } finally {
       openResultModal();
     }
   };
 
+  const formatDataHora = (dt) => {
+    if (!dt) return "";
+    const date = new Date(dt);
+    if (isNaN(date.getTime())) return dt;
+    return date.toLocaleString("pt-PT", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit"
+    });
+  };
+
   const formatData = (dataStr) => {
+    if (!dataStr) return "";
     const date = new Date(dataStr);
     if (isNaN(date.getTime())) return "Data inválida";
     return date.toLocaleString("pt-PT", {
@@ -232,217 +257,251 @@ const CursoSincrono = () => {
               className="img-fluid rounded shadow-sm"
             />
           </div>
-          <div className="col-md-8">
-            <h1 className="h3">{curso?.nome}</h1>
-            {curso?.disponivel === false && (
-              <>
-                <div className="btn btn-primary static-button">Arquivado</div>
-                <br />
-              </>
-            )}
-
-            {isFormadorDoCurso ? (
-              <ul className="nav nav-pills small my-3">
-                <li className="nav-item">
-                  <button
-                    className={`nav-link ${
-                      activeTab === "overview" ? "active" : ""
-                    }`}
-                    onClick={() => setActiveTab("overview")}
-                  >
-                    Visão Geral
-                  </button>
-                </li>
-                <li className="nav-item">
-                  <button
-                    className={`nav-link ${
-                      activeTab === "schedule" ? "active" : ""
-                    }`}
-                    onClick={() => setActiveTab("schedule")}
-                  >
-                    Agenda
-                  </button>
-                </li>
-              </ul>
-            ) : !inscrito ? (
-              <div className="mt-3">
-                <p className="mb-3">
-                  <strong>Inscrições:</strong>{" "}
-                  {formatData(curso?.iniciodeinscricoes)} até{" "}
-                  {formatData(curso?.fimdeinscricoes)}
+            <div className="col-md-8">
+              <h1 className="h3">{curso?.nome}</h1>
+              {curso?.disponivel === false && (
+                <>
+                  <div className="btn btn-primary static-button">Arquivado</div>
                   <br />
-                  {curso?.maxinscricoes && (
-                    <>
-                      <strong>Máx. inscrições:</strong> {curso?.maxinscricoes}
-                      <br />
-                    </>
-                  )}
-                </p>
-                <button
-                  onClick={handleClickInscrever}
-                  className="btn btn-sm btn-primary"
-                  disabled={loading}
-                >
-                  {loading ? "A inscrever..." : "Inscrever"}
-                </button>
-              </div>
-            ) : (
-              <div className="mt-3">
-                <button
-                  onClick={() => openConfirmModal("sair")}
-                  className="btn btn-sm btn-outline-danger fw-semibold rounded-pill px-3"
-                  disabled={loading}
-                >
-                  {loading ? "A sair..." : "Sair do Curso"}
-                </button>
-                {curso?.planocurricular && (
-                  <p className="mt-4">
-                    <strong>Plano Curricular:</strong>
-                    <br />
-                    {curso?.planocurricular}
-                  </p>
-                )}
-              </div>
-            )}
-
-            {isFormadorDoCurso &&
-              activeTab === "overview" &&
-              curso?.planocurricular && (
-                <p className="mt-3">
-                  <strong>Plano Curricular:</strong>
-                  <br />
-                  {curso.planocurricular}
-                </p>
+                </>
               )}
 
-            {isFormadorDoCurso && activeTab === "schedule" && (
-              <div className="mt-3">
-                <h5 className="mb-3">Agenda de Sessões Síncronas</h5>
-                <form
-                  onSubmit={handleAddSessao}
-                  className="row g-2 align-items-end mb-4"
-                >
-                  <div className="col-md-3">
-                    <label className="form-label form-label-sm mb-1 small">
-                      Data
-                    </label>
-                    <input
-                      type="date"
-                      className="form-control form-control-sm"
-                      value={newSessaoData}
-                      onChange={(e) => setNewSessaoData(e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div className="col-md-2">
-                    <label className="form-label form-label-sm mb-1 small">
-                      Início
-                    </label>
-                    <input
-                      type="time"
-                      className="form-control form-control-sm"
-                      value={newSessaoInicio}
-                      onChange={(e) => setNewSessaoInicio(e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div className="col-md-2">
-                    <label className="form-label form-label-sm mb-1 small">
-                      Fim
-                    </label>
-                    <input
-                      type="time"
-                      className="form-control form-control-sm"
-                      value={newSessaoFim}
-                      onChange={(e) => setNewSessaoFim(e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div className="col-md-3">
-                    <label className="form-label form-label-sm mb-1 small">
-                      Título
-                    </label>
-                    <input
-                      type="text"
-                      className="form-control form-control-sm"
-                      value={newSessaoTitulo}
-                      onChange={(e) => setNewSessaoTitulo(e.target.value)}
-                      placeholder="Opcional"
-                    />
-                  </div>
-                  <div className="col-md-2 d-flex">
+              {isFormadorDoCurso ? (
+                <ul className="nav nav-pills small my-3">
+                  <li className="nav-item">
                     <button
-                      type="submit"
-                      className="btn btn-sm btn-primary w-100"
+                      className={`nav-link ${activeTab === "overview" ? "active" : ""}`}
+                      onClick={() => setActiveTab("overview")}
                     >
-                      Agendar
+                      Visão Geral
                     </button>
-                  </div>
-                </form>
-                <h6 className="mb-2">Sessões Agendadas</h6>
-                {curso?.sessoes?.length ? (
-                  <ul className="list-group small">
-                    {curso.sessoes.map((s) => (
-                      <li
-                        key={s.idsessao || s.id}
-                        className="list-group-item d-flex justify-content-between align-items-center"
+                  </li>
+                  <li className="nav-item">
+                    <button
+                      className={`nav-link ${activeTab === "schedule" ? "active" : ""}`}
+                      onClick={() => setActiveTab("schedule")}
+                    >
+                      Agenda
+                    </button>
+                  </li>
+                </ul>
+              ) : !inscrito ? (
+                <div className="mt-3">
+                  <p className="mb-3">
+                    <strong>Inscrições:</strong>{" "}
+                    {formatData(curso?.iniciodeinscricoes)} até{" "}
+                    {formatData(curso?.fimdeinscricoes)}
+                    <br />
+                    {curso?.maxinscricoes && (
+                      <>
+                        <strong>Máx. inscrições:</strong>{" "}
+                        {curso?.maxinscricoes}
+                        <br />
+                      </>
+                    )}
+                  </p>
+                  <button
+                    onClick={handleClickInscrever}
+                    className="btn btn-sm btn-primary"
+                    disabled={loading}
+                  >
+                    {loading ? "A inscrever..." : "Inscrever"}
+                  </button>
+                </div>
+              ) : (
+                <div className="mt-3">
+                  <button
+                    onClick={() => openConfirmModal("sair")}
+                    className="btn btn-sm btn-outline-danger fw-semibold rounded-pill px-3"
+                    disabled={loading}
+                  >
+                    {loading ? "A sair..." : "Sair do Curso"}
+                  </button>
+                  {curso?.planocurricular && (
+                    <p className="mt-4">
+                      <strong>Plano Curricular:</strong>
+                      <br />
+                      {curso?.planocurricular}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {isFormadorDoCurso &&
+                activeTab === "overview" &&
+                curso?.planocurricular && (
+                  <p className="mt-3">
+                    <strong>Plano Curricular:</strong>
+                    <br />
+                    {curso.planocurricular}
+                  </p>
+                )}
+
+              {isFormadorDoCurso && activeTab === "schedule" && (
+                <div className="mt-3">
+                  <h5 className="mb-3">Agenda de Sessões Síncronas</h5>
+                  <form
+                    onSubmit={handleAddSessao}
+                    className="row g-2 align-items-end mb-4"
+                  >
+                    <div className="col-md-3">
+                      <label className="form-label form-label-sm mb-1 small">
+                        Título
+                      </label>
+                      <input
+                        type="text"
+                        className="form-control form-control-sm"
+                        value={sessaoTitulo}
+                        onChange={(e) => setSessaoTitulo(e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div className="col-md-3">
+                      <label className="form-label form-label-sm mb-1 small">
+                        Descrição
+                      </label>
+                      <input
+                        type="text"
+                        className="form-control form-control-sm"
+                        value={sessaoDescricao}
+                        onChange={(e) => setSessaoDescricao(e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div className="col-md-3">
+                      <label className="form-label form-label-sm mb-1 small">
+                        Data/Hora
+                      </label>
+                      <input
+                        type="datetime-local"
+                        className="form-control form-control-sm"
+                        value={sessaoDataHora}
+                        onChange={(e) => setSessaoDataHora(e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div className="col-md-1">
+                      <label className="form-label form-label-sm mb-1 small">
+                        Duração (h)
+                      </label>
+                      <input
+                        type="number"
+                        min="0.5"
+                        step="0.5"
+                        className="form-control form-control-sm"
+                        value={sessaoDuracao}
+                        onChange={(e) => setSessaoDuracao(e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div className="col-md-2">
+                      <label className="form-label form-label-sm mb-1 small">
+                        Plataforma
+                      </label>
+                      <input
+                        type="text"
+                        className="form-control form-control-sm"
+                        value={sessaoPlataforma}
+                        onChange={(e) => setSessaoPlataforma(e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div className="col-md-6">
+                      <label className="form-label form-label-sm mb-1 small">
+                        Link Sessão
+                      </label>
+                      <input
+                        type="url"
+                        className="form-control form-control-sm"
+                        value={sessaoLink}
+                        onChange={(e) => setSessaoLink(e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div className="col-md-2 d-flex">
+                      <button
+                        type="submit"
+                        className="btn btn-sm btn-primary w-100"
+                        disabled={loading}
                       >
-                        <div>
-                          <strong>{s.titulo || "Sessão"}</strong>
-                          <br />
-                          <span className="text-muted">
-                            {formatData(`${s.data}T${s.horainicio}`)} -{" "}
-                            {s.horafim}
-                          </span>
-                        </div>
-                        {isFormadorDoCurso && (
+                        {loading ? "A guardar..." : "Agendar"}
+                      </button>
+                    </div>
+                  </form>
+                  <h6 className="mb-2">Sessões Agendadas</h6>
+                  {curso?.sessoes?.length ? (
+                    <ul className="list-group small">
+                      {curso.sessoes.map((s) => (
+                        <li
+                          key={s.idsessao}
+                          className="list-group-item d-flex justify-content-between align-items-center"
+                        >
+                          <div>
+                            <strong>{s.titulo}</strong>
+                            <br />
+                            <span className="text-muted">
+                              {formatDataHora(s.datahora)} ({s.duracaohoras}h) - {s.plataformavideoconferencia}
+                            </span>
+                            <br />
+                            {s.linksessao && (
+                              <a
+                                href={s.linksessao}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="small"
+                              >
+                                Aceder
+                              </a>
+                            )}
+                          </div>
                           <div className="d-flex gap-1">
                             <button
                               className="btn btn-sm btn-outline-danger"
                               type="button"
-                              onClick={() =>
-                                handleDeleteSessao(s.idsessao || s.id)
-                              }
+                              onClick={() => handleDeleteSessao(s.idsessao)}
+                              disabled={loading}
                             >
                               Remover
                             </button>
                           </div>
-                        )}
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="text-muted">Nenhuma sessão agendada.</p>
-                )}
-              </div>
-            )}
-          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-muted">Nenhuma sessão agendada.</p>
+                  )}
+                </div>
+              )}
+            </div>
         </div>
 
-        {/* Área pública (inscrito ou formador) – lista de sessões */}
-        {(inscrito || isFormadorDoCurso) && (
+        {( (inscrito || isFormadorDoCurso) && curso?.sessoes?.length > 0) && (
           <div className="mt-5">
             <h2 className="h5">Sessões</h2>
-            {curso?.sessoes?.length ? (
-              <ul className="list-group small">
-                {curso.sessoes.map((s) => (
-                  <li
-                    key={s.idsessao || s.id}
-                    className="list-group-item d-flex justify-content-between align-items-center"
-                  >
-                    <div>
-                      <strong>{s.titulo || "Sessão"}</strong>
-                      <br />
-                      <span className="text-muted">
-                        {formatData(`${s.data}T${s.horainicio}`)} - {s.horafim}
-                      </span>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p>Nenhuma sessão disponível.</p>
-            )}
+            <ul className="list-group small">
+              {curso.sessoes.map((s) => (
+                <li
+                  key={s.idsessao}
+                  className="list-group-item d-flex justify-content-between align-items-center"
+                >
+                  <div>
+                    <strong>{s.titulo}</strong>
+                    <br />
+                    <span className="text-muted">
+                      {formatDataHora(s.datahora)} ({s.duracaohoras}h)
+                    </span>
+                    {s.linksessao && (
+                      <>
+                        <br />
+                        <a href={s.linksessao} target="_blank" rel="noreferrer">
+                          Link
+                        </a>
+                      </>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
           </div>
         )}
       </div>
