@@ -8,7 +8,7 @@ import useUserRole from "@shared/hooks/useUserRole";
 const CursoAssincrono = () => {
   const { id } = useParams();
   const user = JSON.parse(sessionStorage.getItem("user"));
-  const { isFormador } = useUserRole();
+  const { isFormando } = useUserRole();
   const [curso, setCurso] = useState(null);
   const [inscrito, setInscrito] = useState(false);
   // 403 ao tentar inscrever => esconder botão posteriormente
@@ -192,14 +192,6 @@ const CursoAssincrono = () => {
     fetchCurso();
   }, [id]);
 
-  const isFormadorDoCurso =
-    isFormador &&
-    (curso?.souFormador === true ||
-      (Array.isArray(curso?.formadores) &&
-        curso.formadores.some(
-          (f) => f.idutilizador === user?.id || f.id === user?.id
-        )));
-
   const formatData = (dataStr) => {
     const date = new Date(dataStr);
     if (isNaN(date.getTime())) {
@@ -308,9 +300,13 @@ const CursoAssincrono = () => {
                 </>
               )}
 
-            {isFormadorDoCurso ? null : !inscrito ? (
+            {!isFormando ? (
+                  <div className="alert alert-warning p-2 small mt-3">
+                    Não tem papel de formando contacte os serviços administrativos para o receber e proceder á inscrição ou aceder aos recursos caso alguma vez tivesse o papel e estivesse incrito.
+                  </div>
+                ) : !inscrito ? (
               <>
-                {!enrollForbidden && (
+                {
                   <>
                     <p className="mt-4">
                       <strong>Inscrições:</strong>{" "}
@@ -335,10 +331,10 @@ const CursoAssincrono = () => {
                         : "Inscrever"}
                     </button>
                   </>
-                )}
+                }
                 {enrollForbidden && (
                   <div className="alert alert-warning p-2 small mt-3">
-                    Não pode inscrever-se neste curso (permissões).
+                    Não pode se inscrever neste curso.
                   </div>
                 )}
               </>
@@ -365,7 +361,7 @@ const CursoAssincrono = () => {
           </div>
         </div>
 
-        {!inscrito && !isFormadorDoCurso && curso?.planocurricular && (
+        {!inscrito && curso?.planocurricular && (
           <div className="mt-5">
             <h2 className="h4">Plano Curricular</h2>
             <p>{curso?.planocurricular}</p>
@@ -411,7 +407,7 @@ const CursoAssincrono = () => {
           )}
         </div>
 
-        {(inscrito || isFormadorDoCurso) && (
+        {(inscrito) && (
           <div className="mt-5">
             <h2 className="h4">Lições e sessões passadas</h2>
             {curso?.licoes?.length > 0 ? (

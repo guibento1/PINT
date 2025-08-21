@@ -20,7 +20,7 @@ export default function Home() {
   const [categoriasAtivas, setCategoriasAtivas] = useState([]);
   const [categorias, setCategorias] = useState([]);
   const [urlApiSincronos, setUrlApiSincronos] = useState(
-    "/curso/list?sincrono=true"
+    `/curso/formador/${isFormador}`
   );
 
   const handleTagClickCategoria = (categoria) => {
@@ -103,7 +103,7 @@ export default function Home() {
   // URL para cursos síncronos (formador)
   useEffect(() => {
     if (!isFormador) return;
-    let base = "/curso/list?sincrono=true";
+    let base = `/curso/formador/${isFormador}`;
     const params = [];
     if (termoPesquisa.length > 0) {
       params.push(`search=${encodeURIComponent(termoPesquisa)}`);
@@ -120,7 +120,7 @@ export default function Home() {
 
   return (
     <div className="container py-5">
-      {isFormando && (
+      {isFormando > 0 && (
         <div className="mb-5 text-center">
           <h1 className="fw-bold mb-2">
             Olá, {user?.nome?.split(" ")[0] || "Utilizador"} 👋
@@ -133,7 +133,7 @@ export default function Home() {
         {/* Coluna principal */}
         <div className="col-lg-9">
           {/* Secção Síncronos primeiro para Formador */}
-          {isFormador && (
+          {isFormador > 0 && (
             <div className="mb-5">
               <h4 className="mb-3">Cursos que leciono:</h4>
               {cursosSincronos.length > 0 ? (
@@ -146,6 +146,7 @@ export default function Home() {
                       <CardCurso
                         className="shadow border-radius p-2"
                         curso={curso}
+                        notipo={true}
                       />
                     </div>
                   ))}

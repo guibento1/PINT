@@ -45,13 +45,7 @@ const CursoSincrono = () => {
     setActionToConfirm(null);
   };
 
-  const isFormadorDoCurso =
-    isFormador &&
-    (curso?.souFormador === true ||
-      (Array.isArray(curso?.formadores) &&
-        curso.formadores.some(
-          (f) => f.idutilizador === user?.id || f.id === user?.id
-        )));
+  const isFormadorDoCurso = isFormador && (curso?.formador == user?.id) ;
 
   // Carregar curso
   const fetchCurso = useCallback(async () => {
@@ -69,6 +63,7 @@ const CursoSincrono = () => {
   }, [id]);
 
   useEffect(() => {
+    console.log(curso);
     fetchCurso();
   }, [fetchCurso]);
 
