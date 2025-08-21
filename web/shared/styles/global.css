@@ -2,7 +2,8 @@
    🌐 VARIÁVEIS GLOBAIS DE TEMA
 ================================== */
 
-html, body {
+html,
+body {
   color: var(--text-dark);
   background-color: var(
     --background-light
@@ -197,6 +198,13 @@ a {
   background-color: var(--softinsa-blue); /* Azul Softinsa para ativo/hover */
   color: white !important;
   border-color: var(--softinsa-blue);
+}
+
+/* Efeito de hover especial no link já ativo (igual aos botões selecionados) */
+.navbar-nav .nav-link.active:hover {
+  background-color: var(--softinsa-blue-light);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px var(--shadow-light);
 }
 
 /* ================================
@@ -660,4 +668,50 @@ h6 {
   background-color: transparent;
   color: #212529;
   box-shadow: none;
+}
+
+/* ================================
+   🎯 EFEITOS DE HOVER & FOCUS EM CONTROLOS DE FORMULÁRIO
+================================== */
+.form-control,
+.form-select,
+.form-select-hover-effect {
+  transition: border-color 0.15s ease, box-shadow 0.15s ease,
+    background-color 0.15s ease;
+  border-color: var(--border-medium);
+}
+
+.form-control:hover,
+.form-select:hover,
+.form-select-hover-effect:hover {
+  border-color: var(--softinsa-blue);
+}
+
+.form-control:focus,
+.form-select:focus,
+.form-select-hover-effect:focus {
+  border-color: var(--softinsa-blue) !important;
+  box-shadow: 0 0 0 0.2rem rgba(0, 176, 218, 0.25);
+  outline: none;
+  background-color: #fff;
+}
+
+/* ================================
+   🔧 Botões de filtro estáveis
+================================== */
+.filter-tipo-btn {
+  min-height: 32px;
+  line-height: 1.2;
+  font-weight: 500;
+  padding: 0.3rem 0.9rem;
+  border-width: 1px !important; /* garante mesma espessura */
+  transition: background-color 0.15s ease, color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+.filter-tipo-btn.btn-primary {
+  border: 1px solid var(--softinsa-blue); /* mantém largura quando vira primary */
+}
+.filter-tipo-btn.btn-primary:hover,
+.filter-tipo-btn.btn-outline-primary:hover {
+  transform: none !important; /* remove lift que causa sensação de tremor */
 }

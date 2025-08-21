@@ -2,27 +2,29 @@ const Sequelize = require('sequelize');
 module.exports = function(sequelize, DataTypes) {
   return sequelize.define('sessao', {
     idsessao: {
+      autoIncrement: true,
+      autoIncrementIdentity: true,
       type: DataTypes.BIGINT,
-      allowNull: true,
-      unique: "sessao_idsessao_key"
+      allowNull: false,
+      primaryKey: true
     },
     licao: {
       type: DataTypes.BIGINT,
-      allowNull: false,
-      primaryKey: true,
+      allowNull: true,
       references: {
         model: 'licao',
         key: 'idlicao'
-      }
+      },
+      unique: "licao_curso_u"
     },
     cursosincrono: {
       type: DataTypes.BIGINT,
-      allowNull: false,
-      primaryKey: true,
+      allowNull: true,
       references: {
         model: 'cursosincrono',
         key: 'idcursosincrono'
-      }
+      },
+      unique: "licao_curso_u"
     },
     linksessao: {
       type: DataTypes.STRING(300),
@@ -32,14 +34,14 @@ module.exports = function(sequelize, DataTypes) {
       type: DataTypes.DATE,
       allowNull: false
     },
+    duracaohoras: {
+      type: DataTypes.BIGINT,
+      allowNull: false,
+      defaultValue: 1
+    },
     plataformavideoconferencia: {
       type: DataTypes.STRING(60),
       allowNull: true
-    },
-    duracaohoras: {
-      type: DataTypes.BIGINT,
-      allowNull: true,
-      defaultValue: 1
     }
   }, {
     tableName: 'sessao',
@@ -47,18 +49,18 @@ module.exports = function(sequelize, DataTypes) {
     timestamps: false,
     indexes: [
       {
-        name: "sessao_idsessao_key",
+        name: "licao_curso_u",
         unique: true,
         fields: [
-          { name: "idsessao" },
+          { name: "licao" },
+          { name: "cursosincrono" },
         ]
       },
       {
         name: "sessao_pk",
         unique: true,
         fields: [
-          { name: "licao" },
-          { name: "cursosincrono" },
+          { name: "idsessao" },
         ]
       },
     ]

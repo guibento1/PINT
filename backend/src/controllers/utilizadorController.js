@@ -184,7 +184,8 @@ controllers.loginUser = async (req, res) => {
 
             const accessToken = generateAccessToken({
                 idutilizador: data.idutilizador,
-                roles: data.dataValues.roles
+                roles: data.dataValues.roles,
+                email: data.email
             });
             logger.debug(`Access Token gerado para o utilizador ${data.idutilizador}.`);
 
@@ -411,7 +412,8 @@ controllers.register = async (req, res) => {
 
         const token = generateAccessToken({
             idutilizador: createdRow.idutilizador,
-            roles
+            roles,
+            email
         });
 
         const emailData = {

@@ -1,21 +1,27 @@
-import React, { useState } from 'react';
-import axios from 'axios';
-import { useSearchParams, useNavigate } from 'react-router-dom';
-import Modal from '@shared/components/Modal';
+import React, { useState } from "react";
+import axios from "axios";
+import { useSearchParams, useNavigate } from "react-router-dom";
+import Modal from "@shared/components/Modal";
 
 export default function ResetPassword() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const token = searchParams.get('token');
+  const tokenFromQuery = searchParams.get("token");
+  if (tokenFromQuery) {
+    // Guardar também em sessionStorage para caso a query seja perdida (refresh, navegação interna, etc.)
+    sessionStorage.setItem("reset_password_token", tokenFromQuery);
+  }
+  const token =
+    tokenFromQuery || sessionStorage.getItem("reset_password_token");
 
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
   // Modal functions
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [resetPasswordStatus, setResetPasswordStatus] = useState(-1); // 0 - success; 1 - fields missing; 2 - password mismatch; 3 - no token; 4 - erro 
+  const [resetPasswordStatus, setResetPasswordStatus] = useState(-1); // 0 - success; 1 - fields missing; 2 - password mismatch; 3 - no token; 4 - erro
 
   const getModalTitle = () => {
     switch (resetPasswordStatus) {
@@ -34,7 +40,6 @@ export default function ResetPassword() {
 
   const getModalBody = () => {
     switch (resetPasswordStatus) {
-
       case 0:
         return (
           <>
@@ -46,22 +51,31 @@ export default function ResetPassword() {
         return <p>É necessário introduzir e confirmar a password.</p>;
 
       case 2:
-        return <p>A password original e introduzida no campo de confirmação não coicidem.</p>
-
+        return (
+          <p>
+            A password original e introduzida no campo de confirmação não
+            coicidem.
+          </p>
+        );
 
       case 3:
         return (
           <>
-            <p>O url para reset da passord contem argumentos especificos para confirmação da sua identidade.</p>
+            <p>
+              O url para reset da passord contem argumentos especificos para
+              confirmação da sua identidade.
+            </p>
             <p>Verifique se abrio ou copiou o link correto.</p>
           </>
-        )
+        );
 
       default:
         return (
           <>
             <p>Ocorreu um erro da nossa parte.</p>
-            <p>Tente mais tarde, se o erro persistir, contacte o nosso suporte.</p>
+            <p>
+              Tente mais tarde, se o erro persistir, contacte o nosso suporte.
+            </p>
           </>
         );
     }
@@ -72,12 +86,9 @@ export default function ResetPassword() {
   };
 
   const handleCloseModal = () => {
-
     setIsModalOpen(false);
-    !resetPasswordStatus && navigate('/login');
-
+    !resetPasswordStatus && navigate("/login");
   };
-
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -103,27 +114,32 @@ export default function ResetPassword() {
     setLoading(true);
 
     try {
-      const data = await axios.post(import.meta.env.VITE_API_URL + '/utilizador/resetpassword',{ password }, {
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
+      const data = await axios.post(
+        import.meta.env.VITE_API_URL + "/utilizador/resetpassword",
+        { password },
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
         }
-      });
+      );
 
       if (!data) {
-        throw new Error('Erro ao redefinir a password.');
+        throw new Error("Erro ao redefinir a password.");
       }
-      
+
       setResetPasswordStatus(0);
       handleOpenModal();
 
-      setPassword('');
-      setConfirmPassword('');
+      setPassword("");
+      setConfirmPassword("");
+      // Limpar token de reset após sucesso
+      sessionStorage.removeItem("reset_password_token");
     } catch (err) {
       console.log(err);
       setResetPasswordStatus(4);
       handleOpenModal();
-
     } finally {
       setLoading(false);
     }
@@ -131,8 +147,6 @@ export default function ResetPassword() {
 
   return (
     <>
-
-
       <Modal
         isOpen={isModalOpen}
         onClose={handleCloseModal}
@@ -141,7 +155,7 @@ export default function ResetPassword() {
         {getModalBody()}
       </Modal>
 
-      <div className="container my-5" style={{ maxWidth: '480px' }}>
+      <div className="container my-5" style={{ maxWidth: "480px" }}>
         <h2 className="mb-4">Redefinir Password</h2>
 
         <form onSubmit={handleSubmit} noValidate>
@@ -182,11 +196,10 @@ export default function ResetPassword() {
             className="btn btn-primary w-100"
             disabled={loading}
           >
-            {loading ? 'A processar...' : 'Redefinir Password'}
+            {loading ? "A processar..." : "Redefinir Password"}
           </button>
         </form>
       </div>
-
     </>
   );
 }

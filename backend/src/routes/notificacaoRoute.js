@@ -4,8 +4,9 @@ const router = express.Router();
 
 const notificacaoController = require('../controllers/notificacaoController.js'); 
 
+router.get('/list',authenticateJWT,notificacaoController.listUserNotifications);
 router.get('/list/canais',authenticateJWT,authorizeRoles('admin'),notificacaoController.listCanais);
-router.get('/list/:idCanal',authenticateJWT,authorizeRoles('admin'),notificacaoController.listNotificacoes);
+router.get('/list/canal/:idCanal',authenticateJWT,authorizeRoles('admin'),notificacaoController.listNotificacoesByCanal);
 router.get('/list/subscricoes/:idutilizador',authenticateJWT,notificacaoController.getCanaisInscritos);
 router.post('/create/general',authenticateJWT,authorizeRoles('admin'),notificacaoController.criarNotificacaoGeral);
 router.post('/create/admin',authenticateJWT,authorizeRoles('admin'),notificacaoController.criarNotificacaoAdministrativa);

@@ -198,7 +198,6 @@ CREATE TABLE Curso (
     inicioDeInscricoes TIMESTAMP NOT NULL,
     canal BIGINT NOT NULL,
     fimDeInscricoes TIMESTAMP,
-    maxInscricoes INT,
     planoCurricular TEXT,
     thumbnail VARCHAR(300),
 
@@ -229,6 +228,7 @@ CREATE TABLE CursoSincrono (
     nHoras INTEGER NOT NULL,
     inicio DATE NOT NULL,
     fim DATE NOT NULL,
+    maxinscricoes BIGINT,
 
 
     CONSTRAINT CURSOSINCRONO_PK PRIMARY KEY(idCursoSincrono,curso),
@@ -256,7 +256,7 @@ CREATE TABLE Licao (
 
 CREATE TABLE Sessao (
 
-    idSessao BIGINT UNIQUE,
+    idSessao BIGINT GENERATED ALWAYS AS IDENTITY,
     licao BIGINT,
     cursoSincrono BIGINT,
     linkSessao VARCHAR(300) NOT NULL,
@@ -265,7 +265,8 @@ CREATE TABLE Sessao (
     plataformaVideoConferencia VARCHAR(60),
 
 
-    CONSTRAINT SESSAO_PK PRIMARY KEY(licao,cursoSincrono),
+    CONSTRAINT SESSAO_PK PRIMARY KEY(idSessao),
+    CONSTRAINT LICAO_CURSO_U UNIQUE (licao,cursoSincrono),
     CONSTRAINT LICAO_SESSAO_FK FOREIGN KEY (licao) REFERENCES Licao(idLicao),
     CONSTRAINT CURSOSINCRONO_SESSAO_FK FOREIGN KEY (cursoSincrono) REFERENCES CursoSincrono(idCursoSincrono)
 

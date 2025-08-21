@@ -5,6 +5,8 @@ import { useNavigate, useLocation } from "react-router-dom";
 import logoSoftinsa from "../../../shared/assets/images/softinsaLogo.svg";
 import logoSoftskills from "../../../shared/assets/images/thesoftskillsLogo.svg";
 import useUserRole from "../../../shared/hooks/useUserRole";
+import Notifications from "@shared/assets/images/notification.svg?react";
+import Profile from "@shared/assets/images/profile.svg?react";
 
 export default function NavbarFront() {
   const location = useLocation();
@@ -140,7 +142,13 @@ export default function NavbarFront() {
                       }
                       onClick={fecharMenu}
                     >
-                      <i className="ri-notification-line"></i>
+                      <Notifications
+                        style={{
+                          width: 22,
+                          height: 22,
+                          display: "inline-block",
+                        }}
+                      />
                       {notificacoesAtivas && (
                         <span className="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-light rounded-circle">
                           <span className="visually-hidden">
@@ -150,28 +158,23 @@ export default function NavbarFront() {
                       )}
                     </NavLink>
                   </li>
-                  {isFormador && (
-                    <li className="nav-item">
-                      <NavLink
-                        to="/gerircursos"
-                        className={({ isActive }) =>
-                          `nav-link ${isActive ? "active" : ""}`
-                        }
-                        onClick={fecharMenu}
-                      >
-                        Gerir Cursos
-                      </NavLink>
-                    </li>
-                  )}
                   <li className="nav-item text-nowrap">
                     <NavLink
-                      to="/perfil"
+                      to="/profile"
                       className={({ isActive }) =>
                         `nav-link ${isActive ? "active" : ""}`
                       }
                       onClick={fecharMenu}
                     >
-                      <i className="ri-account-circle-line"></i> {nomeUsuario}
+                      <Profile
+                        style={{
+                          width: 22,
+                          height: 22,
+                          marginRight: 4,
+                          verticalAlign: "text-bottom",
+                        }}
+                      />{" "}
+                      {nomeUsuario}
                     </NavLink>
                   </li>
                   <li className="nav-item">

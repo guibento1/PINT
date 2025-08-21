@@ -24,55 +24,12 @@ const NotificationsPage = () => {
     setLoading(true);
     setError(null);
     try {
-      // 1. Buscar canais do utilizador (pode retornar array de números OU objetos)
-      const canaisResp = await api.get(
-        `/notificacao/list/subscricoes/${user.id}`
-      );
-      const rawCanais = Array.isArray(canaisResp.data) ? canaisResp.data : [];
-
-      // Normalizar para array de IDs
-      const canalIds = rawCanais
-        .map((c) => {
-          if (typeof c === "number") return c;
-          if (c && typeof c === "object") return c.idcanal || c.canal || c.id; // fallback de chaves possíveis
-          return null;
-        })
-        .filter(Boolean);
-
-      // Evitar pedidos duplicados
-      const uniqueCanalIds = [...new Set(canalIds)];
-
-      let todasNotificacoes = [];
-      // 2. Buscar notificações de cada canal
-      for (const canalId of uniqueCanalIds) {
-        try {
-          const notifsResp = await api.get(`/notificacao/list/${canalId}`);
-          if (Array.isArray(notifsResp.data)) {
-            todasNotificacoes = todasNotificacoes.concat(
-              notifsResp.data.map((n) => ({ ...n, canal: n.canal || canalId }))
-            );
-          }
-        } catch (e) {
-          // Ignorar falha de canal individual mas registar
-          console.warn(`Falha ao carregar notificações do canal ${canalId}`, e);
-        }
+      const response = await api.get(`/notificacao/list`);
+      if (Array.isArray(response.data)) {
+        setNotifications(response.data);
+      } else {
+        setNotifications([]);
       }
-
-      // 3. Normalizar campos (backend pode enviar conteudo vs mensagem, data vs createdAt)
-      const normalizadas = todasNotificacoes.map((n) => ({
-        ...n,
-        mensagem: n.mensagem || n.conteudo || n.body || "",
-        data: n.data || n.createdAt || n.updatedAt || null,
-      }));
-
-      // 4. Filtrar sem data (colocar ao fim) e ordenar
-      normalizadas.sort((a, b) => {
-        const da = a.data ? new Date(a.data).getTime() : 0;
-        const db = b.data ? new Date(b.data).getTime() : 0;
-        return db - da; // descendente
-      });
-
-      setNotifications(normalizadas);
     } catch (error) {
       console.error(error);
       setError("Não foi possível carregar as notificações.");
@@ -202,7 +159,7 @@ const NotificationsPage = () => {
             className="text-end mt-2"
             style={{ fontSize: "0.85rem", color: "#888" }}
           >
-            {formatDateTime(notif.data)}
+            {formatDateTime(notif.instante)}
           </div>
         </div>
       </div>

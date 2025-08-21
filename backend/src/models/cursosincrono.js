@@ -37,6 +37,10 @@ module.exports = function(sequelize, DataTypes) {
     fim: {
       type: DataTypes.DATEONLY,
       allowNull: false
+    },
+    maxincricoes: {
+      type: DataTypes.BIGINT,
+      allowNull: true
     }
   }, {
     tableName: 'cursosincrono',

@@ -5,6 +5,7 @@ import Footer from '../../../shared/components/Footer';
 
 export default function LayoutFront({ children }) {
 
+
   return (
     <div className="app-container">
       <NavbarFront />
