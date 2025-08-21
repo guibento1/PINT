@@ -1,0 +1,652 @@
+import React, { useState, useEffect, useCallback } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import api from "@shared/services/axios";
+import Modal from "@shared/components/Modal";
+import useUserRole from "@shared/hooks/useUserRole";
+
+const EditarCursoSincrono = () => {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const user = JSON.parse(sessionStorage.getItem("user") || "{}");
+  const { isFormador } = useUserRole();
+
+  const [curso, setCurso] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState(null);
+
+  const [formData, setFormData] = useState({
+    nome: "",
+    disponivel: false,
+    iniciodeinscricoes: "",
+    fimdeinscricoes: "",
+    maxinscricoes: "",
+    planocurricular: "",
+    topicos: [],
+  });
+  const [thumbnailFile, setThumbnailFile] = useState(null);
+  const [currentThumbnail, setCurrentThumbnail] = useState("");
+
+  const [allTopicos, setAllTopicos] = useState([]);
+
+  // Sessões
+  const [isAddSessionModalOpen, setIsAddSessionModalOpen] = useState(false);
+  const [addingSession, setAddingSession] = useState(false);
+  const [sessionTitulo, setSessionTitulo] = useState("");
+  const [sessionDescricao, setSessionDescricao] = useState("");
+  const [sessionDataHora, setSessionDataHora] = useState("");
+  const [sessionDuracao, setSessionDuracao] = useState("");
+  const [sessionPlataforma, setSessionPlataforma] = useState("");
+  const [sessionLink, setSessionLink] = useState("");
+
+  const [isDeleteSessionModalOpen, setIsDeleteSessionModalOpen] =
+    useState(false);
+  const [sessionToDelete, setSessionToDelete] = useState(null);
+  const [deletingSession, setDeletingSession] = useState(false);
+
+  // Resultado genérico
+  const [operationStatus, setOperationStatus] = useState(null); // 0 sucesso | 1 erro
+  const [operationMessage, setOperationMessage] = useState("");
+  const [isResultModalOpen, setIsResultModalOpen] = useState(false);
+
+  // Verificar se formador do curso
+  const idFormadorRole = user?.roles?.find((r) => r.role === "formador")?.id;
+  const isFormadorDoCurso =
+    !!idFormadorRole && curso?.formador === idFormadorRole && isFormador;
+
+  const openResultModal = () => setIsResultModalOpen(true);
+  const closeResultModal = () => {
+    setIsResultModalOpen(false);
+    setOperationStatus(null);
+    setOperationMessage("");
+    if (operationStatus === 0) fetchCursoAndTopicos();
+  };
+
+  const getResultModalTitle = () => {
+    if (operationStatus === 0) return "Sucesso";
+    if (operationStatus === 1) return "Erro";
+    return "Info";
+  };
+
+  const fetchCursoAndTopicos = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const resCurso = await api.get(`/curso/${id}`);
+      const dataCurso = resCurso.data[0] || resCurso.data;
+      if (!dataCurso) {
+        setError("Curso não encontrado.");
+      } else {
+        setCurso(dataCurso);
+        setFormData({
+          nome: dataCurso.nome || "",
+          // se backend envia boolean / int
+          disponivel: !!dataCurso.disponivel,
+          iniciodeinscricoes: dataCurso.iniciodeinscricoes || "",
+          fimdeinscricoes: dataCurso.fimdeinscricoes || "",
+          maxinscricoes: dataCurso.maxinscricoes || "",
+          planocurricular: dataCurso.planocurricular || "",
+          topicos: (dataCurso.topicos || []).map((t) => parseInt(t.idtopico)),
+        });
+        setCurrentThumbnail(dataCurso.thumbnail || "");
+      }
+      const resTopicos = await api.get("/topico/list");
+      setAllTopicos(
+        resTopicos.data.map((t) => ({ ...t, idtopico: parseInt(t.idtopico) }))
+      );
+    } catch (err) {
+      setError("Erro ao carregar dados.");
+    } finally {
+      setLoading(false);
+    }
+  }, [id]);
+
+  useEffect(() => {
+    fetchCursoAndTopicos();
+  }, [fetchCursoAndTopicos]);
+
+  const handleChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: type === "checkbox" ? checked : value,
+    }));
+  };
+
+  const handleTopicChange = (e) => {
+    const val = parseInt(e.target.value);
+    setFormData((prev) => {
+      const exists = prev.topicos.includes(val);
+      return {
+        ...prev,
+        topicos: exists
+          ? prev.topicos.filter((t) => t !== val)
+          : [...prev.topicos, val],
+      };
+    });
+  };
+
+  const handleThumbnailChange = (e) => {
+    const file = e.target.files?.[0];
+    setThumbnailFile(file || null);
+    setCurrentThumbnail(
+      file ? URL.createObjectURL(file) : curso?.thumbnail || ""
+    );
+  };
+
+  const formatDataForInput = (iso) => {
+    if (!iso) return "";
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return "";
+    d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+    return d.toISOString().slice(0, 16);
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    setOperationStatus(null);
+    setOperationMessage("");
+    try {
+      const fd = new FormData();
+      if (thumbnailFile) fd.append("thumbnail", thumbnailFile);
+      const info = {
+        nome: formData.nome,
+        disponivel: formData.disponivel,
+        iniciodeinscricoes: formData.iniciodeinscricoes,
+        fimdeinscricoes: formData.fimdeinscricoes,
+        maxinscricoes: formData.maxinscricoes
+          ? parseInt(formData.maxinscricoes)
+          : null,
+        planocurricular: formData.planocurricular,
+        topicos: formData.topicos,
+      };
+      fd.append("info", JSON.stringify(info));
+
+      // Ajustar endpoint se o backend usar outro nome
+      const endpoint = `/curso/cursosincrono/${id}`;
+      const res = await api.put(endpoint, fd, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      setOperationStatus(0);
+      setOperationMessage(res.data?.message || "Curso atualizado com sucesso.");
+    } catch (err) {
+      setOperationStatus(1);
+      setOperationMessage(
+        err?.response?.data?.message || "Erro ao atualizar curso."
+      );
+    } finally {
+      setSaving(false);
+      openResultModal();
+    }
+  };
+
+  // Sessões
+  const openAddSessionModal = () => {
+    setSessionTitulo("");
+    setSessionDescricao("");
+    setSessionDataHora("");
+    setSessionDuracao("");
+    setSessionPlataforma("");
+    setSessionLink("");
+    setIsAddSessionModalOpen(true);
+  };
+
+  const handleCreateSession = async (e) => {
+    e.preventDefault();
+    if (!curso?.idcrono) return;
+    setAddingSession(true);
+    try {
+      await api.post(`/sessao/${curso.idcrono}`, {
+        titulo: sessionTitulo,
+        descricao: sessionDescricao,
+        datahora: sessionDataHora,
+        duracaohoras: Number(sessionDuracao),
+        plataformavideoconferencia: sessionPlataforma,
+        linksessao: sessionLink,
+      });
+      setOperationStatus(0);
+      setOperationMessage("Sessão adicionada.");
+      setIsAddSessionModalOpen(false);
+    } catch (err) {
+      setOperationStatus(1);
+      setOperationMessage(
+        err?.response?.data?.error || "Erro ao adicionar sessão."
+      );
+    } finally {
+      setAddingSession(false);
+      openResultModal();
+    }
+  };
+
+  const handleDeleteSessionClick = (sessao) => {
+    setSessionToDelete(sessao);
+    setIsDeleteSessionModalOpen(true);
+  };
+
+  const confirmDeleteSession = async () => {
+    if (!sessionToDelete) return;
+    setDeletingSession(true);
+    try {
+      await api.delete(`/sessao/${sessionToDelete.idsessao}`);
+      setOperationStatus(0);
+      setOperationMessage("Sessão eliminada.");
+      setIsDeleteSessionModalOpen(false);
+    } catch (err) {
+      setOperationStatus(1);
+      setOperationMessage(
+        err?.response?.data?.error || "Erro ao eliminar sessão."
+      );
+    } finally {
+      setDeletingSession(false);
+      openResultModal();
+    }
+  };
+
+  const formatDataHora = (dt) => {
+    if (!dt) return "";
+    const d = new Date(dt);
+    if (isNaN(d.getTime())) return dt;
+    return d.toLocaleString("pt-PT", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
+  if (loading)
+    return (
+      <div className="container mt-5">
+        <div className="text-center my-5">
+          <div className="spinner-border text-primary" />
+          <p className="mt-2 text-muted">A carregar curso...</p>
+        </div>
+      </div>
+    );
+
+  if (error)
+    return (
+      <div className="container mt-5">
+        <div className="alert alert-danger text-center">{error}</div>
+        <div className="text-center">
+          <button className="btn btn-secondary" onClick={() => navigate(-1)}>
+            Voltar
+          </button>
+        </div>
+      </div>
+    );
+
+  if (!curso)
+    return (
+      <div className="container mt-5">
+        <div className="alert alert-info text-center">
+          Curso não encontrado.
+        </div>
+        <div className="text-center">
+          <button className="btn btn-secondary" onClick={() => navigate(-1)}>
+            Voltar
+          </button>
+        </div>
+      </div>
+    );
+
+  if (!isFormadorDoCurso)
+    return (
+      <div className="container mt-5">
+        <div className="alert alert-warning text-center">
+          Não tem permissões para editar este curso.
+        </div>
+        <div className="text-center">
+          <button className="btn btn-secondary" onClick={() => navigate(-1)}>
+            Voltar
+          </button>
+        </div>
+      </div>
+    );
+
+  return (
+    <div className="container mt-5">
+      <div className="d-flex justify-content-between align-items-center mb-4">
+        <h1 className="h4 text-primary">Editar Curso Síncrono: {curso.nome}</h1>
+        <button
+          className="btn btn-outline-secondary btn-sm"
+          onClick={() => navigate(`/curso-sincrono/${id}`)}
+        >
+          Voltar ao Curso
+        </button>
+      </div>
+
+      <form
+        onSubmit={handleSubmit}
+        className="p-4 border rounded shadow-sm mb-5"
+      >
+        <h2 className="h6 mb-4">Detalhes do Curso</h2>
+        <div className="row g-3">
+          <div className="col-md-6">
+            <label className="form-label">Nome</label>
+            <input
+              type="text"
+              name="nome"
+              className="form-control"
+              value={formData.nome}
+              onChange={handleChange}
+              required
+            />
+          </div>
+
+          <div className="col-md-6">
+            <label className="form-label">Início das Inscrições</label>
+            <input
+              type="datetime-local"
+              name="iniciodeinscricoes"
+              className="form-control"
+              value={formatDataForInput(formData.iniciodeinscricoes)}
+              onChange={handleChange}
+              required
+            />
+          </div>
+
+          <div className="col-md-6">
+            <label className="form-label">Fim das Inscrições</label>
+            <input
+              type="datetime-local"
+              name="fimdeinscricoes"
+              className="form-control"
+              value={formatDataForInput(formData.fimdeinscricoes)}
+              onChange={handleChange}
+              required
+            />
+          </div>
+
+          <div className="col-md-4">
+            <label className="form-label">Máx. Inscrições</label>
+            <input
+              type="number"
+              name="maxinscricoes"
+              className="form-control"
+              min="1"
+              value={formData.maxinscricoes}
+              onChange={handleChange}
+            />
+          </div>
+
+          <div className="col-md-4 d-flex align-items-end">
+            <div className="form-check form-switch">
+              <input
+                className="form-check-input"
+                type="checkbox"
+                id="disponivel"
+                name="disponivel"
+                checked={formData.disponivel}
+                onChange={handleChange}
+              />
+              <label className="form-check-label" htmlFor="disponivel">
+                Disponível
+              </label>
+            </div>
+          </div>
+
+          <div className="col-12">
+            <label className="form-label">Plano Curricular</label>
+            <textarea
+              name="planocurricular"
+              className="form-control"
+              rows="5"
+              value={formData.planocurricular}
+              onChange={handleChange}
+            />
+          </div>
+
+          <div className="col-12">
+            <label className="form-label">Thumbnail</label>
+            <input
+              type="file"
+              className="form-control"
+              accept="image/*"
+              onChange={handleThumbnailChange}
+            />
+            {currentThumbnail && (
+              <div className="mt-2">
+                <img
+                  src={currentThumbnail}
+                  alt="Thumbnail"
+                  className="img-thumbnail"
+                  style={{ maxWidth: 160 }}
+                />
+              </div>
+            )}
+          </div>
+
+          <div className="col-12">
+            <label className="form-label">Tópicos</label>
+            <div className="border rounded p-3 d-flex flex-wrap gap-3">
+              {allTopicos.map((t) => (
+                <div key={t.idtopico} className="form-check form-check-inline">
+                  <input
+                    type="checkbox"
+                    className="form-check-input"
+                    id={`top-${t.idtopico}`}
+                    value={t.idtopico}
+                    checked={formData.topicos.includes(t.idtopico)}
+                    onChange={handleTopicChange}
+                  />
+                  <label
+                    className="form-check-label"
+                    htmlFor={`top-${t.idtopico}`}
+                  >
+                    {t.designacao}
+                  </label>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="col-12 text-end">
+            <button type="submit" className="btn btn-primary" disabled={saving}>
+              {saving ? "A guardar..." : "Guardar Alterações"}
+            </button>
+          </div>
+        </div>
+      </form>
+
+      <div className="p-4 border rounded shadow-sm">
+        <div className="d-flex justify-content-between align-items-center mb-3">
+          <h2 className="h6 mb-0">Sessões</h2>
+          <button
+            className="btn btn-success btn-sm"
+            onClick={openAddSessionModal}
+          >
+            <i className="ri-add-line"></i> Adicionar Sessão
+          </button>
+        </div>
+        {curso?.sessoes?.length ? (
+          <ul className="list-group">
+            {curso.sessoes.map((s) => (
+              <li
+                key={s.idsessao}
+                className="list-group-item d-flex justify-content-between align-items-start"
+              >
+                <div>
+                  <strong>{s.titulo}</strong>
+                  <br />
+                  <small className="text-muted">
+                    {formatDataHora(s.datahora)} ({s.duracaohoras}h) -{" "}
+                    {s.plataformavideoconferencia}
+                  </small>
+                  {s.linksessao && (
+                    <>
+                      <br />
+                      <a
+                        href={s.linksessao}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="small"
+                      >
+                        Link
+                      </a>
+                    </>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  className="btn btn-outline-danger btn-sm"
+                  onClick={() => handleDeleteSessionClick(s)}
+                >
+                  <i className="ri-delete-bin-line"></i>
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <div className="alert alert-info mb-0">
+            Nenhuma sessão adicionada.
+          </div>
+        )}
+      </div>
+
+      {/* Modal Add Sessão */}
+      <Modal
+        isOpen={isAddSessionModalOpen}
+        onClose={() => setIsAddSessionModalOpen(false)}
+        title="Adicionar Sessão"
+      >
+        <form onSubmit={handleCreateSession}>
+          <div className="mb-2">
+            <label className="form-label">Título</label>
+            <input
+              type="text"
+              className="form-control"
+              value={sessionTitulo}
+              onChange={(e) => setSessionTitulo(e.target.value)}
+              required
+            />
+          </div>
+          <div className="mb-2">
+            <label className="form-label">Descrição</label>
+            <textarea
+              className="form-control"
+              rows="2"
+              value={sessionDescricao}
+              onChange={(e) => setSessionDescricao(e.target.value)}
+              required
+            ></textarea>
+          </div>
+          <div className="row g-2">
+            <div className="col-md-6">
+              <label className="form-label">Data/Hora</label>
+              <input
+                type="datetime-local"
+                className="form-control"
+                value={sessionDataHora}
+                onChange={(e) => setSessionDataHora(e.target.value)}
+                required
+              />
+            </div>
+            <div className="col-md-3">
+              <label className="form-label">Duração (h)</label>
+              <input
+                type="number"
+                min="0.5"
+                step="0.5"
+                className="form-control"
+                value={sessionDuracao}
+                onChange={(e) => setSessionDuracao(e.target.value)}
+                required
+              />
+            </div>
+            <div className="col-md-3">
+              <label className="form-label">Plataforma</label>
+              <input
+                type="text"
+                className="form-control"
+                value={sessionPlataforma}
+                onChange={(e) => setSessionPlataforma(e.target.value)}
+                required
+              />
+            </div>
+          </div>
+          <div className="mt-2">
+            <label className="form-label">Link da Sessão</label>
+            <input
+              type="url"
+              className="form-control"
+              value={sessionLink}
+              onChange={(e) => setSessionLink(e.target.value)}
+              required
+            />
+          </div>
+          <div className="d-flex justify-content-end gap-2 mt-4">
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => setIsAddSessionModalOpen(false)}
+              disabled={addingSession}
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              className="btn btn-primary"
+              disabled={addingSession}
+            >
+              {addingSession ? "A adicionar..." : "Adicionar"}
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Modal Delete Sessão */}
+      <Modal
+        isOpen={isDeleteSessionModalOpen}
+        onClose={() => setIsDeleteSessionModalOpen(false)}
+        title="Eliminar Sessão"
+      >
+        {sessionToDelete && (
+          <p>
+            Confirmar eliminação da sessão{" "}
+            <strong>"{sessionToDelete.titulo}"</strong>?
+          </p>
+        )}
+        <div className="d-flex justify-content-end gap-2 mt-4">
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={() => setIsDeleteSessionModalOpen(false)}
+            disabled={deletingSession}
+          >
+            Cancelar
+          </button>
+          <button
+            type="button"
+            className="btn btn-danger"
+            onClick={confirmDeleteSession}
+            disabled={deletingSession}
+          >
+            {deletingSession ? "A eliminar..." : "Eliminar"}
+          </button>
+        </div>
+      </Modal>
+
+      {/* Modal Resultado */}
+      <Modal
+        isOpen={isResultModalOpen}
+        onClose={closeResultModal}
+        title={getResultModalTitle()}
+      >
+        <p className="mb-0">
+          {operationMessage ||
+            (operationStatus === 0 ? "Operação concluída." : "Informação.")}
+        </p>
+        <div className="text-end mt-3">
+          <button className="btn btn-primary btn-sm" onClick={closeResultModal}>
+            OK
+          </button>
+        </div>
+      </Modal>
+    </div>
+  );
+};
+
+export default EditarCursoSincrono;

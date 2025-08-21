@@ -1,4 +1,4 @@
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import React, { useEffect, useState, useCallback } from "react";
 import api from "@shared/services/axios";
 import "@shared/styles/curso.css";
@@ -7,6 +7,7 @@ import useUserRole from "@shared/hooks/useUserRole";
 
 const CursoSincrono = () => {
   const { id } = useParams();
+  const navigate = useNavigate(); 
   const user = JSON.parse(sessionStorage.getItem("user") || "{}");
   const { isFormador } = useUserRole();
 
@@ -22,7 +23,6 @@ const CursoSincrono = () => {
 
   const [activeTab, setActiveTab] = useState("overview");
 
-  // Campos corretos para sessão (backend exige estes)
   const [sessaoTitulo, setSessaoTitulo] = useState("");
   const [sessaoDescricao, setSessaoDescricao] = useState("");
   const [sessaoLink, setSessaoLink] = useState("");
@@ -46,8 +46,9 @@ const CursoSincrono = () => {
   };
 
   // id do papel de formador (formador.id) não é o idutilizador
-  const idFormadorRole = user?.roles?.find(r => r.role === "formador")?.id;
-  const isFormadorDoCurso = !!idFormadorRole && curso?.formador === idFormadorRole && isFormador;
+  const idFormadorRole = user?.roles?.find((r) => r.role === "formador")?.id;
+  const isFormadorDoCurso =
+    !!idFormadorRole && curso?.formador === idFormadorRole && isFormador;
 
   // Carregar curso
   const fetchCurso = useCallback(async () => {
@@ -118,7 +119,14 @@ const CursoSincrono = () => {
       openResultModal();
       return;
     }
-    if (!sessaoTitulo || !sessaoDescricao || !sessaoLink || !sessaoDataHora || !sessaoDuracao || !sessaoPlataforma) {
+    if (
+      !sessaoTitulo ||
+      !sessaoDescricao ||
+      !sessaoLink ||
+      !sessaoDataHora ||
+      !sessaoDuracao ||
+      !sessaoPlataforma
+    ) {
       setOperationStatus(1);
       setOperationMessage("Preencha todos os campos da sessão.");
       openResultModal();
@@ -131,7 +139,7 @@ const CursoSincrono = () => {
         linksessao: sessaoLink,
         datahora: sessaoDataHora,
         duracaohoras: Number(sessaoDuracao),
-        plataformavideoconferencia: sessaoPlataforma
+        plataformavideoconferencia: sessaoPlataforma,
       });
       setSessaoTitulo("");
       setSessaoDescricao("");
@@ -144,7 +152,9 @@ const CursoSincrono = () => {
       setOperationMessage("Sessão criada.");
     } catch (err) {
       setOperationStatus(1);
-      setOperationMessage(err?.response?.data?.error || "Erro ao criar sessão.");
+      setOperationMessage(
+        err?.response?.data?.error || "Erro ao criar sessão."
+      );
     } finally {
       openResultModal();
     }
@@ -157,7 +167,9 @@ const CursoSincrono = () => {
       setOperationMessage("Sessão removida.");
     } catch (err) {
       setOperationStatus(1);
-      setOperationMessage(err?.response?.data?.error || "Erro ao remover sessão.");
+      setOperationMessage(
+        err?.response?.data?.error || "Erro ao remover sessão."
+      );
     } finally {
       openResultModal();
     }
@@ -172,7 +184,7 @@ const CursoSincrono = () => {
       month: "2-digit",
       day: "2-digit",
       hour: "2-digit",
-      minute: "2-digit"
+      minute: "2-digit",
     });
   };
 
@@ -257,225 +269,238 @@ const CursoSincrono = () => {
               className="img-fluid rounded shadow-sm"
             />
           </div>
-            <div className="col-md-8">
-              <h1 className="h3">{curso?.nome}</h1>
-              {curso?.disponivel === false && (
-                <>
-                  <div className="btn btn-primary static-button">Arquivado</div>
-                  <br />
-                </>
-              )}
+          <div className="col-md-8">
+            <h1 className="h3">{curso?.nome}</h1>
+            {curso?.disponivel === false && (
+              <>
+                <div className="btn btn-primary static-button">Arquivado</div>
+                <br />
+              </>
+            )}
 
-              {isFormadorDoCurso ? (
-                <ul className="nav nav-pills small my-3">
+            {isFormadorDoCurso ? (
+              <div className="d-flex align-items-center my-3 flex-wrap gap-2">
+                <ul className="nav nav-pills small">
                   <li className="nav-item">
                     <button
-                      className={`nav-link ${activeTab === "overview" ? "active" : ""}`}
+                      className={`nav-link ${
+                        activeTab === "overview" ? "active" : ""
+                      }`}
                       onClick={() => setActiveTab("overview")}
                     >
                       Visão Geral
                     </button>
-                  </li>
+                  </li>{" "}
                   <li className="nav-item">
                     <button
-                      className={`nav-link ${activeTab === "schedule" ? "active" : ""}`}
+                      className={`nav-link ${
+                        activeTab === "schedule" ? "active" : ""
+                      }`}
                       onClick={() => setActiveTab("schedule")}
                     >
                       Agenda
                     </button>
                   </li>
                 </ul>
-              ) : !inscrito ? (
-                <div className="mt-3">
-                  <p className="mb-3">
-                    <strong>Inscrições:</strong>{" "}
-                    {formatData(curso?.iniciodeinscricoes)} até{" "}
-                    {formatData(curso?.fimdeinscricoes)}
-                    <br />
-                    {curso?.maxinscricoes && (
-                      <>
-                        <strong>Máx. inscrições:</strong>{" "}
-                        {curso?.maxinscricoes}
-                        <br />
-                      </>
-                    )}
-                  </p>
-                  <button
-                    onClick={handleClickInscrever}
-                    className="btn btn-sm btn-primary"
-                    disabled={loading}
-                  >
-                    {loading ? "A inscrever..." : "Inscrever"}
-                  </button>
-                </div>
-              ) : (
-                <div className="mt-3">
-                  <button
-                    onClick={() => openConfirmModal("sair")}
-                    className="btn btn-sm btn-outline-danger fw-semibold rounded-pill px-3"
-                    disabled={loading}
-                  >
-                    {loading ? "A sair..." : "Sair do Curso"}
-                  </button>
-                  {curso?.planocurricular && (
-                    <p className="mt-4">
-                      <strong>Plano Curricular:</strong>
+                <button
+                  type="button"
+                  className="btn btn-info btn-sm ms-auto"
+                  onClick={() => navigate(`/editar/curso-sincrono/${id}`)}
+                >
+                  Editar Curso
+                </button>
+              </div>
+            ) : !inscrito ? (
+              <div className="mt-3">
+                <p className="mb-3">
+                  <strong>Inscrições:</strong>{" "}
+                  {formatData(curso?.iniciodeinscricoes)} até{" "}
+                  {formatData(curso?.fimdeinscricoes)}
+                  <br />
+                  {curso?.maxinscricoes && (
+                    <>
+                      <strong>Máx. inscrições:</strong> {curso?.maxinscricoes}
                       <br />
-                      {curso?.planocurricular}
-                    </p>
+                    </>
                   )}
-                </div>
-              )}
-
-              {isFormadorDoCurso &&
-                activeTab === "overview" &&
-                curso?.planocurricular && (
-                  <p className="mt-3">
+                </p>
+                <button
+                  onClick={handleClickInscrever}
+                  className="btn btn-sm btn-primary"
+                  disabled={loading}
+                >
+                  {loading ? "A inscrever..." : "Inscrever"}
+                </button>
+              </div>
+            ) : (
+              <div className="mt-3">
+                <button
+                  onClick={() => openConfirmModal("sair")}
+                  className="btn btn-sm btn-outline-danger fw-semibold rounded-pill px-3"
+                  disabled={loading}
+                >
+                  {loading ? "A sair..." : "Sair do Curso"}
+                </button>
+                {curso?.planocurricular && (
+                  <p className="mt-4">
                     <strong>Plano Curricular:</strong>
                     <br />
-                    {curso.planocurricular}
+                    {curso?.planocurricular}
                   </p>
                 )}
+              </div>
+            )}
 
-              {isFormadorDoCurso && activeTab === "schedule" && (
-                <div className="mt-3">
-                  <h5 className="mb-3">Agenda de Sessões Síncronas</h5>
-                  <form
-                    onSubmit={handleAddSessao}
-                    className="row g-2 align-items-end mb-4"
-                  >
-                    <div className="col-md-3">
-                      <label className="form-label form-label-sm mb-1 small">
-                        Título
-                      </label>
-                      <input
-                        type="text"
-                        className="form-control form-control-sm"
-                        value={sessaoTitulo}
-                        onChange={(e) => setSessaoTitulo(e.target.value)}
-                        required
-                      />
-                    </div>
-                    <div className="col-md-3">
-                      <label className="form-label form-label-sm mb-1 small">
-                        Descrição
-                      </label>
-                      <input
-                        type="text"
-                        className="form-control form-control-sm"
-                        value={sessaoDescricao}
-                        onChange={(e) => setSessaoDescricao(e.target.value)}
-                        required
-                      />
-                    </div>
-                    <div className="col-md-3">
-                      <label className="form-label form-label-sm mb-1 small">
-                        Data/Hora
-                      </label>
-                      <input
-                        type="datetime-local"
-                        className="form-control form-control-sm"
-                        value={sessaoDataHora}
-                        onChange={(e) => setSessaoDataHora(e.target.value)}
-                        required
-                      />
-                    </div>
-                    <div className="col-md-1">
-                      <label className="form-label form-label-sm mb-1 small">
-                        Duração (h)
-                      </label>
-                      <input
-                        type="number"
-                        min="0.5"
-                        step="0.5"
-                        className="form-control form-control-sm"
-                        value={sessaoDuracao}
-                        onChange={(e) => setSessaoDuracao(e.target.value)}
-                        required
-                      />
-                    </div>
-                    <div className="col-md-2">
-                      <label className="form-label form-label-sm mb-1 small">
-                        Plataforma
-                      </label>
-                      <input
-                        type="text"
-                        className="form-control form-control-sm"
-                        value={sessaoPlataforma}
-                        onChange={(e) => setSessaoPlataforma(e.target.value)}
-                        required
-                      />
-                    </div>
-                    <div className="col-md-6">
-                      <label className="form-label form-label-sm mb-1 small">
-                        Link Sessão
-                      </label>
-                      <input
-                        type="url"
-                        className="form-control form-control-sm"
-                        value={sessaoLink}
-                        onChange={(e) => setSessaoLink(e.target.value)}
-                        required
-                      />
-                    </div>
-                    <div className="col-md-2 d-flex">
-                      <button
-                        type="submit"
-                        className="btn btn-sm btn-primary w-100"
-                        disabled={loading}
-                      >
-                        {loading ? "A guardar..." : "Agendar"}
-                      </button>
-                    </div>
-                  </form>
-                  <h6 className="mb-2">Sessões Agendadas</h6>
-                  {curso?.sessoes?.length ? (
-                    <ul className="list-group small">
-                      {curso.sessoes.map((s) => (
-                        <li
-                          key={s.idsessao}
-                          className="list-group-item d-flex justify-content-between align-items-center"
-                        >
-                          <div>
-                            <strong>{s.titulo}</strong>
-                            <br />
-                            <span className="text-muted">
-                              {formatDataHora(s.datahora)} ({s.duracaohoras}h) - {s.plataformavideoconferencia}
-                            </span>
-                            <br />
-                            {s.linksessao && (
-                              <a
-                                href={s.linksessao}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="small"
-                              >
-                                Aceder
-                              </a>
-                            )}
-                          </div>
-                          <div className="d-flex gap-1">
-                            <button
-                              className="btn btn-sm btn-outline-danger"
-                              type="button"
-                              onClick={() => handleDeleteSessao(s.idsessao)}
-                              disabled={loading}
-                            >
-                              Remover
-                            </button>
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="text-muted">Nenhuma sessão agendada.</p>
-                  )}
-                </div>
+            {isFormadorDoCurso &&
+              activeTab === "overview" &&
+              curso?.planocurricular && (
+                <p className="mt-3">
+                  <strong>Plano Curricular:</strong>
+                  <br />
+                  {curso.planocurricular}
+                </p>
               )}
-            </div>
+
+            {isFormadorDoCurso && activeTab === "schedule" && (
+              <div className="mt-3">
+                <h5 className="mb-3">Agenda de Sessões Síncronas</h5>
+                <form
+                  onSubmit={handleAddSessao}
+                  className="row g-2 align-items-end mb-4"
+                >
+                  <div className="col-md-3">
+                    <label className="form-label form-label-sm mb-1 small">
+                      Título
+                    </label>
+                    <input
+                      type="text"
+                      className="form-control form-control-sm"
+                      value={sessaoTitulo}
+                      onChange={(e) => setSessaoTitulo(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="col-md-3">
+                    <label className="form-label form-label-sm mb-1 small">
+                      Descrição
+                    </label>
+                    <input
+                      type="text"
+                      className="form-control form-control-sm"
+                      value={sessaoDescricao}
+                      onChange={(e) => setSessaoDescricao(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="col-md-3">
+                    <label className="form-label form-label-sm mb-1 small">
+                      Data/Hora
+                    </label>
+                    <input
+                      type="datetime-local"
+                      className="form-control form-control-sm"
+                      value={sessaoDataHora}
+                      onChange={(e) => setSessaoDataHora(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="col-md-1">
+                    <label className="form-label form-label-sm mb-1 small">
+                      Duração (h)
+                    </label>
+                    <input
+                      type="number"
+                      min="0.5"
+                      step="0.5"
+                      className="form-control form-control-sm"
+                      value={sessaoDuracao}
+                      onChange={(e) => setSessaoDuracao(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="col-md-2">
+                    <label className="form-label form-label-sm mb-1 small">
+                      Plataforma
+                    </label>
+                    <input
+                      type="text"
+                      className="form-control form-control-sm"
+                      value={sessaoPlataforma}
+                      onChange={(e) => setSessaoPlataforma(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="col-md-6">
+                    <label className="form-label form-label-sm mb-1 small">
+                      Link Sessão
+                    </label>
+                    <input
+                      type="url"
+                      className="form-control form-control-sm"
+                      value={sessaoLink}
+                      onChange={(e) => setSessaoLink(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="col-md-2 d-flex">
+                    <button
+                      type="submit"
+                      className="btn btn-sm btn-primary w-100"
+                      disabled={loading}
+                    >
+                      {loading ? "A guardar..." : "Agendar"}
+                    </button>
+                  </div>
+                </form>
+                <h6 className="mb-2">Sessões Agendadas</h6>
+                {curso?.sessoes?.length ? (
+                  <ul className="list-group small">
+                    {curso.sessoes.map((s) => (
+                      <li
+                        key={s.idsessao}
+                        className="list-group-item d-flex justify-content-between align-items-center"
+                      >
+                        <div>
+                          <strong>{s.titulo}</strong>
+                          <br />
+                          <span className="text-muted">
+                            {formatDataHora(s.datahora)} ({s.duracaohoras}h) -{" "}
+                            {s.plataformavideoconferencia}
+                          </span>
+                          <br />
+                          {s.linksessao && (
+                            <a
+                              href={s.linksessao}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="small"
+                            >
+                              Aceder
+                            </a>
+                          )}
+                        </div>
+                        <div className="d-flex gap-1">
+                          <button
+                            className="btn btn-sm btn-outline-danger"
+                            type="button"
+                            onClick={() => handleDeleteSessao(s.idsessao)}
+                            disabled={loading}
+                          >
+                            Remover
+                          </button>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-muted">Nenhuma sessão agendada.</p>
+                )}
+              </div>
+            )}
+          </div>
         </div>
 
-        {( (inscrito || isFormadorDoCurso) && curso?.sessoes?.length > 0) && (
+        {(inscrito || isFormadorDoCurso) && curso?.sessoes?.length > 0 && (
           <div className="mt-5">
             <h2 className="h5">Sessões</h2>
             <ul className="list-group small">
