@@ -895,7 +895,8 @@ controllers.getCurso = async (req, res) => {
             )
           ).filter((avaliacao) => {
             const agora = new Date();
-            return (curso.dataValues.formador == formador) || (agora >= avaliacao.iniciodisponibilidade);
+            
+            return (admin) || (curso.dataValues.formador == formador) || (agora >= avaliacao.iniciodisponibilidade);
           });
 
         } else {
@@ -1956,6 +1957,9 @@ controllers.createAvaliacaoContinua = async (req, res) => {
 
   const enunciado = req.file;
 
+
+  const admin = roles.find((roleEntry) => roleEntry.role === "admin")?.id || 0;
+
   const formador =
     req.user.roles.find((roleEntry) => roleEntry.role === "formador")?.id || 0;
 
@@ -1979,12 +1983,10 @@ controllers.createAvaliacaoContinua = async (req, res) => {
 
     }
 
-    if(cursosinc.formador != formador){
-
+    if (!admin && (cursosinc.formador != formador)) {
       return res.status(403).json({
         error: "Proibido: permissões insuficientes.",
       });
-
     }
 
     if( (!inicioDisponibilidade || inicioDisponibilidade == undefined) || 
@@ -2054,6 +2056,9 @@ controllers.rmAvaliacaoContinua = async (req, res) => {
 
   const { id, idavalicaocontinua } = req.params;
 
+
+  const admin = roles.find((roleEntry) => roleEntry.role === "admin")?.id || 0;
+
   const formador =
     req.user.roles.find((roleEntry) => roleEntry.role === "formador")?.id || 0;
 
@@ -2070,7 +2075,7 @@ controllers.rmAvaliacaoContinua = async (req, res) => {
       });
     }
 
-    if (cursosinc.formador != formador) {
+    if (!admin && (cursosinc.formador != formador)) {
       return res.status(403).json({
         error: "Proibido: permissões insuficientes.",
       });
@@ -2121,6 +2126,8 @@ controllers.editAvaliacaoContinua = async (req, res) => {
   const { id, idavalicaocontinua } = req.params;
   const enunciado = req.file;
 
+  const admin = roles.find((roleEntry) => roleEntry.role === "admin")?.id || 0;
+
   const formador =
     req.user.roles.find((roleEntry) => roleEntry.role === "formador")?.id || 0;
 
@@ -2145,7 +2152,7 @@ controllers.editAvaliacaoContinua = async (req, res) => {
       });
     }
 
-    if (cursosinc.formador != formador) {
+    if (!admin && (cursosinc.formador != formador)) {
       return res.status(403).json({
         error: "Proibido: permissões insuficientes.",
       });
@@ -2195,6 +2202,8 @@ controllers.addAvaliacaoFinal = async (req, res) => {
   const { id, formando } = req.params;
   const { nota } = req.body;
 
+  const admin = roles.find((roleEntry) => roleEntry.role === "admin")?.id || 0;
+
   const formadorId =
     req.user.roles.find((roleEntry) => roleEntry.role === "formador")?.id || 0;
 
@@ -2203,7 +2212,7 @@ controllers.addAvaliacaoFinal = async (req, res) => {
   try {
     const cursoSincrono = await models.cursosincrono.findOne({ where: { curso: id } });
 
-    if (!cursoSincrono || cursoSincrono.formador !== formadorId) {
+    if (!admin && (!cursoSincrono || cursoSincrono.formador !== formadorId)) {
       return res.status(403).json({ error: "Acesso negado." });
     }
 
@@ -2238,6 +2247,9 @@ controllers.editAvaliacaoFinal = async (req, res) => {
   const { id, formando } = req.params;
   const { nota } = req.body;
 
+
+  const admin = roles.find((roleEntry) => roleEntry.role === "admin")?.id || 0;
+
   const formadorId =
     req.user.roles.find((roleEntry) => roleEntry.role === "formador")?.id || 0;
 
@@ -2246,7 +2258,7 @@ controllers.editAvaliacaoFinal = async (req, res) => {
   try {
     const cursoSincrono = await models.cursosincrono.findOne({ where: { curso: id } });
 
-    if (!cursoSincrono || cursoSincrono.formador !== formadorId) {
+    if (!admin && (!cursoSincrono || cursoSincrono.formador !== formadorId)) {
       return res.status(403).json({ error: "Acesso negado." });
     }
 
@@ -2279,6 +2291,9 @@ controllers.rmAvaliacaoFinal = async (req, res) => {
 
   const { id, formando } = req.params;
 
+
+  const admin = roles.find((roleEntry) => roleEntry.role === "admin")?.id || 0;
+
   const formadorId =
     req.user.roles.find((roleEntry) => roleEntry.role === "formador")?.id || 0;
 
@@ -2287,7 +2302,7 @@ controllers.rmAvaliacaoFinal = async (req, res) => {
   try {
     const cursoSincrono = await models.cursosincrono.findOne({ where: { curso: id } });
 
-    if (!cursoSincrono || cursoSincrono.formador !== formadorId) {
+    if (!admin && (!cursoSincrono || cursoSincrono.formador !== formadorId)) {
       return res.status(403).json({ error: "Acesso negado." });
     }
 

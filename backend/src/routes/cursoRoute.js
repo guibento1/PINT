@@ -45,14 +45,14 @@ router.post('/cursosincrono/:id/avalicaocontinua', authenticateJWT, authorizeRol
 router.delete('/cursosincrono/:id/avalicaocontinua/:idavalicao', authenticateJWT, authorizeRoles('admin', 'formador'), cursoController.rmAvaliacaoContinua);
 router.post('/cursosincrono/:id/avalicaocontinua/:idavalicao/submeter', authenticateJWT, authorizeRoles('formando'), upload.single('ficheiro'), cursoController.addSubmissao);
 router.put('/cursosincrono/:id/avalicaocontinua/:idavalicao/submeter', authenticateJWT, authorizeRoles('formando'), upload.single('ficheiro'), cursoController.updateSubmissao);
-router.get('/cursosincrono/:id/avalicaocontinua/:idavalicao/submissoes', authenticateJWT, authorizeRoles('formador'), cursoController.listSubmissoes);
-router.put('/cursosincrono/:id/avalicaocontinua/:idavalicao/corrigir', authenticateJWT, authorizeRoles('formador'), cursoController.gradeSubmissao
+router.get('/cursosincrono/:id/avalicaocontinua/:idavalicao/submissoes', authenticateJWT, authorizeRoles('admin','formador'), cursoController.listSubmissoes);
+router.put('/cursosincrono/:id/avalicaocontinua/:idavalicao/corrigir', authenticateJWT, authorizeRoles('admin','formador'), cursoController.gradeSubmissao
 );
-router.post('/cursosincrono/:id/formando/:formando/avaliacaofinal', authenticateJWT, authorizeRoles('formador'), cursoController.addAvaliacaoFinal
+router.post('/cursosincrono/:id/formando/:formando/avaliacaofinal', authenticateJWT, authorizeRoles('admin','formador'), cursoController.addAvaliacaoFinal
 );
-router.put('/cursosincrono/:id/formando/:formando/avaliacaofinal', authenticateJWT, authorizeRoles('formador'), cursoController.editAvaliacaoFinal
+router.put('/cursosincrono/:id/formando/:formando/avaliacaofinal', authenticateJWT, authorizeRoles('admin','formador'), cursoController.editAvaliacaoFinal
 );
-router.delete('/cursosincrono/:id/formando/:formando/avaliacaofinal', authenticateJWT, authorizeRoles('formador'), cursoController.rmAvaliacaoFinal
+router.delete('/cursosincrono/:id/formando/:formando/avaliacaofinal', authenticateJWT, authorizeRoles('admin','formador'), cursoController.rmAvaliacaoFinal
 );
 
 module.exports = router;
