@@ -107,6 +107,7 @@ export default function CursosPage() {
               <CardCurso
                 curso={curso}
                 inscrito={curso.inscrito}
+                lecionado={curso.lecionado}
                 disponivel={curso.disponivel}
               />
             </div>

@@ -10,8 +10,21 @@ export default function useUserRole() {
 
     if (userDataRaw) {
       try {
+
+
         const userData = JSON.parse(userDataRaw);
-        const extractedRoles = userData.roles?.map((r) => r.role || r) || [];
+
+        const admin =
+          userData.roles.find((roleEntry) => roleEntry.role === "admin")?.id || 0;
+
+        const formando =
+          userData.roles.find((roleEntry) => roleEntry.role === "formando")?.id || 0;
+
+        const formador =
+          userData.roles.find((roleEntry) => roleEntry.role === "formador")?.id || 0;
+
+        const extractedRoles = [formando,formador,admin];
+
         setRoles(extractedRoles);
       } catch (e) {
         console.error('Erro ao processar user do sessionStorage:', e);
@@ -23,8 +36,8 @@ export default function useUserRole() {
 
   return {
     roles,
-    isFormador: roles.includes('formador'),
-    isFormando: roles.includes('formando'),
+    isFormador: roles[1],
+    isFormando: roles[0],
     loading,
   };
 }

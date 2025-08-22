@@ -1,47 +1,74 @@
 // web/frontend/backOffice/src/main.jsx
-import { StrictMode } from 'react';
-import { createRoot } from 'react-dom/client';
-import { messaging, getToken, onMessage } from "@shared/services/firebase";
-import App from './App.jsx';
-import '../../shared/styles/global.css';
+import { StrictMode } from "react";
+import { createRoot } from "react-dom/client";
+import {
+  messaging,
+  onMessage,
+  subscribeToTopics,
+} from "@shared/services/firebase";
+import App from "./App.jsx";
+import "../../shared/styles/global.css";
 
-const urlParams = new URLSearchParams(window.location.search);
-const token = urlParams.get("token");
-const user = urlParams.get("user");
-
+// Listener FCM foreground (dispara evento para a NavbarBack acender a bolinha)
 onMessage(messaging, (payload) => {
-  console.log('Foreground message received:', payload);
+  console.log("[BackOffice] Foreground message received:", payload);
+  window.dispatchEvent(new Event("novaNotificacao"));
 });
 
-if (token) {
-  sessionStorage.setItem("token", token);
-  window.history.replaceState({}, document.title, "/");
-}
+// Capturar token/user via query params (SSO)
+try {
+  const urlParams = new URLSearchParams(window.location.search);
+  const tokenParam = urlParams.get("token");
+  const userParam = urlParams.get("user");
 
-if (user) {
-  try {
-    const decodedUser = JSON.parse(decodeURIComponent(user));
-    sessionStorage.setItem("user", JSON.stringify(decodedUser));
-  } catch (err) {
-    console.error("Erro ao decodificar o user:", err);
+  if (tokenParam) {
+    sessionStorage.setItem("token", tokenParam);
+    const cleanUrl = window.location.origin + window.location.pathname;
+    window.history.replaceState({}, document.title, cleanUrl);
   }
+
+  if (userParam) {
+    try {
+      const decoded = JSON.parse(decodeURIComponent(userParam));
+      sessionStorage.setItem(
+        "user",
+        JSON.stringify({
+          id: decoded.idutilizador || decoded.id,
+          email: decoded.email,
+          nome: decoded.nome,
+          roles: decoded.roles,
+        })
+      );
+    } catch (e) {
+      console.warn("[BackOffice] Falha a decodificar user param:", e);
+    }
+  }
+} catch (e) {
+  console.warn("[BackOffice] Falha a processar query params:", e);
 }
 
-const root = createRoot(document.getElementById("root"));
+// Subscribe aos tópicos após login (evento disparado no fluxo de autenticação)
+window.addEventListener("loginSucesso", () => {
+  subscribeToTopics();
+});
 
-root.render(
+createRoot(document.getElementById("root")).render(
   <StrictMode>
     <App />
   </StrictMode>
 );
 
-
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/firebase-messaging-sw.js')
-    .then((registration) => {
-      console.log('Service Worker registered:', registration);
+// Registo do Service Worker
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker
+    .register("/firebase-messaging-sw.js")
+    .then(async (registration) => {
+      console.log("[BackOffice] Service Worker registered:", registration);
+      if (sessionStorage.getItem("token") && sessionStorage.getItem("user")) {
+        await subscribeToTopics();
+      }
     })
     .catch((error) => {
-      console.error('Service Worker registration failed:', error);
+      console.error("[BackOffice] Service Worker registration failed:", error);
     });
-};
+}

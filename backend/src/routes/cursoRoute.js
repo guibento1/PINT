@@ -12,7 +12,7 @@ const cursoController = require('../controllers/cursoController.js');
 
 router.get('/list', authenticateJWT, cursoController.list);
 router.get('/:id', authenticateJWT, cursoController.getCurso);
-router.get('/inscricoes/utilizador/:idutilizador', authenticateJWT, cursoController.getCursoInscritos);
+router.get('/inscricoes/utilizador/:idutilizador', authenticateJWT, authorizeRoles('admin','formando'),  cursoController.getCursoInscritos);
 router.get('/inscricoes/:id', authenticateJWT, authorizeRoles('admin'), cursoController.getInscricoes);
 router.post('/:id/inscrever', authenticateJWT, authorizeRoles('admin','formando'), cursoController.inscreverCurso );
 router.post('/:id/sair', authenticateJWT, authorizeRoles('admin','formando'), cursoController.sairCurso );
@@ -31,6 +31,7 @@ router.delete('/licao/:idlicao/material/:idmaterial', authenticateJWT, authorize
 
 // Curso Sincrono
 
+router.get('/formador/:idformador', authenticateJWT, cursoController.getCursoLecionados);
 router.post('/cursosincrono', authenticateJWT, authorizeRoles('admin'), upload.single('thumbnail'), cursoController.createCursoSincrono);
 router.put('/cursosincrono/:id', authenticateJWT, authorizeRoles('admin','formador'), upload.single('thumbnail'), cursoController.updateCursoSincrono );
 router.post('/sessao/:idcursosinc', authenticateJWT, authorizeRoles('admin','formador'), cursoController.addSessao);

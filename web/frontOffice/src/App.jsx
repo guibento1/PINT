@@ -11,11 +11,13 @@ import ResetPassword from "./views/ResetPassword";
 import Cursos from "./views/Cursos";
 import CursoAssincrono from "./views/CursoAssincrono";
 import CursoSincrono from "./views/CursoSincrono";
+import EditarCursoSincrono from "./views/Editar/EditarCursoSincrono";
 import Forums from "./views/Forums";
 import Home from "./views/Home";
 import NaoAutorizado from "./views/NaoAutorizado";
 import ProtectedRoute from "@shared/components/ProtectedRoute.jsx";
 import NotificationsPage from "@shared/views/NotificationsPage.jsx";
+
 
 function App() {
   return (
@@ -56,6 +58,14 @@ function App() {
             element={
               <ProtectedRoute allowedRoles={["formando", "formador"]}>
                 <CursoSincrono />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/editar/curso-sincrono/:id"
+            element={
+              <ProtectedRoute allowedRoles={["formador"]}>
+                <EditarCursoSincrono />
               </ProtectedRoute>
             }
           />

@@ -106,14 +106,35 @@ async function addInscrito(cursosIn, idFormando) {
   return cursosOut;
 }
 
+
+async function addLecionado(cursosIn, idFormador) {
+  if (!(typeof cursosIn[Symbol.iterator] === "function")) cursosIn = [cursosIn];
+  const cursosOut = await Promise.all(
+    cursosIn.map(async (curso) => {
+      const data = await models.cursosincrono.findOne({
+        where: {
+          curso: curso.idcurso,
+          formador: idFormador,
+        },
+      });
+      curso.dataValues.lecionado = !!data;
+      return curso;
+    })
+  );
+  return cursosOut;
+}
+
 async function filterCursoResults(roles, cursos) {
   let data;
   const admin = roles.find((roleEntry) => roleEntry.role === "admin")?.id || 0;
+
   const formando =
     roles.find((roleEntry) => roleEntry.role === "formando")?.id || 0;
+
   const formador =
     roles.find((roleEntry) => roleEntry.role === "formador")?.id || 0;
   let cursosfiltrados = null;
+
   if (!admin) {
     let cursosLecionados = [];
     let cursosInscritos = [];
@@ -144,6 +165,7 @@ async function filterCursoResults(roles, cursos) {
         cursosLecionados.includes(curso.idcurso)
     );
   }
+
   if (cursosfiltrados != null) {
     cursosfiltrados = await Promise.all(
       cursosfiltrados.map(async (curso) => {
@@ -158,6 +180,7 @@ async function filterCursoResults(roles, cursos) {
     );
     return cursosfiltrados;
   }
+
   cursos = await Promise.all(
     cursos.map(async (curso) => {
       if (curso.thumbnail) {
@@ -577,6 +600,8 @@ controllers.list = async (req, res) => {
   const filterFlag = req.query.area || req.query.categoria || req.query.topico;
   const formando =
     req.user.roles.find((roleEntry) => roleEntry.role === "formando")?.id || 0;
+  const formador =
+    req.user.roles.find((roleEntry) => roleEntry.role === "formador")?.id || 0;
   const queryOptions = {
     attributes: [
       "idcurso",
@@ -634,6 +659,9 @@ controllers.list = async (req, res) => {
       );
     }
     if (formando) cursos = await addInscrito(cursos, formando);
+
+    if (formador) cursos = await addLecionado(cursos, formador);
+
     logger.info(
       `Lista de cursos retornada com sucesso. Total: ${cursos.length}`
     );
@@ -652,6 +680,7 @@ controllers.list = async (req, res) => {
 };
 
 controllers.rmCurso = async (req, res) => {
+
   const { id } = req.params;
   logger.debug(`Recebida requisição para remover curso com ID: ${id}`);
   try {
@@ -732,6 +761,7 @@ controllers.rmCurso = async (req, res) => {
       error: "Ocorreu um erro interno ao remover o curso.",
     });
   }
+
 };
 
 controllers.getCurso = async (req, res) => {
@@ -743,23 +773,32 @@ controllers.getCurso = async (req, res) => {
   let acessible = false;
   const admin =
     req.user.roles.find((roleEntry) => roleEntry.role === "admin")?.id || 0;
+
   const formando =
     req.user.roles.find((roleEntry) => roleEntry.role === "formando")?.id || 0;
-  if (formando) {
-    const inscricao = await models.inscricao.findOne({
-      where: {
-        curso: id,
-        formando: formando,
-      },
-    });
-    if (inscricao) {
+
+  const formador =
+    req.user.roles.find((roleEntry) => roleEntry.role === "formador")?.id || 0;
+
+  try {
+
+
+    if (formando) {
+      const inscricao = await models.inscricao.findOne({
+        where: {
+          curso: id,
+          formando: formando,
+        },
+      });
+      if (inscricao) {
+        acessible = true;
+      }
+    }
+
+    if (admin) {
       acessible = true;
     }
-  }
-  if (admin) {
-    acessible = true;
-  }
-  try {
+
     let curso = await models.curso.findOne({
       where: {
         idcurso: id,
@@ -774,6 +813,21 @@ controllers.getCurso = async (req, res) => {
         "thumbnail",
       ],
     });
+
+    curso = (await addTipo(curso))[0];
+    
+    if(curso.dataValues.sincrono){
+        const cursoSinc = await models.cursosincrono.findOne({
+          where: {
+            curso: id,
+          },
+          attributes: ["formador"],
+        });
+
+        if(cursoSinc.formador == formador) acessible = true;
+    }
+
+
     if (!curso || (!curso.disponivel && !acessible)) {
       logger.warn(`Curso com ID ${id} não encontrado ou não acessível.`);
       return res.status(404).json({
@@ -904,6 +958,100 @@ controllers.getCurso = async (req, res) => {
     );
     return res.status(500).json({
       error: "Ocorreu um erro interno ao buscar os detalhes do curso.",
+    });
+  }
+};
+
+
+controllers.getCursoLecionados = async (req, res) => {
+
+  const { idformador } = req.params;
+  logger.debug(
+    `Recebida requisição para listar cursos lecionados do formando ${idformador}. Query: ${JSON.stringify(
+      req.query
+    )}`
+  );
+
+  let topicos = [];
+  let areas = [];
+  let categorias = [];
+  let filter = false;
+  let cursos;
+
+  const queryOptions = {
+    attributes: [
+      "idcurso",
+      "nome",
+      "disponivel",
+      "iniciodeinscricoes",
+      "fimdeinscricoes",
+      "planocurricular",
+      "thumbnail",
+    ],
+    where: {},
+  };
+
+  if (req.query.search) {
+    queryOptions.where.nome = {
+      [Sequelize.Op.iLike]: `%${req.query.search}%`,
+    };
+  }
+
+  try {
+    const cursosLecionados = await models.cursosincrono.findAll({where : { formador : idformador }});
+    const cursosIndexes = cursosLecionados.map((cursosinc) => cursosinc.curso);
+    queryOptions.where.idcurso = {
+      [Sequelize.Op.in]: cursosIndexes,
+    };
+    cursos = await models.curso.findAll(queryOptions);
+    cursos = await Promise.all(
+      cursos.map(async (curso) => {
+        if (curso.thumbnail) {
+          curso.dataValues.thumbnail = await generateSASUrl(
+            curso.thumbnail,
+            "thumbnailscursos"
+          );
+          curso.dataValues.sincrono = true;
+          curso.dataValues.lecionado = true;
+        }
+        return curso;
+      })
+    );
+    if (req.query.area) {
+      areas = Array.isArray(req.query.area) ? req.query.area : [req.query.area];
+      areas = [...new Set(areas)];
+      filter = true;
+    }
+    if (req.query.categoria) {
+      categorias = Array.isArray(req.query.categoria)
+        ? req.query.categoria
+        : [req.query.categoria];
+      categorias = [...new Set(categorias)];
+      filter = true;
+    }
+    if (req.query.topico) {
+      topicos = Array.isArray(req.query.topico)
+        ? req.query.topico
+        : [req.query.topico];
+      topicos = [...new Set(topicos)];
+      filter = true;
+    }
+    if (filter) {
+      cursos = await filterCursos(cursos, topicos, areas, categorias);
+    }
+    logger.info(
+      `Cursos lecionados do formando ${idformador} retornados com sucesso. Total: ${cursos.length}`
+    );
+    return res.status(200).json(cursos);
+  } catch (error) {
+    logger.error(
+      `Erro interno do servidor ao buscar cursos lecionados. Detalhes: ${error.message}`,
+      {
+        stack: error.stack,
+      }
+    );
+    return res.status(500).json({
+      error: "Ocorreu um erro interno ao buscar os cursos lecionados.",
     });
   }
 };
@@ -1100,6 +1248,10 @@ controllers.getInscricoes = async (req, res) => {
 controllers.inscreverCurso = async (req, res) => {
   const { id } = req.params;
   const { utilizador: utilizadorIdDoBody } = req.body || {};
+
+  const formador =
+    req.user.roles.find((roleEntry) => roleEntry.role === "formador")?.id || 0;
+
   logger.debug(
     `Recebida requisição para inscrever no curso ${id}. Dados: ${JSON.stringify(
       req.body
@@ -1107,6 +1259,7 @@ controllers.inscreverCurso = async (req, res) => {
   );
   const idDoUtilizadorParaInscricao =
     utilizadorIdDoBody || req.user.idutilizador;
+
   if (
     utilizadorIdDoBody &&
     !req.user.roles?.map((roleEntry) => roleEntry.role).includes("admin") &&
@@ -1139,6 +1292,22 @@ controllers.inscreverCurso = async (req, res) => {
       logger.warn(`Curso com ID ${id} não encontrado.`);
       return res.status(404).json({
         error: "Curso não encontrado.",
+      });
+    }
+
+    const data = await models.cursosincrono.findOne({
+      where:
+      { curso : id,
+        formador : formador
+      }
+    });
+
+    if(data){
+      logger.warn(
+        `O utilizador é formador no curso, não é possivel se inscrever.`
+      );
+      return res.status(409).json({
+        error: "O utilizador é formador no curso, não é possivel se inscrever.",
       });
     }
     const inscricaoExistente = await models.inscricao.findOne({

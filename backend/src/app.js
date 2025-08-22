@@ -27,7 +27,7 @@ const curso = require('./routes/cursoRoute.js');
 // Defenicao de rotas
 
 app.use('/',(req, res, next) => {
-  logger.info('URL: %s',req.originalUrl);
+  logger.info(`URL: ${req.originalUrl}`);
   next();
 });
 

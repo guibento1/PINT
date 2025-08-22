@@ -1,7 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 
-function CardCurso({ curso, disponivel = null, inscrito = null }) {
+function CardCurso({ curso, disponivel = null, inscrito = null, lecionado= null, notipo = false }) {
   const { nome, thumbnail, sincrono } = curso;
   const id = curso.idcurso;
   const route = sincrono ? `/curso-sincrono/${id}` : `/curso/${id}`;
@@ -17,7 +17,7 @@ function CardCurso({ curso, disponivel = null, inscrito = null }) {
             className="card-img-top ratio-img"
             alt={nome}
           />
-          {typeof sincrono === "boolean" && (
+          {!notipo && typeof sincrono === "boolean" && (
             <span
               className={`badge position-absolute top-0 start-0 m-2 ${
                 sincrono ? "bg-success" : "bg-secondary"
@@ -36,6 +36,9 @@ function CardCurso({ curso, disponivel = null, inscrito = null }) {
             )}
             {inscrito !== null && inscrito !== undefined && inscrito && (
               <div className="btn btn-primary static-button">Inscrito</div>
+            )}
+            {lecionado !== null && lecionado !== undefined && lecionado && (
+              <div className="btn btn-primary static-button">lecionado</div>
             )}
           </div>
         </div>
