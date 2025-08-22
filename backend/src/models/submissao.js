@@ -35,12 +35,8 @@ module.exports = function(sequelize, DataTypes) {
       }
     },
     submissao: {
-      type: DataTypes.BIGINT,
-      allowNull: true,
-      references: {
-        model: 'material',
-        key: 'idmaterial'
-      }
+      type: DataTypes.STRING(300),
+      allowNull: false
     },
     nota: {
       type: DataTypes.DOUBLE,

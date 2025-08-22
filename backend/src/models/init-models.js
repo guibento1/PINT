@@ -69,9 +69,11 @@ function initModels(sequelize) {
   area.belongsToMany(topico, { as: 'topico_topico_topicoareas', through: topicoarea, foreignKey: "area", otherKey: "topico" });
   avaliacaocontinua.belongsToMany(avaliacaocontinua, { as: 'cursosincrono_avaliacaocontinuas', through: submissao, foreignKey: "avaliacaocontinua", otherKey: "cursosincrono" });
   avaliacaocontinua.belongsToMany(avaliacaocontinua, { as: 'avaliacaocontinua_avaliacaocontinuas', through: submissao, foreignKey: "cursosincrono", otherKey: "avaliacaocontinua" });
-  curso.belongsToMany(formando, { as: 'formando_formandos', through: inscricao, foreignKey: "curso", otherKey: "formando" });
+  curso.belongsToMany(formando, { as: 'formando_formando_inscricaos', through: inscricao, foreignKey: "curso", otherKey: "formando" });
   curso.belongsToMany(topico, { as: 'topico_topicos', through: cursotopico, foreignKey: "curso", otherKey: "topico" });
+  cursosincrono.belongsToMany(formando, { as: 'formando_formandos', through: avaliacaofinal, foreignKey: "cursosincrono", otherKey: "formando" });
   formando.belongsToMany(curso, { as: 'curso_curso_inscricaos', through: inscricao, foreignKey: "formando", otherKey: "curso" });
+  formando.belongsToMany(cursosincrono, { as: 'cursosincrono_cursosincronos', through: avaliacaofinal, foreignKey: "formando", otherKey: "cursosincrono" });
   licao.belongsToMany(material, { as: 'material_materials', through: licaomaterial, foreignKey: "licao", otherKey: "material" });
   material.belongsToMany(licao, { as: 'licao_licaos', through: licaomaterial, foreignKey: "material", otherKey: "licao" });
   topico.belongsToMany(area, { as: 'area_areas', through: topicoarea, foreignKey: "topico", otherKey: "area" });
@@ -126,8 +128,6 @@ function initModels(sequelize) {
   licao.hasMany(sessao, { as: "sessaos", foreignKey: "licao"});
   licaomaterial.belongsTo(material, { as: "material_material", foreignKey: "material"});
   material.hasMany(licaomaterial, { as: "licaomaterials", foreignKey: "material"});
-  submissao.belongsTo(material, { as: "submissao_material", foreignKey: "submissao"});
-  material.hasMany(submissao, { as: "submissaos", foreignKey: "submissao"});
   denunciapost.belongsTo(post, { as: "post_post", foreignKey: "post"});
   post.hasMany(denunciapost, { as: "denunciaposts", foreignKey: "post"});
   respostapost.belongsTo(post, { as: "post_post", foreignKey: "post"});

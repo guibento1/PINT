@@ -2010,6 +2010,7 @@ controllers.createAvaliacaoContinua = async (req, res) => {
     if(fimDeSubmissoes && fimDeSubmissoes!=undefined) insertData.fimdesubmissoes = fimDeSubmissoes;
 
     avaliacaocontinua = await models.avaliacaocontinua.create(insertData,{ returning : true });
+    avaliacaocontinua.dataValues.enunciado = await generateSASUrl(avaliacaocontinua.enunciado,"enunciadosavaliacao");
 
     return res.status(201).json(avaliacaocontinua);
 
@@ -2025,39 +2026,140 @@ controllers.createAvaliacaoContinua = async (req, res) => {
 
 controllers.rmAvaliacaoContinua = async (req, res) => {
 
-  const { idcursosinc, idavalicaocontinua } = req.params;
 
+  const { id, idavalicaocontinua } = req.params;
+
+  const formador =
+    req.user.roles.find((roleEntry) => roleEntry.role === "formador")?.id || 0;
 
   logger.debug(
-    `Recebida requisição para adicionar um avaliação continua ao curso sincrono ${idcursosinc}.`
+    `Recebida requisição para remover uma avaliação continua do curso sincrono ${id}.`
   );
 
   try {
+    const cursosinc = await models.cursosincrono.findOne({ where: { curso: id } });
 
-    
+    if (!cursosinc) {
+      return res.status(404).json({
+        message: `Nenhum curso sincrono com id ${idcursosinc} encontrado.`,
+      });
+    }
+
+    if (cursosinc.formador != formador) {
+      return res.status(403).json({
+        error: "Proibido: permissões insuficientes.",
+      });
+    }
+
+    const avaliacaocontinua = await models.avaliacaocontinua.findOne({
+      where: {
+        idavaliacaocontinua: idavalicaocontinua,
+        cursosincrono: cursosinc.idcursosincrono,
+      },
+    });
+
+    if (!avaliacaocontinua) {
+      return res.status(404).json({
+        error: "Avaliação contínua não encontrada.",
+      });
+    }
+
+
+    await deleteFile(avaliacaocontinua.enunciado, "enunciadosavaliacao");
+
+    const submissoes = await models.submissao.findAll({where : { avaliacaocontinua : idavalicaocontinua, cursosincrono : cursosinc.idcursosincrono  } });
+
+    await Promise.all(
+        submissoes.map(async (submissao) => {
+          await deleteFile(submissao.submissao, "submissoes");
+          await submissao.destroy();
+        })
+    );
+
+    await avaliacaocontinua.destroy();
+
+    return res.status(200).json({
+      message: "Avaliação contínua removida com sucesso.",
+    });
+
   } catch (error) {
-
-    
+    logger.error("Erro ao remover avaliação contínua:", error);
+    return res.status(500).json({
+      error: "Ocorreu um erro interno ao remover a avaliação.",
+    });
   }
-
 };
 
 
 controllers.editAvaliacaoContinua = async (req, res) => {
 
-  const { idcursosinc, idavalicaocontinua } = req.params;
+  const { id, idavalicaocontinua } = req.params;
+  const enunciado = req.file;
 
+  const formador =
+    req.user.roles.find((roleEntry) => roleEntry.role === "formador")?.id || 0;
+
+  const {
+    titulo,
+    inicioDisponibilidade,
+    fimDisponibilidade,
+    inicioDeSubmissoes,
+    fimDeSubmissoes,
+  } = JSON.parse(req.body.info || "{}");
 
   logger.debug(
-    `Recebida requisição para adicionar um avaliação continua ao curso sincrono ${idcursosinc}.`
+    `Recebida requisição para editar avaliação contínua ${idavalicaocontinua} do curso ${id}.`
   );
 
   try {
+    const cursosinc = await models.cursosincrono.findOne({ where: { curso: id } });
 
-    
+    if (!cursosinc) {
+      return res.status(404).json({
+        message: `Nenhum curso sincrono com id ${id} encontrado.`,
+      });
+    }
+
+    if (cursosinc.formador != formador) {
+      return res.status(403).json({
+        error: "Proibido: permissões insuficientes.",
+      });
+    }
+
+    let avaliacaocontinua = await models.avaliacaocontinua.findOne({
+      where: {
+        idavaliacaocontinua: idavalicaocontinua,
+        cursosincrono: cursosinc.idcursosincrono,
+      },
+    });
+
+    if (!avaliacaocontinua) {
+      return res.status(404).json({
+        error: "Avaliação contínua não encontrada.",
+      });
+    }
+
+    if (titulo !== undefined) avaliacaocontinua.titulo = titulo;
+    if (inicioDisponibilidade !== undefined) avaliacaocontinua.iniciodisponibilidade = inicioDisponibilidade;
+    if (fimDisponibilidade !== undefined) avaliacaocontinua.fimdisponibilidade = fimDisponibilidade;
+    if (inicioDeSubmissoes !== undefined) avaliacaocontinua.iniciodesubmissoes = inicioDeSubmissoes;
+    if (fimDeSubmissoes !== undefined) avaliacaocontinua.fimdesubmissoes = fimDeSubmissoes;
+
+    if (enunciado) {
+      avaliacaocontinua.enunciado = await updateFile(enunciado, "enunciadosavaliacao");
+    }
+
+    await avaliacaocontinua.save();
+
+    avaliacaocontinua.dataValues.enunciado = await generateSASUrl(avaliacaocontinua.enunciado, "enunciadosavaliacao");
+
+    return res.status(200).json(avaliacaocontinua);
+
   } catch (error) {
-
-    
+    logger.error("Erro ao editar avaliação contínua:", error);
+    return res.status(500).json({
+      error: "Ocorreu um erro interno ao editar a avaliação.",
+    });
   }
 
 };
@@ -2065,41 +2167,84 @@ controllers.editAvaliacaoContinua = async (req, res) => {
 
 controllers.addAvaliacaoFinal = async (req, res) => {
 
-  const { idcursosinc, formando } = req.params;
+  const { id, formando } = req.params;
+  const { nota } = req.body;
 
+  const formadorId =
+    req.user.roles.find((roleEntry) => roleEntry.role === "formador")?.id || 0;
 
-  logger.debug(
-    `Recebida requisição para adicionar um avaliação continua ao curso sincrono ${idcursosinc}.`
-  );
+  logger.debug(`Recebida requisição para adicionar nota final ao formando ${formando} no curso ${id}.`);
 
   try {
+    const cursoSincrono = await models.cursosincrono.findOne({ where: { curso: id } });
 
-    
+    if (!cursoSincrono || cursoSincrono.formador !== formadorId) {
+      return res.status(403).json({ error: "Acesso negado." });
+    }
+
+    const exists = await models.avaliacaofinal.findOne({
+      where: {
+        cursosincrono: cursoSincrono.idcursosincrono,
+        formando,
+      },
+    });
+
+    if (exists) {
+      return res.status(400).json({ error: "Avaliação final já existe para este formando." });
+    }
+
+    const created = await models.avaliacaofinal.create({
+      cursosincrono: cursoSincrono.idcursosincrono,
+      formando,
+      nota,
+    });
+
+    return res.status(201).json(created);
+
   } catch (error) {
-
-    
+    logger.error("Erro ao adicionar avaliação final:", error);
+    return res.status(500).json({ error: "Erro interno ao adicionar avaliação final." });
   }
-
 };
 
 
 controllers.editAvaliacaoFinal = async (req, res) => {
 
-  const { idcursosinc, formando } = req.params;
+  const { id, formando } = req.params;
+  const { nota } = req.body;
 
+  const formadorId =
+    req.user.roles.find((roleEntry) => roleEntry.role === "formador")?.id || 0;
 
-  logger.debug(
-    `Recebida requisição para adicionar um avaliação continua ao curso sincrono ${idcursosinc}.`
-  );
+  logger.debug(`Recebida requisição para editar nota final do formando ${formando} no curso ${id}.`);
 
   try {
+    const cursoSincrono = await models.cursosincrono.findOne({ where: { curso: id } });
 
-    
+    if (!cursoSincrono || cursoSincrono.formador !== formadorId) {
+      return res.status(403).json({ error: "Acesso negado." });
+    }
+
+    const avaliacao = await models.avaliacaofinal.findOne({
+      where: {
+        cursosincrono: cursoSincrono.idcursosincrono,
+        formando,
+      },
+    });
+
+    if (!avaliacao) {
+      return res.status(404).json({ error: "Avaliação final não encontrada." });
+    }
+
+    avaliacao.nota = nota;
+    await avaliacao.save();
+
+    return res.status(200).json({ message: "Nota atualizada com sucesso.", nota });
+
   } catch (error) {
-
-    
+    logger.error("Erro ao editar avaliação final:", error);
+    return res.status(500).json({ error: "Erro interno ao editar avaliação final." });
   }
-
 };
 
 
@@ -2107,61 +2252,321 @@ controllers.editAvaliacaoFinal = async (req, res) => {
 
 controllers.rmAvaliacaoFinal = async (req, res) => {
 
-  const { idcursosinc, formando } = req.params;
+  const { id, formando } = req.params;
 
+  const formadorId =
+    req.user.roles.find((roleEntry) => roleEntry.role === "formador")?.id || 0;
 
-  logger.debug(
-    `Recebida requisição para adicionar um avaliação continua ao curso sincrono ${idcursosinc}.`
-  );
+  logger.debug(`Recebida requisição para remover avaliação final do formando ${formando} no curso ${id}.`);
 
   try {
+    const cursoSincrono = await models.cursosincrono.findOne({ where: { curso: id } });
 
-    
+    if (!cursoSincrono || cursoSincrono.formador !== formadorId) {
+      return res.status(403).json({ error: "Acesso negado." });
+    }
+
+    const avaliacao = await models.avaliacaofinal.findOne({
+      where: {
+        cursosincrono: cursoSincrono.idcursosincrono,
+        formando,
+      },
+    });
+
+    if (!avaliacao) {
+      return res.status(404).json({ error: "Avaliação final não encontrada." });
+    }
+
+    await avaliacao.destroy();
+
+    return res.status(200).json({ message: "Avaliação final removida com sucesso." });
+
   } catch (error) {
-
-    
+    logger.error("Erro ao remover avaliação final:", error);
+    return res.status(500).json({ error: "Erro interno ao remover avaliação final." });
   }
-
 };
 
 
 controllers.addSubmissao = async (req, res) => {
 
-  const { idcursosinc, idavalicao  } = req.params;
+  const { id, idavalicao } = req.params;
+  const file = req.file;
 
+  const formando =
+    req.user.roles.find((roleEntry) => roleEntry.role === "formando")?.id || 0;
 
   logger.debug(
-    `Recebida requisição para adicionar um avaliação continua ao curso sincrono ${idcursosinc}.`
+    `Recebida requisição de submissão para a avaliação contínua ${idavalicao} no curso ${id} pelo formando ${formando}.`
   );
 
   try {
+    const inscricao = await models.inscricao.findOne({
+      where: {
+        curso: id,
+        formando: formando,
+      },
+    });
 
-    
+    if (!inscricao) {
+      return res.status(403).json({
+        error: "Formando não inscrito neste curso.",
+      });
+    }
+
+    const cursoSincrono = await models.cursosincrono.findOne({
+      where: {
+        curso: id,
+      },
+    });
+
+    if (!cursoSincrono) {
+      return res.status(404).json({
+        error: `Curso síncrono associado ao curso ${id} não encontrado.`,
+      });
+    }
+
+    const avaliacao = await models.avaliacaocontinua.findOne({
+      where: {
+        idavaliacaocontinua: idavalicao,
+        cursosincrono: cursoSincrono.idcursosincrono,
+      },
+    });
+
+    if (!avaliacao) {
+      return res.status(404).json({
+        error: `Avaliação contínua ${idavalicao} não encontrada neste curso síncrono.`,
+      });
+    }
+
+    const agora = new Date();
+
+    const inicioSub = new Date(avaliacao.iniciodesubmissoes);
+    const fimSub = avaliacao.fimdesubmissoes ? new Date(avaliacao.fimdesubmissoes) : null;
+
+    if (agora < inicioSub) {
+      return res.status(400).json({
+        error: "Período de submissão ainda não começou.",
+      });
+    }
+
+    if (fimSub && agora > fimSub) {
+      return res.status(400).json({
+        error: "Período de submissão já terminou.",
+      });
+    }
+
+    if (!file) {
+      return res.status(400).json({
+        error: "Submissão não fornecida. Nenhum ficheiro enviado.",
+      });
+    }
+
+    const filePath = await updateFile(file, "submissoes");
+
+    const novaSubmissao = await models.submissao.create({
+      avaliacaocontinua: idavalicao,
+      cursosincrono: cursoSincrono.idcursosincrono,
+      formando: formando,
+      submissao: filePath,
+    });
+
+    novaSubmissao.dataValues.submissao = await generateSASUrl(filePath, "submissoes");
+
+    return res.status(201).json(novaSubmissao);
+
   } catch (error) {
-
-    
+    logger.error("Erro ao submeter avaliação:", error);
+    return res.status(500).json({
+      error: "Erro interno ao submeter avaliação.",
+    });
   }
-
 };
 
 
 controllers.updateSubmissao = async (req, res) => {
 
-  const { idcursosinc, idavalicao  } = req.params;
+  const { id, idavalicao } = req.params;
+  const file = req.file;
 
+  const formando =
+    req.user.roles.find((roleEntry) => roleEntry.role === "formando")?.id || 0;
 
   logger.debug(
-    `Recebida requisição para adicionar um avaliação continua ao curso sincrono ${idcursosinc}.`
+    `Recebida requisição para atualizar submissão da avaliação ${idavalicao} no curso ${id} pelo formando ${formando}.`
   );
 
   try {
+    const inscricao = await models.inscricao.findOne({
+      where: { curso: id, formando },
+    });
 
-    
+    if (!inscricao) {
+      return res.status(403).json({ error: "Formando não inscrito neste curso." });
+    }
+
+    const cursoSincrono = await models.cursosincrono.findOne({ where: { curso: id } });
+
+    if (!cursoSincrono) {
+      return res.status(404).json({ error: `Curso síncrono não encontrado.` });
+    }
+
+    const avaliacao = await models.avaliacaocontinua.findOne({
+      where: {
+        idavaliacaocontinua: idavalicao,
+        cursosincrono: cursoSincrono.idcursosincrono,
+      },
+    });
+
+    if (!avaliacao) {
+      return res.status(404).json({ error: "Avaliação não encontrada." });
+    }
+
+    const agora = new Date();
+    const inicioSub = new Date(avaliacao.iniciodesubmissoes);
+    const fimSub = avaliacao.fimdesubmissoes ? new Date(avaliacao.fimdesubmissoes) : null;
+
+    if (agora < inicioSub) {
+      return res.status(400).json({ error: "Período de submissão ainda não começou." });
+    }
+
+    if (fimSub && agora > fimSub) {
+      return res.status(400).json({ error: "Período de submissão já terminou." });
+    }
+
+    if (!file) {
+      return res.status(400).json({ error: "Nenhum ficheiro enviado." });
+    }
+
+    const existing = await models.submissao.findOne({
+      where: {
+        avaliacaocontinua: idavalicao,
+        cursosincrono: cursoSincrono.idcursosincrono,
+        formando,
+      },
+    });
+
+    if (!existing) {
+      return res.status(404).json({ error: "Submissão anterior não encontrada." });
+    }
+
+    const filePath = await updateFile(file, "submissoes");
+
+    existing.submissao = filePath;
+    await existing.save();
+
+    existing.dataValues.submissao = await generateSASUrl(filePath, "submissoes");
+
+    return res.status(200).json(existing);
+
   } catch (error) {
-
-    
+    logger.error("Erro ao atualizar submissão:", error);
+    return res.status(500).json({ error: "Erro interno ao atualizar submissão." });
   }
+};
 
+
+controllers.listSubmissoes = async (req, res) => {
+
+  const { id, idavalicao } = req.params;
+
+  const formador =
+    req.user.roles.find((roleEntry) => roleEntry.role === "formador")?.id || 0;
+
+  logger.debug(
+    `Recebida requisição para listar submissões da avaliação ${idavalicao} no curso ${id} pelo formador ${formador}.`
+  );
+
+  try {
+    const cursoSincrono = await models.cursosincrono.findOne({ where: { curso: id } });
+
+    if (!cursoSincrono || cursoSincrono.formador !== formador) {
+      return res.status(403).json({ error: "Acesso negado." });
+    }
+
+    const avaliacao = await models.avaliacaocontinua.findOne({
+      where: {
+        idavaliacaocontinua: idavalicao,
+        cursosincrono: cursoSincrono.idcursosincrono,
+      },
+    });
+
+    if (!avaliacao) {
+      return res.status(404).json({ error: "Avaliação não encontrada." });
+    }
+
+    const submissoes = await models.submissao.findAll({
+      where: {
+        avaliacaocontinua: idavalicao,
+        cursosincrono: cursoSincrono.idcursosincrono,
+      },
+      include: [{ model: models.formando, as: "formandoInfo" }],
+    });
+
+    for (const sub of submissoes) {
+      sub.dataValues.submissao = await generateSASUrl(sub.submissao, "submissoes");
+    }
+
+    return res.status(200).json(submissoes);
+
+  } catch (error) {
+    logger.error("Erro ao listar submissões:", error);
+    return res.status(500).json({ error: "Erro interno ao listar submissões." });
+  }
+};
+
+
+controllers.gradeSubmissao = async (req, res) => {
+
+  const { id, idavalicao } = req.params;
+  const { idsubmissao, nota } = req.body;
+
+  const formador =
+    req.user.roles.find((roleEntry) => roleEntry.role === "formador")?.id || 0;
+
+  logger.debug(
+    `Recebida requisição para corrigir submissão ${idsubmissao} da avaliação ${idavalicao} no curso ${id} pelo formador ${formador}.`
+  );
+
+  try {
+    const cursoSincrono = await models.cursosincrono.findOne({ where: { curso: id } });
+
+    if (!cursoSincrono || cursoSincrono.formador !== formador) {
+      return res.status(403).json({ error: "Acesso negado." });
+    }
+
+    const avaliacao = await models.avaliacaocontinua.findOne({
+      where: {
+        idavaliacaocontinua: idavalicao,
+        cursosincrono: cursoSincrono.idcursosincrono,
+      },
+    });
+
+    if (!avaliacao) {
+      return res.status(404).json({ error: "Avaliação não encontrada." });
+    }
+
+    const submissao = await models.submissao.findOne({
+      where: {
+        idsubmissao,
+        avaliacaocontinua: idavalicao,
+        cursosincrono: cursoSincrono.idcursosincrono,
+      },
+    });
+
+    if (!submissao) {
+      return res.status(404).json({ error: "Submissão não encontrada." });
+    }
+
+    submissao.nota = nota;
+    await submissao.save();
+
+    return res.status(200).json({ message: "Nota atribuída com sucesso.", nota });
+
+  } catch (error) {
+    logger.error("Erro ao atribuir nota:", error);
+    return res.status(500).json({ error: "Erro interno ao atribuir nota." });
+  }
 };
 
 
@@ -2253,6 +2658,7 @@ controllers.rmLicao = async (req, res) => {
 
 
 controllers.updateLicao = async (req, res) => {
+
   const { idlicao } = req.params;
   const { titulo, descricao } = req.body;
   logger.debug(`Recebida requisição para atualizar lição com ID: ${idlicao}`);

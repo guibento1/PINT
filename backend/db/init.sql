@@ -414,6 +414,7 @@ CREATE TABLE AvaliacaoFinal (
     nota FLOAT NOT NULL,
 
     CONSTRAINT CHK_NOTA CHECK (nota >= 0 AND nota <= 20),
+    CONSTRAINT CURSO_AVALIACAOFINAL_PK PRIMARY KEY(cursoSincrono,formando),
     CONSTRAINT CURSO_AVALIACAOFINAL_FK FOREIGN KEY (cursoSincrono) REFERENCES CursoSincrono(idCursoSincrono),
     CONSTRAINT FORMANDO_AVALIACAOFINAL_FK FOREIGN KEY (formando) REFERENCES Formando(idFormando)
 
@@ -445,14 +446,13 @@ CREATE TABLE Submissao (
     avaliacaoContinua BIGINT,
     cursoSincrono BIGINT,
     formando BIGINT,
-    submissao BIGINT,
+    submissao VARCHAR(300) NOT NULL,
     nota FLOAT,
 
     CONSTRAINT CHK_NOTA CHECK (nota >= 0 AND nota <= 20),
     CONSTRAINT SUBMISSAO_PK PRIMARY KEY(idSubmissao,avaliacaoContinua,CursoSincrono),
     CONSTRAINT AVALIACAOCONTINUA_SUBMISSAO_FK FOREIGN KEY (avaliacaoContinua,CursoSincrono) REFERENCES AvaliacaoContinua(IdAvaliacaoContinua,CursoSincrono),
-    CONSTRAINT FORMANDO_SUBMISSAO_FK FOREIGN KEY (formando) REFERENCES Formando(idFormando),
-    CONSTRAINT MATERIAL_AVALIACAOCONTINUA_FK FOREIGN KEY(submissao) REFERENCES Material(idMaterial)
+    CONSTRAINT FORMANDO_SUBMISSAO_FK FOREIGN KEY (formando) REFERENCES Formando(idFormando)
 
 );
 

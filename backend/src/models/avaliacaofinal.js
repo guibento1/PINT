@@ -3,7 +3,8 @@ module.exports = function(sequelize, DataTypes) {
   return sequelize.define('avaliacaofinal', {
     cursosincrono: {
       type: DataTypes.BIGINT,
-      allowNull: true,
+      allowNull: false,
+      primaryKey: true,
       references: {
         model: 'cursosincrono',
         key: 'idcursosincrono'
@@ -11,7 +12,8 @@ module.exports = function(sequelize, DataTypes) {
     },
     formando: {
       type: DataTypes.BIGINT,
-      allowNull: true,
+      allowNull: false,
+      primaryKey: true,
       references: {
         model: 'formando',
         key: 'idformando'
@@ -24,6 +26,16 @@ module.exports = function(sequelize, DataTypes) {
   }, {
     tableName: 'avaliacaofinal',
     schema: 'public',
-    timestamps: false
+    timestamps: false,
+    indexes: [
+      {
+        name: "curso_avaliacaofinal_pk",
+        unique: true,
+        fields: [
+          { name: "cursosincrono" },
+          { name: "formando" },
+        ]
+      },
+    ]
   });
 };
