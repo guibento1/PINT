@@ -11,9 +11,6 @@ const {
 } = require("../utils.js");
 const logger = require("../logger.js");
 
-//TODO
-// Adicionar verificação do formador para os controladores que necessitam
-
 const controllers = {};
 
 async function findTopicos(id) {
@@ -1920,6 +1917,169 @@ controllers.rmSessaoContent = async (req, res) => {
     return res.status(500).json({
       error: "Ocorreu um erro interno ao criar o material.",
     });
+    
+  }
+
+};
+
+//TODO
+
+
+controllers.addAvaliacaoContinua = async (req, res) => {
+
+  const { idcursosinc } = req.params;
+
+
+  logger.debug(
+    `Recebida requisição para adicionar um avaliação continua ao curso sincrono ${idcursosinc}.`
+  );
+
+  try {
+
+    
+  } catch (error) {
+
+    
+  }
+
+};
+
+controllers.rmAvaliacaoContinua = async (req, res) => {
+
+  const { idcursosinc, idavalicaocontinua } = req.params;
+
+
+  logger.debug(
+    `Recebida requisição para adicionar um avaliação continua ao curso sincrono ${idcursosinc}.`
+  );
+
+  try {
+
+    
+  } catch (error) {
+
+    
+  }
+
+};
+
+
+controllers.editAvaliacaoContinua = async (req, res) => {
+
+  const { idcursosinc, idavalicaocontinua } = req.params;
+
+
+  logger.debug(
+    `Recebida requisição para adicionar um avaliação continua ao curso sincrono ${idcursosinc}.`
+  );
+
+  try {
+
+    
+  } catch (error) {
+
+    
+  }
+
+};
+
+
+controllers.addAvaliacaoFinal = async (req, res) => {
+
+  const { idcursosinc, formando } = req.params;
+
+
+  logger.debug(
+    `Recebida requisição para adicionar um avaliação continua ao curso sincrono ${idcursosinc}.`
+  );
+
+  try {
+
+    
+  } catch (error) {
+
+    
+  }
+
+};
+
+
+controllers.editAvaliacaoFinal = async (req, res) => {
+
+  const { idcursosinc, formando } = req.params;
+
+
+  logger.debug(
+    `Recebida requisição para adicionar um avaliação continua ao curso sincrono ${idcursosinc}.`
+  );
+
+  try {
+
+    
+  } catch (error) {
+
+    
+  }
+
+};
+
+
+
+
+controllers.rmAvaliacaoFinal = async (req, res) => {
+
+  const { idcursosinc, formando } = req.params;
+
+
+  logger.debug(
+    `Recebida requisição para adicionar um avaliação continua ao curso sincrono ${idcursosinc}.`
+  );
+
+  try {
+
+    
+  } catch (error) {
+
+    
+  }
+
+};
+
+
+controllers.addSubmissao = async (req, res) => {
+
+  const { idcursosinc, idavalicao  } = req.params;
+
+
+  logger.debug(
+    `Recebida requisição para adicionar um avaliação continua ao curso sincrono ${idcursosinc}.`
+  );
+
+  try {
+
+    
+  } catch (error) {
+
+    
+  }
+
+};
+
+
+controllers.updateSubmissao = async (req, res) => {
+
+  const { idcursosinc, idavalicao  } = req.params;
+
+
+  logger.debug(
+    `Recebida requisição para adicionar um avaliação continua ao curso sincrono ${idcursosinc}.`
+  );
+
+  try {
+
+    
+  } catch (error) {
+
     
   }
 
