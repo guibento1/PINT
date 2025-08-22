@@ -425,14 +425,14 @@ CREATE TABLE AvaliacaoContinua (
         
     idAvaliacaoContinua BIGINT,
     cursoSincrono BIGINT,
-    enunciado BIGINT NOT NULL,
+    enunciado VARCHAR(300) NOT NULL,
     inicioDisponibilidade TIMESTAMP NOT NULL,
     fimDisponibilidade TIMESTAMP,
-    limiteSubmissoes INT,
+    inicioDeSubmissoes TIMESTAMP NOT NULL,
+    fimDeSubmissoes TIMESTAMP,
 
     CONSTRAINT AVALIACAOCONTINUA_PK PRIMARY KEY(idAvaliacaoContinua,CursoSincrono),
     CONSTRAINT CURSOSINCRONO_AVALIACAOCONTINUA_FK FOREIGN KEY(cursoSincrono) REFERENCES cursoSincrono(idCursoSincrono),
-    CONSTRAINT MATERIAL_AVALIACAOCONTINUA_FK FOREIGN KEY(enunciado) REFERENCES Material(idMaterial)
 
 
 );

@@ -124,8 +124,6 @@ function initModels(sequelize) {
   licao.hasMany(licaomaterial, { as: "licaomaterials", foreignKey: "licao"});
   sessao.belongsTo(licao, { as: "licao_licao", foreignKey: "licao"});
   licao.hasMany(sessao, { as: "sessaos", foreignKey: "licao"});
-  avaliacaocontinua.belongsTo(material, { as: "enunciado_material", foreignKey: "enunciado"});
-  material.hasMany(avaliacaocontinua, { as: "avaliacaocontinuas", foreignKey: "enunciado"});
   licaomaterial.belongsTo(material, { as: "material_material", foreignKey: "material"});
   material.hasMany(licaomaterial, { as: "licaomaterials", foreignKey: "material"});
   submissao.belongsTo(material, { as: "submissao_material", foreignKey: "submissao"});

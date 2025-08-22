@@ -15,14 +15,6 @@ module.exports = function(sequelize, DataTypes) {
         key: 'idcursosincrono'
       }
     },
-    enunciado: {
-      type: DataTypes.BIGINT,
-      allowNull: false,
-      references: {
-        model: 'material',
-        key: 'idmaterial'
-      }
-    },
     iniciodisponibilidade: {
       type: DataTypes.DATE,
       allowNull: false
@@ -31,9 +23,21 @@ module.exports = function(sequelize, DataTypes) {
       type: DataTypes.DATE,
       allowNull: true
     },
-    limitesubmissoes: {
-      type: DataTypes.INTEGER,
+    iniciodesubmissoes: {
+      type: DataTypes.DATE,
+      allowNull: false
+    },
+    fimdesubmissoes: {
+      type: DataTypes.DATE,
       allowNull: true
+    },
+    titulo: {
+      type: DataTypes.STRING(60),
+      allowNull: false
+    },
+    enunciado: {
+      type: DataTypes.STRING(300),
+      allowNull: false
     }
   }, {
     tableName: 'avaliacaocontinua',

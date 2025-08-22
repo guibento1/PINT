@@ -40,4 +40,6 @@ router.put('/sessao/:idsessao', authenticateJWT, authorizeRoles('admin','formado
 router.post('/sessao/:idsessao/material', authenticateJWT, authorizeRoles('admin','formador'), upload.single('ficheiro'), cursoController.addSessaoContent);
 router.delete('/sessao/:idsessao/material/:idmaterial', authenticateJWT, authorizeRoles('admin','formador'), cursoController.rmSessaoContent );
 
+router.post('/cursosincrono/:id/avalicaocontinua', authenticateJWT, authorizeRoles('admin','formador'), upload.single('enunciado'), cursoController.createAvaliacaoContinua );
+
 module.exports = router;

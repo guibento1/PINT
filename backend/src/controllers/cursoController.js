@@ -1925,20 +1925,99 @@ controllers.rmSessaoContent = async (req, res) => {
 //TODO
 
 
-controllers.addAvaliacaoContinua = async (req, res) => {
+controllers.createAvaliacaoContinua = async (req, res) => {
 
-  const { idcursosinc } = req.params;
+  const { id } = req.params;
+
+  const enunciado = req.file;
+
+  const formador =
+    req.user.roles.find((roleEntry) => roleEntry.role === "formador")?.id || 0;
+
+  const { idAvaliacao, titulo, inicioDisponibilidade, fimDisponibilidade, inicioDeSubmissoes, fimDeSubmissoes } = JSON.parse(req.body.info || "{}");
 
 
   logger.debug(
-    `Recebida requisição para adicionar um avaliação continua ao curso sincrono ${idcursosinc}.`
+    `Recebida requisição para adicionar um avaliação continua ao curso sincrono ${id}.`
   );
 
   try {
 
-    
+    const cursosinc = await models.cursosincrono.findOne({where : { curso : id }});
+
+    if(!cursosinc){
+
+      return res.status(404).json({
+        message:
+          `Nenhum curso sincrono com id ${id} não encontrado.`,
+      });
+
+    }
+
+    if(cursosinc.formador != formador){
+
+      return res.status(403).json({
+        error: "Proibido: permissões insuficientes.",
+      });
+
+    }
+
+    if( (!inicioDisponibilidade || inicioDisponibilidade == undefined) || 
+        (!inicioDeSubmissoes || inicioDeSubmissoes == undefined) ||
+        (!titulo || titulo == undefined) ||
+        (!idAvaliacao || idAvaliacao == undefined)
+
+    ) {
+
+      return res.status(400).json({
+        error: "Campos titulo, inicioDisponibilidade e inicioDeSubmissoes são obrigatório e não nulos",
+      });
+
+    }
+
+
+    let avaliacaocontinua = await models.avaliacaocontinua.findOne({
+      where : { 
+        idavaliacaocontinua : idAvaliacao,
+        cursosincrono: cursosinc.idcursosincrono
+      }
+    });
+
+    if(avaliacaocontinua){
+
+      return res.status(400).json({
+        error: "Avaliação com id fornecido já existente",
+      });
+
+    }
+
+    if(!enunciado){
+      return res.status(400).json({
+        error: "Enunciado não fornecido",
+      });
+    }
+
+    const insertData = {}
+
+    insertData.enunciado = await updateFile(enunciado,"enunciadosavaliacao");
+    insertData.titulo = titulo;
+    insertData.idavaliacaocontinua = idAvaliacao;
+    insertData.iniciodisponibilidade = inicioDisponibilidade;
+    insertData.iniciodesubmissoes = inicioDeSubmissoes;
+    insertData.cursosincrono = cursosinc.idcursosincrono; 
+
+    if(fimDisponibilidade && fimDisponibilidade!=undefined) insertData.fimdisponibilidade = fimDisponibilidade;
+    if(fimDeSubmissoes && fimDeSubmissoes!=undefined) insertData.fimdesubmissoes = fimDeSubmissoes;
+
+    avaliacaocontinua = await models.avaliacaocontinua.create(insertData,{ returning : true });
+
+    return res.status(201).json(avaliacaocontinua);
+
   } catch (error) {
 
+    return res.status(500).json({
+      error: "Ocorreu um erro interno ao criar a avalição.",
+    });
     
   }
 
