@@ -877,6 +877,31 @@ controllers.getCurso = async (req, res) => {
           ],
         });
 
+
+        const avaliacoes = await models.avaliacaocontinua.findAll({
+          where: {
+            cursosincrono: curso.dataValues.idcrono,
+          },
+        });
+
+        if(avaliacoes != undefined&& sessoes != null && sessoes.length > 0 ){
+
+          curso.dataValues.avaliacoes = (
+            await Promise.all(
+              avaliacoes.map(async (avaliacao) => {
+                avaliacao.dataValues.enunciado = await generateSASUrl(avaliacao.enunciado, "enunciadosavaliacao");
+                return avaliacao;
+              })
+            )
+          ).filter((avaliacao) => {
+            const agora = new Date();
+            return (curso.dataValues.formador == formador) || (agora >= avaliacao.iniciodisponibilidade);
+          });
+
+        } else {
+          curso.dataValues.avaliacoes = [];
+        }
+
         if (sessoes != undefined && sessoes != null && sessoes.length > 0) {
           curso.dataValues.sessoes = await Promise.all(
             sessoes.map(async (sessao) => {
