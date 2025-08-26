@@ -2036,7 +2036,7 @@ controllers.createAvaliacaoContinua = async (req, res) => {
 controllers.rmAvaliacaoContinua = async (req, res) => {
 
 
-  const { id, idavalicaocontinua } = req.params;
+  const { id, idavalicao } = req.params;
 
 
   const admin = req.user.roles.find((roleEntry) => roleEntry.role === "admin")?.id || 0;
@@ -2049,6 +2049,7 @@ controllers.rmAvaliacaoContinua = async (req, res) => {
   );
 
   try {
+
     const cursosinc = await models.cursosincrono.findOne({ where: { curso: id } });
 
     if (!cursosinc) {
@@ -2065,7 +2066,7 @@ controllers.rmAvaliacaoContinua = async (req, res) => {
 
     const avaliacaocontinua = await models.avaliacaocontinua.findOne({
       where: {
-        idavaliacaocontinua: idavalicaocontinua,
+        idavaliacaocontinua: idavalicao,
         cursosincrono: cursosinc.idcursosincrono,
       },
     });
@@ -2079,7 +2080,7 @@ controllers.rmAvaliacaoContinua = async (req, res) => {
 
     await deleteFile(avaliacaocontinua.enunciado, "enunciadosavaliacao");
 
-    const submissoes = await models.submissao.findAll({where : { avaliacaocontinua : idavalicaocontinua, cursosincrono : cursosinc.idcursosincrono  } });
+    const submissoes = await models.submissao.findAll({where : { avaliacaocontinua : idavalicao, cursosincrono : cursosinc.idcursosincrono  } });
 
     await Promise.all(
         submissoes.map(async (submissao) => {
@@ -2100,12 +2101,13 @@ controllers.rmAvaliacaoContinua = async (req, res) => {
       error: "Ocorreu um erro interno ao remover a avaliação.",
     });
   }
+
 };
 
 
 controllers.editAvaliacaoContinua = async (req, res) => {
 
-  const { id, idavalicaocontinua } = req.params;
+  const { id, idavalicao } = req.params;
   const enunciado = req.file;
 
   const admin = req.user.roles.find((roleEntry) => roleEntry.role === "admin")?.id || 0;
@@ -2122,7 +2124,7 @@ controllers.editAvaliacaoContinua = async (req, res) => {
   } = JSON.parse(req.body.info || "{}");
 
   logger.debug(
-    `Recebida requisição para editar avaliação contínua ${idavalicaocontinua} do curso ${id}.`
+    `Recebida requisição para editar avaliação contínua ${idavalicao} do curso ${id}.`
   );
 
   try {
@@ -2142,7 +2144,7 @@ controllers.editAvaliacaoContinua = async (req, res) => {
 
     let avaliacaocontinua = await models.avaliacaocontinua.findOne({
       where: {
-        idavaliacaocontinua: idavalicaocontinua,
+        idavaliacaocontinua: idavalicao,
         cursosincrono: cursosinc.idcursosincrono,
       },
     });
