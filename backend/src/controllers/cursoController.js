@@ -2024,8 +2024,9 @@ controllers.createAvaliacaoContinua = async (req, res) => {
 
   } catch (error) {
 
+
     return res.status(500).json({
-      error: "Ocorreu um erro interno ao criar a avalição.",
+      error: "Ocorreu um erro interno ao criar a avaliação.",
     });
     
   }
