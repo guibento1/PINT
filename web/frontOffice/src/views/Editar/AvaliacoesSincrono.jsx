@@ -101,7 +101,6 @@ const AvaliacoesSincrono = () => {
 
   const fetchAvaliacoes = useCallback(async () => {
     // Avoid 404s: parse from course details only
-<<<<<<< Updated upstream
     try {
       const res = await api.get(`/curso/${id}`);
       const d = res.data || {};
@@ -297,68 +296,6 @@ const AvaliacoesSincrono = () => {
       // if empty, keep optimistic/local state
     } catch (e) {
       // keep previous state on error
-=======
-    try {
-      const res = await api.get(`/curso/${id}`);
-      const d = res.data || {};
-      const list =
-        (Array.isArray(d.avaliacaocontinua) && d.avaliacaocontinua) ||
-        (Array.isArray(d.avaliacoes) && d.avaliacoes) ||
-        (Array.isArray(d.avaliacoesContinuas) && d.avaliacoesContinuas) ||
-        [];
-      setAvaliacoes(list);
-    } catch (e) {
-      // keep previous state on error
-    }
-  }, [id]);
-
-  // Final evaluations list from course details only (avoid 404 spam)
-  const fetchFinais = useCallback(async () => {
-    setLoadingFinais(true);
-    try {
-      const res = await api.get(`/curso/${id}`);
-      const d = res.data || {};
-      let list =
-        (Array.isArray(d.avaliacaofinal) && d.avaliacaofinal) ||
-        (Array.isArray(d.avaliacoesfinais) && d.avaliacoesfinais) ||
-        (Array.isArray(d.avaliacoesFinais) && d.avaliacoesFinais) ||
-        (Array.isArray(d.finais) && d.finais) ||
-        [];
-
-      // Try object-shaped finals: { [idFormando]: { nota } } or { [idFormando]: nota }
-      if (!list.length && d.avaliacaofinal && !Array.isArray(d.avaliacaofinal) && typeof d.avaliacaofinal === "object") {
-        list = Object.entries(d.avaliacaofinal).map(([k, v]) => {
-          const val = typeof v === "object" && v !== null ? (v.nota ?? v.classificacao ?? v.valor ?? v) : v;
-          return { formando: Number(k) || k, nota: val };
-        });
-      }
-
-      // Try deriving from inscritos/participantes with embedded fields
-      if (!list.length) {
-        const arr =
-          (Array.isArray(d.inscritos) && d.inscritos) ||
-          (Array.isArray(d.participantes) && d.participantes) ||
-          (Array.isArray(d.formandos) && d.formandos) ||
-          (Array.isArray(d.alunos) && d.alunos) ||
-          [];
-        const derived = arr
-          .map((entry) => {
-            const base = entry?.formando || entry?.user || entry?.utilizador || entry;
-            const fid = base?.idformando ?? base?.id ?? base?.idutilizador ?? base?.utilizador ?? base?.userId;
-            const nota =
-              base?.notaFinal ?? base?.nota ?? base?.avaliacaofinal ?? base?.classificacaoFinal ?? base?.classificacao;
-            if (fid == null || nota == null) return null;
-            return { formando: fid, nota };
-          })
-          .filter(Boolean);
-        if (derived.length) list = derived;
-      }
-
-      if (list.length) setFinais(list);
-      // if empty, keep optimistic/local state
-    } catch (e) {
-      // keep previous state on error
->>>>>>> Stashed changes
     } finally {
       setLoadingFinais(false);
     }
@@ -376,7 +313,6 @@ const AvaliacoesSincrono = () => {
           const [first = "", ...rest] = (base?.nome || "").split(" ");
           return {
             ...base,
-<<<<<<< Updated upstream
             // Prefer real formando id; fall back to other identifiers if needed
             idformando:
               base?.idformando ??
@@ -385,9 +321,6 @@ const AvaliacoesSincrono = () => {
               base?.idutilizador ??
               base?.utilizador ??
               base?.userId,
-=======
-            idformando: base?.idformando ?? base?.id,
->>>>>>> Stashed changes
             idutilizador: base?.idutilizador,
             primeiroNome: base?.primeiroNome || first,
             ultimoNome: base?.ultimoNome || (rest.length ? rest.join(" ") : ""),
@@ -413,16 +346,12 @@ const AvaliacoesSincrono = () => {
           return {
             ...base,
             idformando:
-<<<<<<< Updated upstream
               base?.idformando ??
               entry?.formando ??
               base?.formando ??
               base?.id ??
               base?.utilizador ??
               base?.userId,
-=======
-              base?.idformando ?? base?.id ?? base?.utilizador ?? base?.userId,
->>>>>>> Stashed changes
             primeiroNome:
               base?.primeiroNome ||
               base?.primeiro ||
@@ -446,7 +375,6 @@ const AvaliacoesSincrono = () => {
     }
   }, [id]);
 
-<<<<<<< Updated upstream
   // Final grades helpers and resolvers (must be defined before use)
   const formandos = useMemo(
     () => (inscritos?.length ? inscritos : curso?.inscritos || []),
@@ -482,43 +410,6 @@ const AvaliacoesSincrono = () => {
   const fetchFinaisPerFormando = useCallback(async () => {
     return; // disabled
   }, []);
-=======
-  // Fallback: fetch finals per formando if course details don't have them
-  const perFormandoFetchedRef = useRef(false);
-  const fetchFinaisPerFormando = useCallback(async () => {
-    if (!inscritos?.length) return;
-    try {
-      const results = await Promise.allSettled(
-        inscritos.map(async (f) => {
-          const fid = resolveFormandoId(f);
-          if (fid == null) return null;
-          try {
-            const resp = await api.get(
-              `/curso/cursosincrono/${id}/formando/${fid}/avaliacaofinal`
-            );
-            const d = resp?.data;
-            if (d == null) return null;
-            // accept number directly or object with nota/classificacao
-            const nota =
-              typeof d === "number"
-                ? d
-                : d?.nota ?? d?.classificacao ?? d?.valor ?? null;
-            if (nota == null) return null;
-            return { formando: fid, nota };
-          } catch {
-            return null;
-          }
-        })
-      );
-      const finals = results
-        .map((r) => (r.status === "fulfilled" ? r.value : null))
-        .filter(Boolean);
-      if (finals.length) setFinais(finals);
-    } catch {
-      // ignore
-    }
-  }, [id, inscritos]);
->>>>>>> Stashed changes
 
   useEffect(() => {
     fetchCurso();
@@ -527,7 +418,6 @@ const AvaliacoesSincrono = () => {
     fetchInscritos();
   }, [fetchCurso, fetchAvaliacoes, fetchFinais, fetchInscritos]);
 
-<<<<<<< Updated upstream
   // Prefill nota when selecting a formando
   useEffect(() => {
     if (!selectedFormando) return;
@@ -546,13 +436,6 @@ const AvaliacoesSincrono = () => {
     ) {
       // perFormandoFetchedRef.current = true;
       // fetchFinaisPerFormando();
-=======
-  // After inscritos arrive, if we still don't have finals, try per-formando fetch once
-  useEffect(() => {
-    if (!loadingInscritos && inscritos?.length && !finais?.length && !perFormandoFetchedRef.current) {
-      perFormandoFetchedRef.current = true;
-      fetchFinaisPerFormando();
->>>>>>> Stashed changes
     }
   }, [loadingInscritos, inscritos, finais, fetchFinaisPerFormando]);
 
@@ -689,31 +572,7 @@ const AvaliacoesSincrono = () => {
 
   // Final grades helpers are defined above
 
-<<<<<<< Updated upstream
   // Auto create/update: try PUT first (update); if it fails, try POST (create)
-=======
-  // Helpers to resolve IDs and names consistently
-  const resolveFormandoId = (f) =>
-    f?.idformando ?? f?.id ?? f?.idutilizador ?? f?.utilizador ?? f?.userId;
-  const resolveFinalFormandoId = (af) =>
-    af?.formando ?? af?.idformando ?? af?.id ?? af?.utilizador ?? af?.userId;
-  const resolveNotaFromFinal = (af) =>
-    af?.nota != null ? af.nota : af?.classificacao;
-  const getFinalByFormandoId = useCallback(
-    (fid) =>
-      finais.find((af) => String(resolveFinalFormandoId(af)) === String(fid)),
-    [finais]
-  );
-  const getNotaByFormandoId = useCallback(
-    (fid) => {
-      const af = getFinalByFormandoId(fid);
-      return af ? resolveNotaFromFinal(af) : undefined;
-    },
-    [getFinalByFormandoId]
-  );
-
-  // Auto create/update: decides based on existence; also tries fallback (PUT then POST) to align with backend
->>>>>>> Stashed changes
   const handleGuardarFinal = async () => {
     if (!selectedFormando || notaFinal === "") {
       setOperationStatus(1);
@@ -729,12 +588,7 @@ const AvaliacoesSincrono = () => {
       setFinalSaving(false);
       return openResultModal();
     }
-<<<<<<< Updated upstream
     const body = { nota: parsedNota };
-=======
-  const body = { nota: parsedNota };
-    const exists = !!getFinalByFormandoId(formandoId);
->>>>>>> Stashed changes
     try {
       // Try update first
       try {
@@ -750,11 +604,7 @@ const AvaliacoesSincrono = () => {
         );
       }
       // Optimistic update: reflect grade locally immediately
-<<<<<<< Updated upstream
       setFinais((prev) => {
-=======
-  setFinais((prev) => {
->>>>>>> Stashed changes
         const fidStr = String(formandoId);
         const idx = prev.findIndex(
           (af) => String(resolveFinalFormandoId(af)) === fidStr
@@ -763,7 +613,6 @@ const AvaliacoesSincrono = () => {
           const copy = [...prev];
           copy[idx] = {
             ...copy[idx],
-<<<<<<< Updated upstream
             nota: parsedNota,
           };
           // update cache
@@ -773,72 +622,16 @@ const AvaliacoesSincrono = () => {
         const next = [...prev, { formando: formandoId, nota: parsedNota }];
         saveFinaisCache(next);
         return next;
-=======
-    nota: parsedNota,
-          };
-          return copy;
-        }
-        return [
-          ...prev,
-      { formando: formandoId, nota: parsedNota },
-        ];
->>>>>>> Stashed changes
       });
       setOperationStatus(0);
       setOperationMessage("Avaliação final guardada.");
       // Optionally refresh in background, but keep optimistic state
       fetchFinais();
     } catch (err) {
-<<<<<<< Updated upstream
       setOperationStatus(1);
       setOperationMessage(
         err?.response?.data?.error || "Erro ao guardar avaliação final."
       );
-=======
-      // Fallback strategy: if first attempt fails, try the other method
-      try {
-        if (exists) {
-          await api.post(
-            `/curso/cursosincrono/${id}/formando/${formandoId}/avaliacaofinal`,
-            body
-          );
-        } else {
-          await api.put(
-            `/curso/cursosincrono/${id}/formando/${formandoId}/avaliacaofinal`,
-            body
-          );
-        }
-        // Optimistic update after fallback
-        setFinais((prev) => {
-          const fidStr = String(formandoId);
-          const idx = prev.findIndex(
-            (af) => String(resolveFinalFormandoId(af)) === fidStr
-          );
-          if (idx >= 0) {
-            const copy = [...prev];
-            copy[idx] = {
-              ...copy[idx],
-              nota: parsedNota,
-            };
-            return copy;
-          }
-          return [
-            ...prev,
-            { formando: formandoId, nota: parsedNota },
-          ];
-        });
-        setOperationStatus(0);
-        setOperationMessage("Avaliação final guardada.");
-        fetchFinais();
-      } catch (err2) {
-        setOperationStatus(1);
-        setOperationMessage(
-          err2?.response?.data?.error ||
-            err?.response?.data?.error ||
-            "Erro ao guardar avaliação final."
-        );
-      }
->>>>>>> Stashed changes
     } finally {
       setFinalSaving(false);
       openResultModal();
@@ -859,7 +652,6 @@ const AvaliacoesSincrono = () => {
       await api.delete(
         `/curso/cursosincrono/${id}/formando/${formandoId}/avaliacaofinal`
       );
-<<<<<<< Updated upstream
 
       setFinais((prev) => {
         const next = prev.filter(
@@ -868,14 +660,6 @@ const AvaliacoesSincrono = () => {
         saveFinaisCache(next);
         return next;
       });
-=======
-      // Optimistic update: remove locally
-      setFinais((prev) =>
-        prev.filter(
-          (af) => String(resolveFinalFormandoId(af)) !== String(formandoId)
-        )
-      );
->>>>>>> Stashed changes
       setOperationStatus(0);
       setOperationMessage("Avaliação final eliminada.");
       fetchFinais();
