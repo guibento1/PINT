@@ -488,7 +488,9 @@ const CursoSincrono = () => {
                 <button
                   type="button"
                   className={`btn btn-sm ${
-                    activeTab === "overview" ? "btn-primary" : "btn-outline-primary"
+                    activeTab === "overview"
+                      ? "btn-primary"
+                      : "btn-outline-primary"
                   }`}
                   onClick={() => setActiveTab("overview")}
                 >

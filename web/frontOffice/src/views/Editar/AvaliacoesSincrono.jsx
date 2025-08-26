@@ -1,10 +1,4 @@
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import api from "@shared/services/axios";
 import Modal from "@shared/components/Modal";
@@ -478,7 +472,7 @@ const AvaliacoesSincrono = () => {
       fd.append("info", JSON.stringify(info));
       if (enunciadoFile) fd.append("enunciado", enunciadoFile);
       const createdRes = await api.post(
-        `/curso/cursosincrono/${id}/avalicaocontinua`,
+        `/curso/cursosincrono/${id}/avaliacaocontinua`,
         fd,
         {
           headers: { "Content-Type": "multipart/form-data" },
@@ -511,7 +505,7 @@ const AvaliacoesSincrono = () => {
     if (!window.confirm("Eliminar esta avaliação contínua?")) return;
     try {
       await api.delete(
-        `/curso/cursosincrono/${id}/avalicaocontinua/${idavaliacao}`
+        `/curso/cursosincrono/${id}/avaliacaocontinua/${idavaliacao}`
       );
       setAvaliacoes((prev) =>
         prev.filter((a) => {
@@ -537,7 +531,7 @@ const AvaliacoesSincrono = () => {
     setSubmissoesError("");
     try {
       const res = await api.get(
-        `/curso/cursosincrono/${id}/avalicaocontinua/${idavaliacao}/submissoes`
+        `/curso/cursosincrono/${id}/avaliacaocontinua/${idavaliacao}/submissoes`
       );
       const arr = Array.isArray(res.data)
         ? res.data
@@ -559,7 +553,7 @@ const AvaliacoesSincrono = () => {
     if (!selectedAvaliacao) return;
     try {
       await api.put(
-        `/curso/cursosincrono/${id}/avalicaocontinua/${selectedAvaliacao}/corrigir`,
+        `/curso/cursosincrono/${id}/avaliacaocontinua/${selectedAvaliacao}/corrigir`,
         { idsubmissao, nota: Number(nota) }
       );
       // refresh submissoes
@@ -1046,6 +1040,9 @@ const AvaliacoesSincrono = () => {
                   f.ultimo_nome ||
                   f.nome?.split(" ").slice(1).join(" ") ||
                   "";
+                const fullName =
+                  (f.nome && f.nome.trim()) ||
+                  [apn, aun].filter(Boolean).join(" ").trim();
                 const nota = getNotaByFormandoId(fid);
                 return (
                   <li
@@ -1057,10 +1054,7 @@ const AvaliacoesSincrono = () => {
                         <strong>ID do formando:</strong> {fid}
                       </div>
                       <div>
-                        <strong>Primeiro nome:</strong> {apn || "—"}
-                      </div>
-                      <div>
-                        <strong>Segundo nome:</strong> {aun || "—"}
+                        <strong>Nome:</strong> {fullName || "—"}
                       </div>
                       <div>
                         <strong>Nota atribuída:</strong>{" "}
