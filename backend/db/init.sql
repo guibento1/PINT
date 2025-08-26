@@ -317,6 +317,7 @@ CREATE TABLE Comentario (
     CONSTRAINT UTILIZADOR_COMENTARIO_FK FOREIGN KEY (utilizador) REFERENCES Utilizadores(idUtilizador)
 
 );
+
 CREATE TABLE RespostaPost (
 
     idComentario BIGINT,
@@ -424,7 +425,7 @@ CREATE TABLE AvaliacaoFinal (
 CREATE TABLE AvaliacaoContinua (
 
         
-    idAvaliacaoContinua BIGINT,
+    idAvaliacaoContinua BIGINT GENERATED ALWAYS AS IDENTITY,
     cursoSincrono BIGINT,
     enunciado VARCHAR(300) NOT NULL,
     inicioDisponibilidade TIMESTAMP NOT NULL,
