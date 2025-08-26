@@ -13,7 +13,7 @@ const cursoController = require('../controllers/cursoController.js');
 router.get('/list', authenticateJWT, cursoController.list);
 router.get('/:id', authenticateJWT, cursoController.getCurso);
 router.get('/inscricoes/utilizador/:idutilizador', authenticateJWT, authorizeRoles('admin','formando'),  cursoController.getCursoInscritos);
-router.get('/inscricoes/:id', authenticateJWT, authorizeRoles('admin'), cursoController.getInscricoes);
+router.get('/inscricoes/:id', authenticateJWT, authorizeRoles('admin','formador'), cursoController.getInscricoes);
 router.post('/:id/inscrever', authenticateJWT, authorizeRoles('admin','formando'), cursoController.inscreverCurso );
 router.post('/:id/sair', authenticateJWT, authorizeRoles('admin','formando'), cursoController.sairCurso );
 router.delete('/:id', authenticateJWT, authorizeRoles('admin'), cursoController.rmCurso );

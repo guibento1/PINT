@@ -1203,6 +1203,15 @@ controllers.getCursoInscritos = async (req, res) => {
 
 controllers.getInscricoes = async (req, res) => {
   const { id } = req.params;
+
+
+  const formador =
+    req.user.roles.find((roleEntry) => roleEntry.role === "formador")?.id || 0;
+
+  const admin =
+    req.user.roles.find((roleEntry) => roleEntry.role === "admin")?.id || 0;
+
+
   logger.debug(
     `Recebida requisição para listar inscritos do curso com ID: ${id}`
   );
@@ -2524,7 +2533,7 @@ controllers.listSubmissoes = async (req, res) => {
         avaliacaocontinua: idavalicao,
         cursosincrono: cursoSincrono.idcursosincrono,
       },
-      include: [{ model: models.formando, as: "formandoInfo" }],
+      include: [{ model: models.formando, as: "formando_formando" }],
     });
 
     for (const sub of submissoes) {
