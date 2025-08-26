@@ -1963,7 +1963,7 @@ controllers.createAvaliacaoContinua = async (req, res) => {
   const formador =
     req.user.roles.find((roleEntry) => roleEntry.role === "formador")?.id || 0;
 
-  const { idAvaliacao, titulo, inicioDisponibilidade, fimDisponibilidade, inicioDeSubmissoes, fimDeSubmissoes } = JSON.parse(req.body.info || "{}");
+  const { titulo, inicioDisponibilidade, fimDisponibilidade, inicioDeSubmissoes, fimDeSubmissoes } = JSON.parse(req.body.info || "{}");
 
 
   logger.debug(
@@ -1991,29 +1991,11 @@ controllers.createAvaliacaoContinua = async (req, res) => {
 
     if( (!inicioDisponibilidade || inicioDisponibilidade == undefined) || 
         (!inicioDeSubmissoes || inicioDeSubmissoes == undefined) ||
-        (!titulo || titulo == undefined) ||
-        (!idAvaliacao || idAvaliacao == undefined)
-
+        (!titulo || titulo == undefined)
     ) {
 
       return res.status(400).json({
         error: "Campos titulo, inicioDisponibilidade e inicioDeSubmissoes são obrigatório e não nulos",
-      });
-
-    }
-
-
-    let avaliacaocontinua = await models.avaliacaocontinua.findOne({
-      where : { 
-        idavaliacaocontinua : idAvaliacao,
-        cursosincrono: cursosinc.idcursosincrono
-      }
-    });
-
-    if(avaliacaocontinua){
-
-      return res.status(400).json({
-        error: "Avaliação com id fornecido já existente",
       });
 
     }
@@ -2028,7 +2010,6 @@ controllers.createAvaliacaoContinua = async (req, res) => {
 
     insertData.enunciado = await updateFile(enunciado,"enunciadosavaliacao");
     insertData.titulo = titulo;
-    insertData.idavaliacaocontinua = idAvaliacao;
     insertData.iniciodisponibilidade = inicioDisponibilidade;
     insertData.iniciodesubmissoes = inicioDeSubmissoes;
     insertData.cursosincrono = cursosinc.idcursosincrono; 
