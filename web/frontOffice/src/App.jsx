@@ -12,12 +12,13 @@ import Cursos from "./views/Cursos";
 import CursoAssincrono from "./views/CursoAssincrono";
 import CursoSincrono from "./views/CursoSincrono";
 import EditarCursoSincrono from "./views/Editar/EditarCursoSincrono";
+import AvaliacoesSincrono from "./views/Editar/AvaliacoesSincrono";
+import Agendar from "./views/Criar/Agendar";
 import Forums from "./views/Forums";
 import Home from "./views/Home";
 import NaoAutorizado from "./views/NaoAutorizado";
 import ProtectedRoute from "@shared/components/ProtectedRoute.jsx";
 import NotificationsPage from "@shared/views/NotificationsPage.jsx";
-
 
 function App() {
   return (
@@ -62,10 +63,26 @@ function App() {
             }
           />
           <Route
+            path="/curso-sincrono/:id/avaliacoes"
+            element={
+              <ProtectedRoute allowedRoles={["formador"]}>
+                <AvaliacoesSincrono />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/editar/curso-sincrono/:id"
             element={
               <ProtectedRoute allowedRoles={["formador"]}>
                 <EditarCursoSincrono />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/curso-sincrono/:id/agendar"
+            element={
+              <ProtectedRoute allowedRoles={["formador"]}>
+                <Agendar />
               </ProtectedRoute>
             }
           />

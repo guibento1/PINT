@@ -304,7 +304,7 @@ const CursoSincrono = () => {
                 </ul>
                 <button
                   type="button"
-                  className="btn btn-info btn-sm ms-auto"
+                  className={`btn ${isFormadorDoCurso ? "btn-primary ms-auto" : "btn-outline-primary"}`}
                   onClick={() => navigate(`/editar/curso-sincrono/${id}`)}
                 >
                   Editar Curso
