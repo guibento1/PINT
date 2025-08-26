@@ -1958,7 +1958,7 @@ controllers.createAvaliacaoContinua = async (req, res) => {
   const enunciado = req.file;
 
 
-  const admin = roles.find((roleEntry) => roleEntry.role === "admin")?.id || 0;
+  const admin = req.user.roles.find((roleEntry) => roleEntry.role === "admin")?.id || 0;
 
   const formador =
     req.user.roles.find((roleEntry) => roleEntry.role === "formador")?.id || 0;
@@ -2057,7 +2057,7 @@ controllers.rmAvaliacaoContinua = async (req, res) => {
   const { id, idavalicaocontinua } = req.params;
 
 
-  const admin = roles.find((roleEntry) => roleEntry.role === "admin")?.id || 0;
+  const admin = req.user.roles.find((roleEntry) => roleEntry.role === "admin")?.id || 0;
 
   const formador =
     req.user.roles.find((roleEntry) => roleEntry.role === "formador")?.id || 0;
@@ -2126,7 +2126,7 @@ controllers.editAvaliacaoContinua = async (req, res) => {
   const { id, idavalicaocontinua } = req.params;
   const enunciado = req.file;
 
-  const admin = roles.find((roleEntry) => roleEntry.role === "admin")?.id || 0;
+  const admin = req.user.roles.find((roleEntry) => roleEntry.role === "admin")?.id || 0;
 
   const formador =
     req.user.roles.find((roleEntry) => roleEntry.role === "formador")?.id || 0;
@@ -2202,7 +2202,7 @@ controllers.addAvaliacaoFinal = async (req, res) => {
   const { id, formando } = req.params;
   const { nota } = req.body;
 
-  const admin = roles.find((roleEntry) => roleEntry.role === "admin")?.id || 0;
+  const admin = req.user.roles.find((roleEntry) => roleEntry.role === "admin")?.id || 0;
 
   const formadorId =
     req.user.roles.find((roleEntry) => roleEntry.role === "formador")?.id || 0;
@@ -2248,7 +2248,7 @@ controllers.editAvaliacaoFinal = async (req, res) => {
   const { nota } = req.body;
 
 
-  const admin = roles.find((roleEntry) => roleEntry.role === "admin")?.id || 0;
+  const admin = req.user.roles.find((roleEntry) => roleEntry.role === "admin")?.id || 0;
 
   const formadorId =
     req.user.roles.find((roleEntry) => roleEntry.role === "formador")?.id || 0;
@@ -2292,7 +2292,7 @@ controllers.rmAvaliacaoFinal = async (req, res) => {
   const { id, formando } = req.params;
 
 
-  const admin = roles.find((roleEntry) => roleEntry.role === "admin")?.id || 0;
+  const admin = req.user.roles.find((roleEntry) => roleEntry.role === "admin")?.id || 0;
 
   const formadorId =
     req.user.roles.find((roleEntry) => roleEntry.role === "formador")?.id || 0;
