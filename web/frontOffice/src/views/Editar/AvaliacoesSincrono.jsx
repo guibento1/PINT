@@ -20,6 +20,9 @@ const AvaliacoesSincrono = () => {
   const [newDescricao, setNewDescricao] = useState("");
   const [newDataLimite, setNewDataLimite] = useState(""); // opcional
   const [enunciadoFile, setEnunciadoFile] = useState(null);
+  const [inicioDisponibilidade, setInicioDisponibilidade] = useState("");
+  const [inicioDeSubmissoes, setInicioDeSubmissoes] = useState("");
+  const [newIdAvaliacao, setNewIdAvaliacao] = useState("");
 
   // Submissions
   const [selectedAvaliacao, setSelectedAvaliacao] = useState(null);
@@ -62,7 +65,7 @@ const AvaliacoesSincrono = () => {
 
   const fetchAvaliacoes = useCallback(async () => {
     try {
-  const res = await api.get(`/curso/cursosincrono/${id}/avaliacaocontinua`);
+      const res = await api.get(`/curso/cursosincrono/${id}/avaliacaocontinua`);
       setAvaliacoes(Array.isArray(res.data) ? res.data : []);
     } catch (e) {
       setAvaliacoes([]);
@@ -74,27 +77,43 @@ const AvaliacoesSincrono = () => {
     fetchAvaliacoes();
   }, [fetchCurso, fetchAvaliacoes]);
 
+
+  const formatDateForApi = (val) => {
+    if (!val) return "";
+    const base = val.replace("T", " ");
+    return base.length === 16 ? `${base}:00` : base;
+  };
+
   const handleCreateAvaliacao = async (e) => {
     e.preventDefault();
-    if (!newTitulo || !newDescricao) {
+    if (!newTitulo) {
       setOperationStatus(1);
-      setOperationMessage("Indique título e descrição.");
+      setOperationMessage("Indique o título.");
       return openResultModal();
     }
     setSaving(true);
     try {
       const fd = new FormData();
-      fd.append("titulo", newTitulo);
-      fd.append("descricao", newDescricao);
-      if (newDataLimite) fd.append("datalimite", newDataLimite);
+      const info = {
+        ...(newIdAvaliacao ? { idAvaliacao: String(newIdAvaliacao) } : {}),
+        titulo: newTitulo,
+        ...(inicioDisponibilidade
+          ? { inicioDisponibilidade: formatDateForApi(inicioDisponibilidade) }
+          : {}),
+        ...(inicioDeSubmissoes
+          ? { inicioDeSubmissoes: formatDateForApi(inicioDeSubmissoes) }
+          : {}),
+      };
+      fd.append("info", JSON.stringify(info));
       if (enunciadoFile) fd.append("enunciado", enunciadoFile);
-  await api.post(`/curso/cursosincrono/${id}/avaliacaocontinua`, fd, {
+      await api.post(`/curso/cursosincrono/${id}/avaliacaocontinua`, fd, {
         headers: { "Content-Type": "multipart/form-data" },
       });
       setNewTitulo("");
-      setNewDescricao("");
-      setNewDataLimite("");
       setEnunciadoFile(null);
+      setInicioDisponibilidade("");
+      setInicioDeSubmissoes("");
+      setNewIdAvaliacao("");
       await fetchAvaliacoes();
       setOperationStatus(0);
       setOperationMessage("Avaliação contínua criada.");
@@ -312,10 +331,7 @@ const AvaliacoesSincrono = () => {
       {/* Avaliações contínuas */}
       <div className="p-3 border rounded mb-4">
         <h2 className="h6">Avaliações Contínuas</h2>
-        <form
-          onSubmit={handleCreateAvaliacao}
-          className="row g-2 align-items-end"
-        >
+        <form onSubmit={handleCreateAvaliacao} className="row g-2">
           <div className="col-md-3">
             <label className="form-label form-label-sm mb-1 small">
               Título
@@ -328,27 +344,26 @@ const AvaliacoesSincrono = () => {
               required
             />
           </div>
-          <div className="col-md-5">
+          <div className="col-md-3">
             <label className="form-label form-label-sm mb-1 small">
-              Descrição
-            </label>
-            <input
-              type="text"
-              className="form-control form-control-sm"
-              value={newDescricao}
-              onChange={(e) => setNewDescricao(e.target.value)}
-              required
-            />
-          </div>
-          <div className="col-md-2">
-            <label className="form-label form-label-sm mb-1 small">
-              Data Limite
+              Início Disponibilidade
             </label>
             <input
               type="datetime-local"
               className="form-control form-control-sm"
-              value={newDataLimite}
-              onChange={(e) => setNewDataLimite(e.target.value)}
+              value={inicioDisponibilidade}
+              onChange={(e) => setInicioDisponibilidade(e.target.value)}
+            />
+          </div>
+          <div className="col-md-3">
+            <label className="form-label form-label-sm mb-1 small">
+              Início de Submissões
+            </label>
+            <input
+              type="datetime-local"
+              className="form-control form-control-sm"
+              value={inicioDeSubmissoes}
+              onChange={(e) => setInicioDeSubmissoes(e.target.value)}
             />
           </div>
           <div className="col-md-2">
@@ -362,10 +377,21 @@ const AvaliacoesSincrono = () => {
               onChange={(e) => setEnunciadoFile(e.target.files?.[0] || null)}
             />
           </div>
+          <div className="col-md-2">
+            <label className="form-label form-label-sm mb-1 small">
+              ID Avaliação (opcional)
+            </label>
+            <input
+              type="text"
+              className="form-control form-control-sm"
+              value={newIdAvaliacao}
+              onChange={(e) => setNewIdAvaliacao(e.target.value)}
+            />
+          </div>
           <div className="col-md-2 d-flex">
             <button
               type="submit"
-              className="btn btn-sm btn-primary w-100 mt-2"
+              className="btn btn-sm btn-primary w-100 align-self-end"
               disabled={saving}
             >
               {saving ? "A criar..." : "Adicionar"}
