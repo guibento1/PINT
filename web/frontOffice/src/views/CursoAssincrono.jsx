@@ -17,6 +17,7 @@ const CursoAssincrono = () => {
 
   const [showAllTopicos, setShowAllTopicos] = useState(false);
   const [expandedLessonId, setExpandedLessonId] = useState(null);
+  const [activeTab, setActiveTab] = useState("conteudos");
 
   const [operationStatus, setOperationStatus] = useState(null); // null: nenhum, 0: sucesso, 1: erro, 2: erro específico
   const [operationMessage, setOperationMessage] = useState(""); // Mensagem para o modal de resultado
@@ -301,10 +302,12 @@ const CursoAssincrono = () => {
               )}
 
             {!isFormando ? (
-                  <div className="alert alert-warning p-2 small mt-3">
-                    Não tem papel de formando contacte os serviços administrativos para o receber e proceder á inscrição ou aceder aos recursos caso alguma vez tivesse o papel e estivesse incrito.
-                  </div>
-                ) : !inscrito ? (
+              <div className="alert alert-warning p-2 small mt-3">
+                Não tem papel de formando contacte os serviços administrativos
+                para o receber e proceder á inscrição ou aceder aos recursos
+                caso alguma vez tivesse o papel e estivesse incrito.
+              </div>
+            ) : !inscrito ? (
               <>
                 {
                   <>
@@ -339,24 +342,41 @@ const CursoAssincrono = () => {
                 )}
               </>
             ) : (
-              <>
-                <button
-                  onClick={handleClickSair}
-                  className="mt-2 btn btn-sm btn-outline-danger fw-semibold rounded-pill px-3"
-                  disabled={loading}
-                >
-                  {loading && operationStatus === null
-                    ? "A sair..."
-                    : "Sair do Curso"}
-                </button>
+              <div className="mt-3 d-flex flex-column gap-3">
+                <div className="d-flex align-items-center gap-2 flex-wrap">
+                  <ul className="nav nav-pills small mb-0">
+                    <li className="nav-item">
+                      <button
+                        type="button"
+                        className={`btn btn-sm ${
+                          activeTab === "conteudos"
+                            ? "btn-primary"
+                            : "btn-outline-primary"
+                        }`}
+                        onClick={() => setActiveTab("conteudos")}
+                      >
+                        Conteúdos
+                      </button>
+                    </li>
+                  </ul>
+              <button
+                    onClick={handleClickSair}
+                    className="btn btn-sm btn-outline-danger fw-semibold rounded-pill px-3 ms-auto"
+                    disabled={loading}
+                  >
+                    {loading && operationStatus === null
+                      ? "A sair..."
+                      : "Sair do Curso"}
+                  </button>
+                </div>
                 {curso?.planocurricular && (
-                  <p className="mt-4">
+                  <p className="mb-0">
                     <strong>Plano Curricular:</strong>
                     <br />
                     {curso?.planocurricular}
                   </p>
                 )}
-              </>
+              </div>
             )}
           </div>
         </div>
@@ -407,7 +427,7 @@ const CursoAssincrono = () => {
           )}
         </div>
 
-        {(inscrito) && (
+        {inscrito && activeTab === "conteudos" && (
           <div className="mt-5">
             <h2 className="h4">Lições e sessões passadas</h2>
             {curso?.licoes?.length > 0 ? (

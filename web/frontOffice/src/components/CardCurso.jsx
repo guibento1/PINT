@@ -38,7 +38,7 @@ function CardCurso({ curso, disponivel = null, inscrito = null, lecionado= null,
               <div className="btn btn-primary static-button">Inscrito</div>
             )}
             {lecionado !== null && lecionado !== undefined && lecionado && (
-              <div className="btn btn-primary static-button">lecionado</div>
+              <div className="btn btn-primary static-button">Lecionado</div>
             )}
           </div>
         </div>
