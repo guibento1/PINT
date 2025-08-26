@@ -17,12 +17,9 @@ const AvaliacoesSincrono = () => {
   // Continuous assessments
   const [avaliacoes, setAvaliacoes] = useState([]);
   const [newTitulo, setNewTitulo] = useState("");
-  const [newDescricao, setNewDescricao] = useState("");
-  const [newDataLimite, setNewDataLimite] = useState(""); // opcional
   const [enunciadoFile, setEnunciadoFile] = useState(null);
   const [inicioDisponibilidade, setInicioDisponibilidade] = useState("");
   const [inicioDeSubmissoes, setInicioDeSubmissoes] = useState("");
-  const [newIdAvaliacao, setNewIdAvaliacao] = useState("");
 
   // Submissions
   const [selectedAvaliacao, setSelectedAvaliacao] = useState(null);
@@ -34,6 +31,10 @@ const AvaliacoesSincrono = () => {
   const [selectedFormando, setSelectedFormando] = useState("");
   const [notaFinal, setNotaFinal] = useState("");
   const [finalSaving, setFinalSaving] = useState(false);
+  const [finais, setFinais] = useState([]);
+  const [loadingFinais, setLoadingFinais] = useState(false);
+  const [inscritos, setInscritos] = useState([]);
+  const [loadingInscritos, setLoadingInscritos] = useState(false);
 
   // Generic result modal
   const [operationStatus, setOperationStatus] = useState(null); // 0 ok | 1 erro
@@ -65,33 +66,98 @@ const AvaliacoesSincrono = () => {
 
   const fetchAvaliacoes = useCallback(async () => {
     try {
+      // Primary (if backend provides a list endpoint)
       const res = await api.get(`/curso/cursosincrono/${id}/avalicaocontinua`);
       let list = Array.isArray(res.data)
         ? res.data
         : Array.isArray(res.data?.data)
         ? res.data.data
-        : Array.isArray(res.data?.avaliacoes)
-        ? res.data.avaliacoes
-        : Array.isArray(res.data?.result)
-        ? res.data.result
-        : res.data && typeof res.data === "object"
-        ? [res.data]
         : [];
-      // Only this course
-      const filtered = list.filter((a) => {
-        const c = a?.cursosincrono ?? a?.cursoSincronoId ?? a?.curso;
-        return c == null ? true : String(c) === String(id);
-      });
-      setAvaliacoes(filtered);
+      setAvaliacoes(list);
+    } catch (e1) {
+      // Fallback: try course details and extract plausible arrays
+      try {
+        const res2 = await api.get(`/curso/${id}`);
+        const d = res2.data || {};
+        const list2 =
+          (Array.isArray(d.avaliacaocontinua) && d.avaliacaocontinua) ||
+          (Array.isArray(d.avaliacoes) && d.avaliacoes) ||
+          (Array.isArray(d.avaliacoesContinuas) && d.avaliacoesContinuas) ||
+          [];
+        setAvaliacoes(list2);
+      } catch (e2) {
+        setAvaliacoes([]);
+      }
+    }
+  }, [id]);
+
+  // Final evaluations list from course details only (avoid 404 spam)
+  const fetchFinais = useCallback(async () => {
+    setLoadingFinais(true);
+    try {
+      const res = await api.get(`/curso/${id}`);
+      const d = res.data || {};
+      const list =
+        (Array.isArray(d.avaliacaofinal) && d.avaliacaofinal) ||
+        (Array.isArray(d.avaliacoesfinais) && d.avaliacoesfinais) ||
+        (Array.isArray(d.avaliacoesFinais) && d.avaliacoesFinais) ||
+        (Array.isArray(d.finais) && d.finais) ||
+        [];
+      setFinais(list);
     } catch (e) {
-      setAvaliacoes([]);
+      setFinais([]);
+    } finally {
+      setLoadingFinais(false);
+    }
+  }, [id]);
+
+  // Inscritos from course details only; normalize common shapes
+  const fetchInscritos = useCallback(async () => {
+    setLoadingInscritos(true);
+    try {
+      const res = await api.get(`/curso/${id}`);
+      const d = res.data || {};
+      const raw =
+        (Array.isArray(d.inscritos) && d.inscritos) ||
+        (Array.isArray(d.participantes) && d.participantes) ||
+        (Array.isArray(d.alunos) && d.alunos) ||
+        (Array.isArray(d.formandos) && d.formandos) ||
+        (Array.isArray(d.utilizadores) && d.utilizadores) ||
+        (Array.isArray(d.users) && d.users) ||
+        [];
+      const normalized = raw.map((entry) => {
+        const base =
+          entry?.formando || entry?.user || entry?.utilizador || entry;
+        return {
+          ...base,
+          idformando:
+            base?.idformando ?? base?.id ?? base?.utilizador ?? base?.userId,
+          primeiroNome:
+            base?.primeiroNome ||
+            base?.primeiro ||
+            base?.firstName ||
+            base?.primeiro_nome,
+          ultimoNome:
+            base?.ultimoNome ||
+            base?.ultimo ||
+            base?.lastName ||
+            base?.ultimo_nome,
+        };
+      });
+      setInscritos(normalized);
+    } catch (e) {
+      setInscritos([]);
+    } finally {
+      setLoadingInscritos(false);
     }
   }, [id]);
 
   useEffect(() => {
     fetchCurso();
     fetchAvaliacoes();
-  }, [fetchCurso, fetchAvaliacoes]);
+    fetchFinais();
+    fetchInscritos();
+  }, [fetchCurso, fetchAvaliacoes, fetchFinais, fetchInscritos]);
 
   const toIsoOrEmpty = (val) => (val ? new Date(val).toISOString() : "");
 
@@ -106,13 +172,6 @@ const AvaliacoesSincrono = () => {
     try {
       const fd = new FormData();
       const info = {
-        // identifiers
-        ...(newIdAvaliacao
-          ? {
-              idAvaliacao: String(newIdAvaliacao),
-              idavaliacaocontinua: String(newIdAvaliacao),
-            }
-          : {}),
         cursosincrono: String(id),
         // required
         titulo: newTitulo,
@@ -132,15 +191,23 @@ const AvaliacoesSincrono = () => {
       };
       fd.append("info", JSON.stringify(info));
       if (enunciadoFile) fd.append("enunciado", enunciadoFile);
-      await api.post(`/curso/cursosincrono/${id}/avalicaocontinua`, fd, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+      const createdRes = await api.post(
+        `/curso/cursosincrono/${id}/avalicaocontinua`,
+        fd,
+        {
+          headers: { "Content-Type": "multipart/form-data" },
+        }
+      );
       setNewTitulo("");
       setEnunciadoFile(null);
       setInicioDisponibilidade("");
       setInicioDeSubmissoes("");
-      setNewIdAvaliacao("");
-      await fetchAvaliacoes();
+      // Optimistic append using response
+      if (createdRes?.data) {
+        setAvaliacoes((prev) => [createdRes.data, ...prev]);
+      } else {
+        await fetchAvaliacoes();
+      }
       setOperationStatus(0);
       setOperationMessage("Avaliação contínua criada.");
     } catch (err) {
@@ -160,7 +227,12 @@ const AvaliacoesSincrono = () => {
       await api.delete(
         `/curso/cursosincrono/${id}/avalicaocontinua/${idavaliacao}`
       );
-      await fetchAvaliacoes();
+      setAvaliacoes((prev) =>
+        prev.filter((a) => {
+          const avId = a?.idavaliacaocontinua ?? a?.idavaliacao ?? a?.id;
+          return String(avId) !== String(idavaliacao);
+        })
+      );
       setOperationStatus(0);
       setOperationMessage("Avaliação eliminada.");
     } catch (err) {
@@ -219,57 +291,90 @@ const AvaliacoesSincrono = () => {
   };
 
   // Final grades helpers
-  const formandos = useMemo(() => curso?.inscritos || [], [curso]);
+  const formandos = useMemo(
+    () => (inscritos?.length ? inscritos : curso?.inscritos || []),
+    [inscritos, curso]
+  );
 
-  const handleCriarFinal = async () => {
+  // Helpers to resolve IDs and names consistently
+  const resolveFormandoId = (f) =>
+    f?.idformando ?? f?.id ?? f?.utilizador ?? f?.userId;
+  const resolveFinalFormandoId = (af) =>
+    af?.formando ?? af?.idformando ?? af?.id ?? af?.utilizador ?? af?.userId;
+  const resolveNotaFromFinal = (af) =>
+    af?.nota != null ? af.nota : af?.classificacao;
+  const getFinalByFormandoId = useCallback(
+    (fid) =>
+      finais.find((af) => String(resolveFinalFormandoId(af)) === String(fid)),
+    [finais]
+  );
+  const getNotaByFormandoId = useCallback(
+    (fid) => {
+      const af = getFinalByFormandoId(fid);
+      return af ? resolveNotaFromFinal(af) : undefined;
+    },
+    [getFinalByFormandoId]
+  );
+
+  // Auto create/update: decides based on existence; also tries fallback (PUT then POST) to align with backend
+  const handleGuardarFinal = async () => {
     if (!selectedFormando || notaFinal === "") {
       setOperationStatus(1);
       setOperationMessage("Selecione um formando e introduza uma nota.");
       return openResultModal();
     }
     setFinalSaving(true);
+    const formandoId = Number(selectedFormando);
+    const body = { nota: Number(notaFinal), classificacao: Number(notaFinal) };
+    const exists = !!getFinalByFormandoId(formandoId);
     try {
-      await api.post(
-        `/curso/cursosincrono/${id}/formando/${selectedFormando}/avaliacaofinal`,
-        { nota: Number(notaFinal), classificacao: Number(notaFinal) }
-      );
+      if (exists) {
+        await api.put(
+          `/curso/cursosincrono/${id}/formando/${formandoId}/avaliacaofinal`,
+          body
+        );
+      } else {
+        await api.post(
+          `/curso/cursosincrono/${id}/formando/${formandoId}/avaliacaofinal`,
+          body
+        );
+      }
       setOperationStatus(0);
-      setOperationMessage("Avaliação final adicionada.");
+      setOperationMessage("Avaliação final guardada.");
+      await fetchFinais();
     } catch (err) {
-      setOperationStatus(1);
-      setOperationMessage(
-        err?.response?.data?.error || "Erro ao adicionar avaliação final."
-      );
+      // Fallback strategy: if first attempt fails, try the other method
+      try {
+        if (exists) {
+          await api.post(
+            `/curso/cursosincrono/${id}/formando/${formandoId}/avaliacaofinal`,
+            body
+          );
+        } else {
+          await api.put(
+            `/curso/cursosincrono/${id}/formando/${formandoId}/avaliacaofinal`,
+            body
+          );
+        }
+        setOperationStatus(0);
+        setOperationMessage("Avaliação final guardada.");
+        await fetchFinais();
+      } catch (err2) {
+        setOperationStatus(1);
+        setOperationMessage(
+          err2?.response?.data?.error ||
+            err?.response?.data?.error ||
+            "Erro ao guardar avaliação final."
+        );
+      }
     } finally {
       setFinalSaving(false);
       openResultModal();
     }
   };
 
-  const handleEditarFinal = async () => {
-    if (!selectedFormando || notaFinal === "") {
-      setOperationStatus(1);
-      setOperationMessage("Selecione um formando e introduza uma nota.");
-      return openResultModal();
-    }
-    setFinalSaving(true);
-    try {
-      await api.put(
-        `/curso/cursosincrono/${id}/formando/${selectedFormando}/avaliacaofinal`,
-        { nota: Number(notaFinal), classificacao: Number(notaFinal) }
-      );
-      setOperationStatus(0);
-      setOperationMessage("Avaliação final atualizada.");
-    } catch (err) {
-      setOperationStatus(1);
-      setOperationMessage(
-        err?.response?.data?.error || "Erro ao atualizar avaliação final."
-      );
-    } finally {
-      setFinalSaving(false);
-      openResultModal();
-    }
-  };
+  // Deprecated: kept for compatibility if used elsewhere
+  const handleEditarFinal = handleGuardarFinal;
 
   const handleEliminarFinal = async () => {
     if (!selectedFormando) {
@@ -279,11 +384,13 @@ const AvaliacoesSincrono = () => {
     }
     setFinalSaving(true);
     try {
+      const formandoId = Number(selectedFormando);
       await api.delete(
-        `/curso/cursosincrono/${id}/formando/${selectedFormando}/avaliacaofinal`
+        `/curso/cursosincrono/${id}/formando/${formandoId}/avaliacaofinal`
       );
       setOperationStatus(0);
       setOperationMessage("Avaliação final eliminada.");
+      await fetchFinais();
     } catch (err) {
       setOperationStatus(1);
       setOperationMessage(
@@ -401,17 +508,6 @@ const AvaliacoesSincrono = () => {
               accept="application/pdf"
               className="form-control form-control-sm"
               onChange={(e) => setEnunciadoFile(e.target.files?.[0] || null)}
-            />
-          </div>
-          <div className="col-md-2">
-            <label className="form-label form-label-sm mb-1 small">
-              ID Avaliação (opcional)
-            </label>
-            <input
-              type="text"
-              className="form-control form-control-sm"
-              value={newIdAvaliacao}
-              onChange={(e) => setNewIdAvaliacao(e.target.value)}
             />
           </div>
           <div className="col-md-2 d-flex">
@@ -577,7 +673,7 @@ const AvaliacoesSincrono = () => {
               </select>
             ) : (
               <input
-                type="number"
+                type="text"
                 className="form-control form-control-sm"
                 placeholder="ID do formando"
                 value={selectedFormando}
@@ -588,7 +684,7 @@ const AvaliacoesSincrono = () => {
           <div className="col-md-2">
             <label className="form-label form-label-sm mb-1 small">Nota</label>
             <input
-              type="number"
+              type="text"
               step="0.5"
               min="0"
               className="form-control form-control-sm"
@@ -599,17 +695,10 @@ const AvaliacoesSincrono = () => {
           <div className="col-md-4 d-flex gap-2">
             <button
               className="btn btn-sm btn-primary"
-              onClick={handleCriarFinal}
+              onClick={handleGuardarFinal}
               disabled={finalSaving}
             >
-              Criar
-            </button>
-            <button
-              className="btn btn-sm btn-outline-primary"
-              onClick={handleEditarFinal}
-              disabled={finalSaving}
-            >
-              Atualizar
+              Guardar
             </button>
             <button
               className="btn btn-sm btn-outline-danger"
@@ -619,6 +708,85 @@ const AvaliacoesSincrono = () => {
               Eliminar
             </button>
           </div>
+        </div>
+
+        <div className="mt-3">
+          <h3 className="h6 mb-2">Avaliações Finais</h3>
+          {loadingFinais ? (
+            <div className="text-muted small">
+              A carregar avaliações finais...
+            </div>
+          ) : formandos?.length ? (
+            <ul className="list-group">
+              {formandos.map((f) => {
+                const fid = resolveFormandoId(f);
+                const apn =
+                  f.primeiroNome ||
+                  f.primeiro ||
+                  f.firstName ||
+                  f.primeiro_nome ||
+                  f.nome?.split(" ")[0];
+                const aun =
+                  f.ultimoNome ||
+                  f.ultimo ||
+                  f.lastName ||
+                  f.ultimo_nome ||
+                  f.nome?.split(" ").slice(1).join(" ") ||
+                  "";
+                const nota = getNotaByFormandoId(fid);
+                return (
+                  <li
+                    key={`${fid}`}
+                    className="list-group-item d-flex justify-content-between align-items-center"
+                  >
+                    <div className="d-flex flex-column">
+                      <div>
+                        <strong>ID do formando:</strong> {fid}
+                      </div>
+                      <div>
+                        <strong>Primeiro nome:</strong> {apn || "—"}
+                      </div>
+                      <div>
+                        <strong>Segundo nome:</strong> {aun || "—"}
+                      </div>
+                      <div>
+                        <strong>Nota atribuída:</strong>{" "}
+                        {nota != null && nota !== ""
+                          ? String(nota)
+                          : "Ainda não atribuída"}
+                      </div>
+                    </div>
+                    <div className="d-flex gap-2 align-items-center">
+                      <button
+                        className="btn btn-sm btn-outline-secondary"
+                        onClick={() => {
+                          setSelectedFormando(String(fid));
+                          setNotaFinal(
+                            nota != null && nota !== "" ? String(nota) : ""
+                          );
+                        }}
+                      >
+                        Editar
+                      </button>
+                      {nota != null && (
+                        <button
+                          className="btn btn-sm btn-outline-danger"
+                          onClick={async () => {
+                            setSelectedFormando(String(fid));
+                            await handleEliminarFinal();
+                          }}
+                        >
+                          Eliminar
+                        </button>
+                      )}
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          ) : (
+            <div className="text-muted small">Sem inscritos para listar.</div>
+          )}
         </div>
       </div>
     </div>

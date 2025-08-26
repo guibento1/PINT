@@ -28,7 +28,6 @@ router.put('/licao/:idlicao', authenticateJWT, authorizeRoles('admin'), cursoCon
 router.post('/licao/:idlicao/material', authenticateJWT, authorizeRoles('admin'), upload.single('ficheiro'), cursoController.addLicaoContent);
 router.delete('/licao/:idlicao/material/:idmaterial', authenticateJWT, authorizeRoles('admin'), cursoController.rmLicaoContent );
 
-
 // Curso Sincrono
 
 router.get('/formador/:idformador', authenticateJWT, cursoController.getCursoLecionados);
@@ -40,7 +39,8 @@ router.put('/sessao/:idsessao', authenticateJWT, authorizeRoles('admin','formado
 router.post('/sessao/:idsessao/material', authenticateJWT, authorizeRoles('admin','formador'), upload.single('ficheiro'), cursoController.addSessaoContent);
 router.delete('/sessao/:idsessao/material/:idmaterial', authenticateJWT, authorizeRoles('admin','formador'), cursoController.rmSessaoContent );
 
-  // Avaliacoes
+// Avaliacoes
+
 router.post('/cursosincrono/:id/avalicaocontinua', authenticateJWT, authorizeRoles('admin','formador'), upload.single('enunciado'), cursoController.createAvaliacaoContinua );
 router.delete('/cursosincrono/:id/avalicaocontinua/:idavalicao', authenticateJWT, authorizeRoles('admin', 'formador'), cursoController.rmAvaliacaoContinua);
 router.post('/cursosincrono/:id/avalicaocontinua/:idavalicao/submeter', authenticateJWT, authorizeRoles('formando'), upload.single('ficheiro'), cursoController.addSubmissao);
