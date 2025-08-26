@@ -65,8 +65,24 @@ const AvaliacoesSincrono = () => {
 
   const fetchAvaliacoes = useCallback(async () => {
     try {
-      const res = await api.get(`/curso/cursosincrono/${id}/avaliacaocontinua`);
-      setAvaliacoes(Array.isArray(res.data) ? res.data : []);
+      const res = await api.get(`/curso/cursosincrono/${id}/avalicaocontinua`);
+      let list = Array.isArray(res.data)
+        ? res.data
+        : Array.isArray(res.data?.data)
+        ? res.data.data
+        : Array.isArray(res.data?.avaliacoes)
+        ? res.data.avaliacoes
+        : Array.isArray(res.data?.result)
+        ? res.data.result
+        : res.data && typeof res.data === "object"
+        ? [res.data]
+        : [];
+      // Only this course
+      const filtered = list.filter((a) => {
+        const c = a?.cursosincrono ?? a?.cursoSincronoId ?? a?.curso;
+        return c == null ? true : String(c) === String(id);
+      });
+      setAvaliacoes(filtered);
     } catch (e) {
       setAvaliacoes([]);
     }
@@ -77,12 +93,7 @@ const AvaliacoesSincrono = () => {
     fetchAvaliacoes();
   }, [fetchCurso, fetchAvaliacoes]);
 
-
-  const formatDateForApi = (val) => {
-    if (!val) return "";
-    const base = val.replace("T", " ");
-    return base.length === 16 ? `${base}:00` : base;
-  };
+  const toIsoOrEmpty = (val) => (val ? new Date(val).toISOString() : "");
 
   const handleCreateAvaliacao = async (e) => {
     e.preventDefault();
@@ -95,18 +106,33 @@ const AvaliacoesSincrono = () => {
     try {
       const fd = new FormData();
       const info = {
-        ...(newIdAvaliacao ? { idAvaliacao: String(newIdAvaliacao) } : {}),
+        // identifiers
+        ...(newIdAvaliacao
+          ? {
+              idAvaliacao: String(newIdAvaliacao),
+              idavaliacaocontinua: String(newIdAvaliacao),
+            }
+          : {}),
+        cursosincrono: String(id),
+        // required
         titulo: newTitulo,
+        // time windows (send both naming styles to be safe)
         ...(inicioDisponibilidade
-          ? { inicioDisponibilidade: formatDateForApi(inicioDisponibilidade) }
+          ? {
+              inicioDisponibilidade: toIsoOrEmpty(inicioDisponibilidade),
+              iniciodisponibilidade: toIsoOrEmpty(inicioDisponibilidade),
+            }
           : {}),
         ...(inicioDeSubmissoes
-          ? { inicioDeSubmissoes: formatDateForApi(inicioDeSubmissoes) }
+          ? {
+              inicioDeSubmissoes: toIsoOrEmpty(inicioDeSubmissoes),
+              iniciodesubmissoes: toIsoOrEmpty(inicioDeSubmissoes),
+            }
           : {}),
       };
       fd.append("info", JSON.stringify(info));
       if (enunciadoFile) fd.append("enunciado", enunciadoFile);
-      await api.post(`/curso/cursosincrono/${id}/avaliacaocontinua`, fd, {
+      await api.post(`/curso/cursosincrono/${id}/avalicaocontinua`, fd, {
         headers: { "Content-Type": "multipart/form-data" },
       });
       setNewTitulo("");
@@ -132,7 +158,7 @@ const AvaliacoesSincrono = () => {
     if (!window.confirm("Eliminar esta avaliação contínua?")) return;
     try {
       await api.delete(
-        `/curso/cursosincrono/${id}/avaliacaocontinua/${idavaliacao}`
+        `/curso/cursosincrono/${id}/avalicaocontinua/${idavaliacao}`
       );
       await fetchAvaliacoes();
       setOperationStatus(0);
@@ -153,7 +179,7 @@ const AvaliacoesSincrono = () => {
     setSubmissoesError("");
     try {
       const res = await api.get(
-        `/curso/cursosincrono/${id}/avaliacaocontinua/${idavaliacao}/submissoes`
+        `/curso/cursosincrono/${id}/avalicaocontinua/${idavaliacao}/submissoes`
       );
       const arr = Array.isArray(res.data)
         ? res.data
@@ -175,7 +201,7 @@ const AvaliacoesSincrono = () => {
     if (!selectedAvaliacao) return;
     try {
       await api.put(
-        `/curso/cursosincrono/${id}/avaliacaocontinua/${selectedAvaliacao}/corrigir`,
+        `/curso/cursosincrono/${id}/avalicaocontinua/${selectedAvaliacao}/corrigir`,
         { idsubmissao, nota: Number(nota) }
       );
       // refresh submissoes
@@ -205,7 +231,7 @@ const AvaliacoesSincrono = () => {
     try {
       await api.post(
         `/curso/cursosincrono/${id}/formando/${selectedFormando}/avaliacaofinal`,
-        { nota: Number(notaFinal) }
+        { nota: Number(notaFinal), classificacao: Number(notaFinal) }
       );
       setOperationStatus(0);
       setOperationMessage("Avaliação final adicionada.");
@@ -230,7 +256,7 @@ const AvaliacoesSincrono = () => {
     try {
       await api.put(
         `/curso/cursosincrono/${id}/formando/${selectedFormando}/avaliacaofinal`,
-        { nota: Number(notaFinal) }
+        { nota: Number(notaFinal), classificacao: Number(notaFinal) }
       );
       setOperationStatus(0);
       setOperationMessage("Avaliação final atualizada.");
@@ -402,41 +428,48 @@ const AvaliacoesSincrono = () => {
         <div className="mt-3">
           {avaliacoes?.length ? (
             <ul className="list-group">
-              {avaliacoes.map((av) => (
-                <li
-                  key={av.idavaliacao}
-                  className="list-group-item d-flex justify-content-between align-items-start"
-                >
-                  <div>
-                    <strong>{av.titulo}</strong>
-                    <br />
-                    <small className="text-muted">{av.descricao}</small>
-                    {av.datalimite && (
-                      <>
-                        <br />
-                        <small className="text-muted">
-                          Limite:{" "}
-                          {new Date(av.datalimite).toLocaleString("pt-PT")}
-                        </small>
-                      </>
-                    )}
-                  </div>
-                  <div className="d-flex gap-2">
-                    <button
-                      className="btn btn-sm btn-outline-secondary"
-                      onClick={() => handleLoadSubmissoes(av.idavaliacao)}
-                    >
-                      Ver Submissões
-                    </button>
-                    <button
-                      className="btn btn-sm btn-outline-danger"
-                      onClick={() => handleDeleteAvaliacao(av.idavaliacao)}
-                    >
-                      Eliminar
-                    </button>
-                  </div>
-                </li>
-              ))}
+              {avaliacoes.map((av) => {
+                const avId =
+                  av.idavaliacaocontinua ??
+                  av.idavaliacao ??
+                  av.id ??
+                  av.codigo;
+                const inicio =
+                  av.iniciodisponibilidade || av.inicioDisponibilidade;
+                return (
+                  <li
+                    key={avId}
+                    className="list-group-item d-flex justify-content-between align-items-start"
+                  >
+                    <div>
+                      <strong>{av.titulo}</strong>
+                      {inicio && (
+                        <>
+                          <br />
+                          <small className="text-muted">
+                            Disponível desde:{" "}
+                            {new Date(inicio).toLocaleString("pt-PT")}
+                          </small>
+                        </>
+                      )}
+                    </div>
+                    <div className="d-flex gap-2">
+                      <button
+                        className="btn btn-sm btn-outline-secondary"
+                        onClick={() => handleLoadSubmissoes(avId)}
+                      >
+                        Ver Submissões
+                      </button>
+                      <button
+                        className="btn btn-sm btn-outline-danger"
+                        onClick={() => handleDeleteAvaliacao(avId)}
+                      >
+                        Eliminar
+                      </button>
+                    </div>
+                  </li>
+                );
+              })}
             </ul>
           ) : (
             <div className="text-muted small">Sem avaliações criadas.</div>
