@@ -1216,6 +1216,7 @@ controllers.getInscricoes = async (req, res) => {
     `Recebida requisição para listar inscritos do curso com ID: ${id}`
   );
   try {
+
     const curso = await models.curso.findByPk(id);
     if (!curso) {
       logger.warn(`Curso com ID ${id} não encontrado.`);
@@ -1223,6 +1224,20 @@ controllers.getInscricoes = async (req, res) => {
         error: "Curso não encontrado.",
       });
     }
+
+    if(!admin){
+      const cursoSinc = await models.cursosincrono.findOne({where : { curso : id }, attributes : ["formador"]});
+
+      if(!cursoSinc || cursoSinc.formador != formador){
+
+        return res.status(403).json({
+          error:
+            "Proibido: permissões insuficientes para inscrever outro utilizador.",
+        });
+
+      }
+    }
+
     const inscricoes = await models.inscricao.findAll({
       where: {
         curso: id,
@@ -2533,7 +2548,7 @@ controllers.listSubmissoes = async (req, res) => {
         avaliacaocontinua: idavalicao,
         cursosincrono: cursoSincrono.idcursosincrono,
       },
-      include: [{ model: models.formando, as: "formando_formando" }],
+      include: [{ model: models.formando, as: "formando_formando" }]
     });
 
     for (const sub of submissoes) {
