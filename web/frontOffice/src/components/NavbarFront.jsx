@@ -133,39 +133,50 @@ export default function NavbarFront() {
                     </NavLink>
                   </li>
                   <li className="nav-item position-relative">
-                  <NavLink
-                    to="/notificacoes"
-                    className={({ isActive }) =>
-                      `nav-link ${isActive ? "active" : ""}`
-                    }
-                    onClick={() => {
-                      setNotificacoesAtivas(false);
-                      sessionStorage.setItem(STORAGE_KEY, "0");
-                      fecharMenu();
-                    }}
-                  >
-                    <span
-                      className="position-relative d-inline-block"
-                      style={{ width: 22, height: 22 }}
+                    <NavLink
+                      to="/notificacoes"
+                      className={({ isActive }) =>
+                        `nav-link ${isActive ? "active" : ""}`
+                      }
+                      onClick={() => {
+                        setNotificacoesAtivas(false);
+                        sessionStorage.setItem(STORAGE_KEY, "0");
+                        fecharMenu();
+                      }}
                     >
-                      <Notifications
-                        style={{ width: 22, height: 22, display: "block" }}
-                      />
-                      {notificacoesAtivas && (
+                      {({ isActive }) => (
                         <span
-                          className="position-absolute bg-danger rounded-circle"
-                          style={{
-                            top: -2,
-                            right: -2,
-                            width: 10,
-                            height: 10,
-                            border: "2px solid #fff",
-                          }}
-                          aria-label="Nova notificação"
-                        />
+                          className="position-relative d-inline-block"
+                          style={{ width: 22, height: 22 }}
+                        >
+                          <Notifications
+                            style={{
+                              width: "1.5em",
+                              height: "1.5em",
+                              display: "block",
+                              // active -> white icon
+                              fill: isActive ? "#fff" : undefined,
+                              // also set color in case the SVG uses currentColor
+                              color: isActive ? "#fff" : undefined,
+                            }}
+                            className={isActive ? "notificacoes-active" : ""}
+                          />
+                          {notificacoesAtivas && (
+                            <span
+                              className="position-absolute bg-danger rounded-circle"
+                              style={{
+                                top: -2,
+                                right: -2,
+                                width: 10,
+                                height: 10,
+                                border: "2px solid #fff",
+                              }}
+                              aria-label="Nova notificação"
+                            />
+                          )}
+                        </span>
                       )}
-                    </span>
-                  </NavLink>
+                    </NavLink>
                   </li>
                   <li className="nav-item text-nowrap">
                     <NavLink
@@ -177,10 +188,8 @@ export default function NavbarFront() {
                     >
                       <Profile
                         style={{
-                          width: 22,
-                          height: 22,
-                          marginRight: 4,
-                          verticalAlign: "text-bottom",
+                          width: "1.5rem",
+                          height: "1.5rem",
                         }}
                       />{" "}
                       {nomeUsuario}

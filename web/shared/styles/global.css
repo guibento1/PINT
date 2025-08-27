@@ -7,7 +7,7 @@ body {
   color: var(--text-dark);
   background-color: var(
     --background-light
-  ); /* Adicionado para um fundo geral mais claro */
+  ); 
   margin: 0;
   padding: 0;
   height: 100%;
@@ -714,4 +714,22 @@ h6 {
 .filter-tipo-btn.btn-primary:hover,
 .filter-tipo-btn.btn-outline-primary:hover {
   transform: none !important; /* remove lift que causa sensação de tremor */
+}
+
+/* ================================
+   🔔 Notificações: ícone branco quando ativo
+   Força fill/stroke a branco mesmo que o SVG tenha cores hardcoded
+================================== */
+.navbar-nav .nav-link.active .notificacoes-active,
+.navbar-nav .nav-link.active .notificacoes-active *,
+.navbar-nav .nav-link.active .notificacoes-active svg,
+.navbar-nav .nav-link.active .notificacoes-active path,
+.navbar-nav .nav-link.active .notificacoes-active rect,
+.navbar-nav .nav-link.active .notificacoes-active circle,
+.navbar-nav .nav-link.active .notificacoes-active polygon,
+.navbar-nav .nav-link.active .notificacoes-active line,
+.navbar-nav .nav-link.active .notificacoes-active polyline {
+  fill: #fff !important;
+  stroke: #fff !important;
+  color: #fff !important;
 }
