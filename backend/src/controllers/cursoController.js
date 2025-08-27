@@ -824,15 +824,13 @@ controllers.getCurso = async (req, res) => {
         if(cursoSinc.formador == formador) acessible = true;
     }
 
-
     if (!curso || (!curso.disponivel && !acessible)) {
       logger.warn(`Curso com ID ${id} não encontrado ou não acessível.`);
       return res.status(404).json({
         error: "Curso não existente ou não acessível.",
       });
     }
-    curso.dataValues.topicos = await findTopicos(id);
-    curso = (await addTipo(curso))[0];
+
     if (curso.thumbnail) {
       curso.dataValues.thumbnail = await generateSASUrl(
         curso.thumbnail,
@@ -840,6 +838,9 @@ controllers.getCurso = async (req, res) => {
       );
     }
     if (acessible) {
+
+      curso.dataValues.topicos = await findTopicos(id);
+      if (formando) curso = (await addInscrito(curso, formando))[0];
 
 
       logger.debug(`Curso acessivel.`);
@@ -884,20 +885,56 @@ controllers.getCurso = async (req, res) => {
           },
         });
 
-        if(avaliacoes != undefined&& sessoes != null && sessoes.length > 0 ){
+        if(avaliacoes != undefined && sessoes != null && sessoes.length > 0 ){
+
+
+          const agora = new Date();
 
           curso.dataValues.avaliacoes = (
             await Promise.all(
+
               avaliacoes.map(async (avaliacao) => {
+
+                if(formando && curso.dataValues.inscrito && (agora >= avaliacao.iniciodesubmissoes) ){
+
+                  const submissao = await models.submissao.findOne({
+                    where : {
+                      avaliacaocontinua : avaliacao.idavaliacaocontinua,
+                      formando : formando,
+                      cursosincrono : curso.dataValues.idcrono
+                    }
+                  });
+
+                  if(submissao != null){
+                    submissao.dataValues.submissao = await generateSASUrl(submissao.submissao, "submissoes");
+                  }
+
+                  avaliacao.dataValues.submissao = submissao ;
+
+                }
+
                 avaliacao.dataValues.enunciado = await generateSASUrl(avaliacao.enunciado, "enunciadosavaliacao");
                 return avaliacao;
               })
             )
           ).filter((avaliacao) => {
-            const agora = new Date();
-            
             return (admin) || (curso.dataValues.formador == formador) || (agora >= avaliacao.iniciodisponibilidade);
           });
+
+          if(formando && curso.dataValues.inscrito){
+
+              const avaliacaoFinal = await models.avaliacaofinal.findOne({
+
+                where : {
+                  formando : formando,
+                  cursosincrono : curso.dataValues.idcrono
+                }
+
+              });
+
+              curso.dataValues.avaliacaofinal = 
+                ( avaliacaoFinal == null || avaliacaoFinal.nota == null ) ? null : avaliacaoFinal.nota  
+          }
 
         } else {
           curso.dataValues.avaliacoes = [];
@@ -968,8 +1005,7 @@ controllers.getCurso = async (req, res) => {
         }
       }
     }
-    curso = (await addTipo(curso))[0];
-    if (formando) curso = (await addInscrito(curso, formando))[0];
+
     logger.info(`Detalhes do curso com ID ${id} retornados com sucesso.`);
     return res.status(200).json(curso);
   } catch (error) {
@@ -2191,9 +2227,7 @@ controllers.editAvaliacaoContinua = async (req, res) => {
 
     await avaliacaocontinua.save();
 
-    avaliacaocontinua.dataValues.enunciado = await generateSASUrl(avaliacaocontinua.enunciado, "enunciadosavaliacao");
-
-    return res.status(200).json(avaliacaocontinua);
+    avaliacaocontinua.dataValues.enunciado = await generateSASUrl(avaliacaocontinua.enunciado, "enunciadosavaliacao"); return res.status(200).json(avaliacaocontinua);
 
   } catch (error) {
     logger.error("Erro ao editar avaliação contínua:", error);

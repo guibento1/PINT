@@ -42,6 +42,7 @@ router.delete('/sessao/:idsessao/material/:idmaterial', authenticateJWT, authori
 // Avaliacoes
 
 router.post('/cursosincrono/:id/avalicaocontinua', authenticateJWT, authorizeRoles('admin','formador'), upload.single('enunciado'), cursoController.createAvaliacaoContinua );
+router.put('/cursosincrono/:id/avalicaocontinua/:idavalicao', authenticateJWT, authorizeRoles('admin','formador'), upload.single('enunciado'), cursoController.editAvaliacaoContinua );
 router.delete('/cursosincrono/:id/avalicaocontinua/:idavalicao', authenticateJWT, authorizeRoles('admin', 'formador'), cursoController.rmAvaliacaoContinua);
 router.post('/cursosincrono/:id/avalicaocontinua/:idavalicao/submeter', authenticateJWT, authorizeRoles('formando'), upload.single('ficheiro'), cursoController.addSubmissao);
 router.put('/cursosincrono/:id/avalicaocontinua/:idavalicao/submeter', authenticateJWT, authorizeRoles('formando'), upload.single('ficheiro'), cursoController.updateSubmissao);
