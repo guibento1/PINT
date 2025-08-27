@@ -44,6 +44,7 @@ const EditarCurso = () => {
 
     const [isDeleteMaterialModalOpen, setIsDeleteMaterialModalOpen] = useState(false);
     const [materialToDelete, setMaterialToDelete] = useState(null);
+    const [materialLicaoToDelete, setMaterialLicaoToDelete] = useState(null);
     const [deletingMaterial, setDeletingMaterial] = useState(false);
 
     const [operationStatus, setOperationStatus] = useState(null); // null: nenhum, 0: sucesso, 1: erro
@@ -277,7 +278,7 @@ const EditarCurso = () => {
                 data.append('ficheiro', newContentFile);
             }
 
-            const res = await api.post(`/curso/licao/${lessonToAddTo.idlicao}/addContent`, data, {
+            const res = await api.post(`/curso/licao/${lessonToAddTo.idlicao}/material`, data, {
                 headers: { 'Content-Type': 'multipart/form-data' },
             });
 
@@ -294,16 +295,17 @@ const EditarCurso = () => {
         }
     };
 
-    const handleDeleteMaterialClick = (material) => {
+    const handleDeleteMaterialClick = (material,idlicao) => {
         setMaterialToDelete(material);
+        setMaterialLicaoToDelete(idlicao);
         setIsDeleteMaterialModalOpen(true);
     };
 
     const confirmDeleteMaterial = async () => {
-        if (!materialToDelete) return;
+        if (!materialToDelete || !materialLicaoToDelete) return;
         setDeletingMaterial(true);
         try {
-            const res = await api.delete(`/curso/licao/material/${materialToDelete.idmaterial}`); 
+            const res = await api.delete(`/curso/licao/${materialLicaoToDelete}/material/${materialToDelete.idmaterial}`); 
             setOperationStatus(0);
             setOperationMessage(res.data.message || "Material eliminado com sucesso!");
             setIsDeleteMaterialModalOpen(false); // Fecha o modal
@@ -572,7 +574,7 @@ const EditarCurso = () => {
                                                     <button
                                                         type="button"
                                                         className="btn btn-sm btn-outline-danger"
-                                                        onClick={() => handleDeleteMaterialClick(material)}
+                                                        onClick={() => handleDeleteMaterialClick(material,licao.idlicao)}
                                                         title="Eliminar Material"
                                                     >
                                                         <i className="ri-delete-bin-line"></i>
