@@ -76,11 +76,11 @@ export default function CursosPage() {
       <FiltrosCursos onApplyFilters={handleApplyFilters} />
 
       {loading && (
-        <div className="text-center my-5">
-          <div className="spinner-border text-primary-blue" role="status">
-            <span className="visually-hidden">A carregar cursos...</span>
+        <div className="container mt-5">
+          <div className="text-center my-5">
+            <div className="spinner-border text-primary" />
+            <p className="mt-2 text-muted">A carregar cursos...</p>
           </div>
-          <p className="mt-2 text-muted">A carregar cursos...</p>
         </div>
       )}
 
@@ -97,9 +97,17 @@ export default function CursosPage() {
       )}
 
       <div className="row g-4">
-        {!loading &&
-          !error &&
-          cursos.map((curso) => (
+        {(() => {
+          if (loading || error) return null;
+          const now = new Date();
+          const visibleCursos = cursos.filter((c) => {
+            const fim = c.fimdeinscricoes ? new Date(c.fimdeinscricoes) : null;
+            const ended = fim && now >= fim;
+            // Assíncrono terminado deve ficar oculto do FrontOffice
+            if (c.sincrono === false && ended) return false;
+            return true;
+          });
+          return visibleCursos.map((curso) => (
             <div
               className="col-sm-6 col-md-4 col-lg-3"
               key={curso.idcurso || curso.id}
@@ -111,7 +119,8 @@ export default function CursosPage() {
                 disponivel={curso.disponivel}
               />
             </div>
-          ))}
+          ));
+        })()}
       </div>
     </div>
   );

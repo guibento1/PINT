@@ -67,7 +67,7 @@ export default function NavbarFront() {
           <img
             src={logoSoftskills}
             alt="SoftSkills"
-            style={{ height: "65px" }}
+            style={{ height: "64px" }}
           />
         </div>
 
@@ -147,19 +147,10 @@ export default function NavbarFront() {
                       {({ isActive }) => (
                         <span
                           className="position-relative d-inline-block"
-                          style={{ width: 22, height: 22 }}
+                          style={{ width: 24, height: 24 }}
                         >
                           <Notifications
-                            style={{
-                              width: "1.5em",
-                              height: "1.5em",
-                              display: "block",
-                              // active -> white icon
-                              fill: isActive ? "#fff" : undefined,
-                              // also set color in case the SVG uses currentColor
-                              color: isActive ? "#fff" : undefined,
-                            }}
-                            className={isActive ? "notificacoes-active" : ""}
+                            style={{ width: 24, height: 24, display: "block" }}
                           />
                           {notificacoesAtivas && (
                             <span
@@ -188,8 +179,8 @@ export default function NavbarFront() {
                     >
                       <Profile
                         style={{
-                          width: "1.5rem",
-                          height: "1.5rem",
+                          width: "24px",
+                          height: "24px",
                         }}
                       />{" "}
                       {nomeUsuario}

@@ -5,9 +5,7 @@
 html,
 body {
   color: var(--text-dark);
-  background-color: var(
-    --background-light
-  ); 
+  background-color: var(--background-light);
   margin: 0;
   padding: 0;
   height: 100%;
@@ -160,16 +158,17 @@ main {
 }
 
 .btn-custom-logout {
-  color: #ff0004;
-  border: 1.5px solid #ff0004;
+  color: #dc3545;
+  border: 1px solid #dc3545; /* inteiros evitam blur */
   background-color: transparent;
-  transition: background-color 0.2s, color 0.2s;
+  transition: color 0.2s ease, background-color 0.2s ease,
+    border-color 0.2s ease;
 }
 .btn-custom-logout:hover,
 .btn-custom-logout:focus {
-  background-color: #ff0004;
+  background-color: #dc3545;
   color: #fff;
-  border-color: #ff0004;
+  border-color: #dc3545;
 }
 
 /* ================================
@@ -732,4 +731,41 @@ h6 {
   fill: #fff !important;
   stroke: #fff !important;
   color: #fff !important;
+}
+
+/* Adicione este ficheiro se não existir */
+
+/* Melhora a renderização de fontes em vários browsers */
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* Evita pixelização de SVGs e imagens em diferentes browsers */
+svg,
+img {
+  /* Para SVGs, deixe o browser gerir o anti‑aliasing nativo */
+  shape-rendering: auto;
+  /* Para <img> (inclui SVG como imagem), use o default */
+  image-rendering: auto !important;
+}
+
+/* Remove transform que pode causar blur e ajusta a borda */
+.btn-custom-logout {
+  border: 1px solid #dc3545 !important; /* Usa um valor inteiro para a borda */
+  color: #dc3545 !important;
+  background-color: transparent !important;
+  transition: all 0.2s ease-in-out;
+}
+
+.btn-custom-logout:hover {
+  color: #fff !important;
+  background-color: #dc3545 !important;
+}
+
+/* Botão estático para evitar interações e manter a aparência */
+.static-button {
+  pointer-events: none;
+  cursor: default;
 }

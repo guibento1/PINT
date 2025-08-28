@@ -5,7 +5,7 @@ import Modal from "@shared/components/Modal.jsx";
 import logoSoftinsa from "../assets/images/softinsaLogo.svg";
 import logoSoftSkills from "../assets/images/thesoftskillsLogo.svg";
 import "@shared/styles/global.css";
-import { subscribeToTopics } from "@shared/services/firebase"
+import { subscribeToTopics } from "@shared/services/firebase";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
@@ -14,6 +14,7 @@ export default function LoginPage({ admin = false }) {
   const [password, setPassword] = useState("");
   const [loginStatus, setLoginStatus] = useState(-1); // 0 - success; 1 - credentials mismatch; 2 - fields missing; 3 - error
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   const navigate = useNavigate();
 
@@ -33,6 +34,8 @@ export default function LoginPage({ admin = false }) {
         return "Campos em falta";
       case 5:
         return "Utilizador não Admin";
+      case 4:
+        return "Utilizador não encontrado";
       default:
         return "Erro";
     }
@@ -68,6 +71,14 @@ export default function LoginPage({ admin = false }) {
           </>
         );
 
+      case 4:
+        return (
+          <>
+            <p>O email indicado não corresponde a nenhum utilizador.</p>
+            <p>Confirme o email ou registe uma nova conta.</p>
+          </>
+        );
+
       default:
         return (
           <>
@@ -93,10 +104,12 @@ export default function LoginPage({ admin = false }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setSubmitting(true);
 
     if (!email || !password) {
       setLoginStatus(2);
       handleOpenModal();
+      setSubmitting(false);
       return;
     }
 
@@ -118,12 +131,15 @@ export default function LoginPage({ admin = false }) {
       ) {
         setLoginStatus(5);
         handleOpenModal();
+        setSubmitting(false);
       } else {
         const data = response.data;
 
         if (!data.accessToken) {
           setLoginStatus(1);
           handleOpenModal();
+          setSubmitting(false);
+          return;
         }
 
         const token = data.accessToken;
@@ -150,13 +166,35 @@ export default function LoginPage({ admin = false }) {
     } catch (error) {
       console.log(error);
 
-      if (error.response?.data?.error == "Password mismatch") {
-        setLoginStatus(1);
+      const status = error.response?.status;
+      const rawMsg =
+        error.response?.data?.error || error.response?.data?.message || "";
+      const msg = String(rawMsg).toLowerCase();
+
+      if (
+        status === 404 ||
+        msg.includes("utilizador não encontrado") ||
+        msg.includes("utilizador nao encontrado") ||
+        msg.includes("user not found") ||
+        msg.includes("not found")
+      ) {
+        setLoginStatus(4); // Utilizador não encontrado
+        handleOpenModal();
+      } else if (
+        status === 401 ||
+        msg.includes("password incorreta") ||
+        msg.includes("password mismatch") ||
+        msg.includes("credenciais inválidas") ||
+        msg.includes("credenciais invalidas") ||
+        msg.includes("invalid credential")
+      ) {
+        setLoginStatus(1); // Credenciais erradas
         handleOpenModal();
       } else {
-        setLoginStatus(3);
+        setLoginStatus(3); // Erro genérico
         handleOpenModal();
       }
+      setSubmitting(false);
     }
   };
 
@@ -200,6 +238,7 @@ export default function LoginPage({ admin = false }) {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
+                  disabled={submitting}
                 />
                 <label htmlFor="email">Email</label>
               </div>
@@ -212,18 +251,34 @@ export default function LoginPage({ admin = false }) {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
+                  disabled={submitting}
                 />
                 <label htmlFor="password">Password</label>
               </div>
               <div className="d-flex gap-2 justify-content-between">
                 <button
                   type="submit"
-                  className={"btn-soft fw-bold " + (admin ? "w-100" : "w-50")}
+                  className={
+                    "btn-soft fw-bold " +
+                    (admin || submitting ? "w-100" : "w-50")
+                  }
+                  disabled={submitting}
                 >
-                  Login
+                  {submitting ? (
+                    <span className="d-inline-flex align-items-center gap-2">
+                      <span
+                        className="spinner-border spinner-border-sm"
+                        role="status"
+                        aria-hidden="true"
+                      ></span>
+                      A entrar...
+                    </span>
+                  ) : (
+                    "Login"
+                  )}
                 </button>
 
-                {!admin && (
+                {!admin && !submitting && (
                   <a
                     href="/registar"
                     className="btn-outline-soft w-50 text-center"

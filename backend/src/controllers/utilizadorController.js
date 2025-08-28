@@ -201,115 +201,95 @@ controllers.getFormador = async (req, res) => {
 };
 
 
-
 controllers.loginUser = async (req, res) => {
+  const { email, password } = req.body;
 
-    const { email, password } = req.body;
+  logger.debug(`Tentativa de login para o email: ${email || 'não fornecido'}.`);
 
-    logger.debug(`Tentativa de login para o email: ${email || 'não fornecido'}.`);
+  if (!email) {
+    logger.warn('Tentativa de login sem fornecer email. Requisição inválida.');
+    return res.status(400).json({ error: 'O email é obrigatório.' });
+  }
 
-    if (!email) {
-        logger.warn('Tentativa de login sem fornecer email. Requisição inválida.');
-        return res.status(400).json({
-            error: 'O email é obrigatório.'
-        });
+  try {
+    const data = await models.utilizadores.findOne({
+      where: { email },
+      attributes: ['idutilizador','email','nome','dataregisto','foto','ativo','passwordhash','salt']
+    });
+
+    if (!data) {
+      logger.info(`Tentativa de login falhada: Utilizador não encontrado para o email: ${email}.`);
+      return res.status(404).json({ error: 'Utilizador não encontrado.' });
     }
 
-    try {
-        const data = await models.utilizadores.findOne({
-            where: { email },
-            attributes: ["idutilizador", "email", "nome", "dataregisto", "foto", "ativo", "passwordhash", "salt"]
-        });
-
-        if (!data) {
-            logger.info(`Tentativa de login falhada: Utilizador não encontrado para o email: ${email}.`);
-            return res.status(401).json({
-                error: 'Credenciais inválidas.'
-            });
-        }
-
-        if (!data.ativo) {
-            if (data.passwordhash === null) {
-                logger.warn(`Tentativa de login de utilizador com email não confirmado: ${email}.`, { idutilizador: data.idutilizador });
-                return res.status(403).json({
-                    error: 'Por favor, confirme o seu email para ativar a conta.'
-                });
-            } else {
-                logger.warn(`Tentativa de login de utilizador desativado: ${email}.`, { idutilizador: data.idutilizador });
-                return res.status(403).json({
-                    error: 'A sua conta está desativada. Por favor, contacte o suporte.'
-                });
-            }
-        }
-
-        if (!password) {
-            logger.warn(`Tentativa de login para ${email} sem fornecer password.`);
-            return res.status(400).json({
-                error: 'A password é obrigatória.'
-            });
-        }
-
-        logger.debug(`A verificar password para o utilizador ${email}.`);
-        const passwordhash = crypto.pbkdf2Sync(password, data.salt, 1000, 64, 'sha512').toString('hex');
-
-        if (passwordhash === data.passwordhash) {
-            logger.info(`Login bem-sucedido para o utilizador ${data.idutilizador} (${email}).`);
-
-            logger.debug(`A obter funções para o utilizador ${data.idutilizador}.`);
-            data.dataValues.roles = await findRoles(data.idutilizador);
-
-            if (!data.dataValues.roles || data.dataValues.roles.length === 0) {
-                logger.error(`Utilizador ${data.idutilizador} (${email}) sem funções atribuídas após login bem-sucedido.`);
-                return res.status(500).json({
-                    error: 'Erro: O utilizador não tem funções atribuídas.'
-                });
-            }
-            logger.debug(`Funções obtidas para o utilizador ${data.idutilizador}: ${data.dataValues.roles.join(', ')}.`);
-
-            if (data.foto) {
-                data.dataValues.foto = await generateSASUrl(data.foto, 'userprofiles');
-            } else {
-                data.dataValues.foto = null;
-            }
-
-            const accessToken = generateAccessToken({
-                idutilizador: data.idutilizador,
-                roles: data.dataValues.roles,
-                email: data.email
-            });
-            logger.debug(`Access Token gerado para o utilizador ${data.idutilizador}, ${accessToken}, roles: ${JSON.stringify(data.dataValues.roles)}.`);
-
-            const responseData = {
-                idutilizador: data.idutilizador,
-                email: data.email,
-                nome: data.nome,
-                dataregisto: data.dataregisto,
-                ativo: data.ativo,
-                foto: data.dataValues.foto,
-                roles: data.dataValues.roles,
-                accessToken: accessToken
-            };
-
-            return res.status(200).json(responseData);
-        } else {
-            logger.info(`Tentativa de login falhada: Password incorreta para o email: ${email}.`);
-            return res.status(401).json({
-                error: 'Credenciais inválidas.'
-            });
-        }
-
-    } catch (error) {
-        logger.error(`Erro interno no servidor durante o processo de login para o email: ${email}. Detalhes: ${error.message}`, {
-            email,
-            stack: error.stack,
-            method: 'controllers.loginUser',
-            requestBody: req.body
-        });
-        return res.status(500).json({
-            error: 'Ocorreu um erro interno no servidor durante o login.'
-        });
+    if (!data.ativo) {
+      if (data.passwordhash === null) {
+        logger.warn(`Tentativa de login de utilizador com email não confirmado: ${email}.`, { idutilizador: data.idutilizador });
+        return res.status(403).json({ error: 'Por favor, confirme o seu email para ativar a conta.' });
+      } else {
+        logger.warn(`Tentativa de login de utilizador desativado: ${email}.`, { idutilizador: data.idutilizador });
+        return res.status(403).json({ error: 'A sua conta está desativada. Por favor, contacte o suporte.' });
+      }
     }
+
+    if (!password) {
+      logger.warn(`Tentativa de login para ${email} sem fornecer password.`);
+      return res.status(400).json({ error: 'A password é obrigatória.' });
+    }
+
+    logger.debug(`A verificar password para o utilizador ${email}.`);
+    const passwordhash = crypto.pbkdf2Sync(password, data.salt, 1000, 64, 'sha512').toString('hex');
+
+    if (passwordhash !== data.passwordhash) {
+      logger.info(`Tentativa de login falhada: Password incorreta para o email: ${email}.`);
+      return res.status(401).json({ error: 'Password incorreta.' });
+    }
+
+    logger.info(`Login bem-sucedido para o utilizador ${data.idutilizador} (${email}).`);
+
+    logger.debug(`A obter funções para o utilizador ${data.idutilizador}.`);
+    data.dataValues.roles = await findRoles(data.idutilizador);
+    if (!data.dataValues.roles || data.dataValues.roles.length === 0) {
+      logger.error(`Utilizador ${data.idutilizador} (${email}) sem funções atribuídas após login bem-sucedido.`);
+      return res.status(500).json({ error: 'Erro: O utilizador não tem funções atribuídas.' });
+    }
+
+    if (data.foto) {
+      data.dataValues.foto = await generateSASUrl(data.foto, 'userprofiles');
+    } else {
+      data.dataValues.foto = null;
+    }
+
+    const accessToken = generateAccessToken({
+      idutilizador: data.idutilizador,
+      roles: data.dataValues.roles,
+      email: data.email
+    });
+    logger.debug(`Access Token gerado para o utilizador ${data.idutilizador}, ${accessToken}.`);
+
+    const responseData = {
+      idutilizador: data.idutilizador,
+      email: data.email,
+      nome: data.nome,
+      dataregisto: data.dataregisto,
+      ativo: data.ativo,
+      foto: data.dataValues.foto,
+      roles: data.dataValues.roles,
+      accessToken
+    };
+
+    return res.status(200).json(responseData);
+  } catch (error) {
+    logger.error(`Erro interno no servidor durante o processo de login para o email: ${email}. Detalhes: ${error.message}`, {
+      email,
+      stack: error.stack,
+      method: 'controllers.loginUser',
+      requestBody: req.body
+    });
+    return res.status(500).json({ error: 'Ocorreu um erro interno no servidor durante o login.' });
+  }
 };
+
 
 controllers.byID = async (req, res) => {
 

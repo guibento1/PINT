@@ -409,7 +409,10 @@ const CursoSincrono = () => {
   if (loading)
     return (
       <div className="container mt-5">
-        <p>A carregar curso...</p>
+        <div className="text-center my-5">
+          <div className="spinner-border text-primary" />
+          <p className="mt-2 text-muted">A carregar curso...</p>
+        </div>
       </div>
     );
   if (!curso)
@@ -476,12 +479,30 @@ const CursoSincrono = () => {
           </div>
           <div className="col-md-8">
             <h1 className="h3">{curso?.nome}</h1>
-            {curso?.disponivel === false && (
-              <>
-                <div className="btn btn-primary static-button">Arquivado</div>
-                <br />
-              </>
-            )}
+            {(() => {
+              const ended = curso?.fimdeinscricoes
+                ? new Date(curso.fimdeinscricoes) <= new Date()
+                : false;
+              if (ended) {
+                return (
+                  <>
+                    <div className="btn btn-dark static-button">Terminado</div>
+                    <br />
+                  </>
+                );
+              }
+              if (curso?.disponivel === false) {
+                return (
+                  <>
+                    <div className="btn btn-primary static-button">
+                      Arquivado
+                    </div>
+                    <br />
+                  </>
+                );
+              }
+              return null;
+            })()}
 
             {isFormadorDoCurso ? (
               <div className="d-flex align-items-center my-3 flex-wrap gap-2">

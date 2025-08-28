@@ -1,6 +1,12 @@
 //web\frontend\backOffice\src\App.jsx
 import React, { useEffect } from "react";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  useParams,
+  useNavigate,
+} from "react-router-dom";
 import { initializeApp } from "firebase/app";
 import { getMessaging } from "firebase/messaging";
 import LayoutBack from "./components/LayoutBack";
@@ -16,13 +22,16 @@ import DetalhesCurso from "./views/DetalhesCurso";
 import Utilizadores from "./views/Utilizadores";
 import EditarUtilizador from "./views/editar/EditarUtilizador.jsx";
 import CriarEstrutura from "./views/criar/CriarEstrutura";
-import CriarCurso from "./views/criar/CriarCurso";
+import CriarCursoAssincrono from "./views/criar/CriarCursoAssincrono.jsx";
+import CriarCursoSincrono from "./views/criar/CriarCursoSincrono.jsx";
 import EditarArea from "./views/editar/EditarArea";
 import EditarCategoria from "./views/editar/EditarCategoria";
 import EditarTopico from "./views/editar/EditarTopico";
-import EditarCurso from "./views/editar/EditarCurso";
+import EditarCursoAssincrono from "./views/editar/EditarCursoAssincrono";
+import EditarCursoSincrono from "./views/editar/EditarCursoSincrono";
 import NotificationsPage from "@shared/views/NotificationsPage.jsx";
 import firebaseConfig from "../../shared/config/firebase.js";
+import api from "@shared/services/axios.js";
 
 const app = initializeApp(firebaseConfig);
 const messaging = getMessaging(app);
@@ -131,7 +140,15 @@ function App() {
             path="/criar/curso"
             element={
               <ProtectedRoute allowedRoles={["admin"]}>
-                <CriarCurso />
+                <CriarCursoAssincrono />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/criar/curso-sincrono"
+            element={
+              <ProtectedRoute allowedRoles={["admin"]}>
+                <CriarCursoSincrono />
               </ProtectedRoute>
             }
           />
@@ -164,7 +181,23 @@ function App() {
             path="/editar/curso/:id"
             element={
               <ProtectedRoute allowedRoles={["admin"]}>
-                <EditarCurso />
+                <EditarCursoRouter />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/editar/curso-assincrono/:id"
+            element={
+              <ProtectedRoute allowedRoles={["admin"]}>
+                <EditarCursoAssincrono />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/editar/curso-sincrono/:id"
+            element={
+              <ProtectedRoute allowedRoles={["admin"]}>
+                <EditarCursoSincrono />
               </ProtectedRoute>
             }
           />
@@ -216,6 +249,28 @@ function App() {
       </LayoutBack>
     </Router>
   );
+}
+
+function EditarCursoRouter() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  React.useEffect(() => {
+    const go = async () => {
+      try {
+        const res = await api.get(`/curso/${id}`);
+        const c = res.data[0] || res.data;
+        if (c?.sincrono === true) {
+          navigate(`/editar/curso-sincrono/${id}`, { replace: true });
+        } else {
+          navigate(`/editar/curso-assincrono/${id}`, { replace: true });
+        }
+      } catch (e) {
+        console.error("Falha a detetar tipo de curso:", e);
+      }
+    };
+    go();
+  }, [id, navigate]);
+  return null;
 }
 
 export default App;
