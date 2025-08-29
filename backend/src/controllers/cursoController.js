@@ -1254,6 +1254,7 @@ controllers.getInscricoes = async (req, res) => {
   try {
 
     const curso = await models.curso.findByPk(id);
+
     if (!curso) {
       logger.warn(`Curso com ID ${id} não encontrado.`);
       return res.status(404).json({
@@ -1261,8 +1262,10 @@ controllers.getInscricoes = async (req, res) => {
       });
     }
 
+
+    const cursoSinc = await models.cursosincrono.findOne({where : { curso : id }, attributes : ["formador","idcursosincrono"]});
+
     if(!admin){
-      const cursoSinc = await models.cursosincrono.findOne({where : { curso : id }, attributes : ["formador"]});
 
       if(!cursoSinc || cursoSinc.formador != formador){
 
@@ -1302,6 +1305,7 @@ controllers.getInscricoes = async (req, res) => {
         ativo: true,
       },
     });
+
     utilizadores = utilizadores.map((utilizador) => {
       const inscricao = inscricoes.find(
         (entry) => entry.formando_formando.utilizador == utilizador.idutilizador
@@ -1311,6 +1315,30 @@ controllers.getInscricoes = async (req, res) => {
       }
       return utilizador;
     });
+
+    if(cursoSinc){
+
+     utilizadores =  await Promise.all(
+
+          utilizadores.map(async (utilizador) => {
+            const avaliacao = await models.avaliacaofinal.findOne({
+
+              where : {
+                cursosincrono : cursoSinc.idcursosincrono,
+                formando : utilizador.dataValues.idformando
+              }
+            });
+
+            utilizador.dataValues.nota = avaliacao.nota;
+
+            return utilizador;
+            
+          })
+      );
+
+    }
+
+
     logger.info(
       `Lista de inscritos para o curso com ID ${id} retornada com sucesso. Total: ${utilizadores.length}`
     );

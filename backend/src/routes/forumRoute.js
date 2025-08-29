@@ -6,8 +6,10 @@ const forumController = require('../controllers/forumController.js');
 
 router.post('/post/topico/:idtopico', authenticateJWT, forumController.createPost);
 router.get('/post/:id', authenticateJWT, forumController.getPost);
+router.delete('/post/:id', authenticateJWT, forumController.deletePost);
 router.post('/post/:id/comment', authenticateJWT, forumController.respondPost);
 router.post('/comment/:id/respond', authenticateJWT, forumController.respondComent);
+router.delete('/comment/:id', authenticateJWT, forumController.deleteComentario);
 
 
 // Iteracoes

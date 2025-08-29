@@ -13,6 +13,7 @@ async function getUserInfo(user) {
 
     const formando =
       user.roles.find((roleEntry) => roleEntry.role === "formando")?.id || 0;
+
     const formador =
       user.roles.find((roleEntry) => roleEntry.role === "formador")?.id || 0;
 
@@ -79,6 +80,62 @@ controllers.createPost = async (req, res) => {
 
     return res.status(500).json({
       error: "Ocorreu um erro interno ao criar o post.",
+    });
+
+  }
+
+};
+
+
+controllers.deletePost = async (req, res) => {
+
+  const { id } = req.params;
+  const utilizador = req.user.idutilizador;
+
+
+  const admin =
+    req.user.roles.find((roleEntry) => roleEntry.role === "admin")?.id || 0;
+
+
+  logger.debug(
+    `Recebida requisição para eleminar post. Query: ${JSON.stringify(
+      req.query
+    )}`
+  );
+
+
+  try {
+
+      const post = await models.post.findByPk(id);
+
+      if(!post){
+
+        return res.status(404).json({
+          error: "Post não encontrado.",
+        });
+
+      }
+
+      if(admin || utilizador == post.utilizador) {
+
+        await post.destroy();
+        return res.status(200).json({message : "Post eleminado com sucesso"});
+
+      }
+
+
+      return res.status(403).json({
+        error: "Proibido: permissões insuficientes.",
+      });
+        
+  } catch (error) {
+
+    logger.error(`Erro interno no servidor. Detalhes: ${error.message}`, {
+      stack: error.stack,
+    });
+
+    return res.status(500).json({
+      error: "Ocorreu um erro interno ao eleminar o post.",
     });
 
   }
@@ -258,6 +315,42 @@ controllers.respondPost = async (req, res) => {
 };
 
 
+controllers.getRespostasPost = async (req, res) => {
+
+  const { id } = req.params;
+  const utilizador = req.user.idutilizador;
+
+
+  logger.debug(
+    `Recebida requisição para criar comentario para o post com id ${id}. Query: ${JSON.stringify(
+      req.query
+    )}`
+  );
+
+  try {
+
+      const repostas = models.respostapost.findAll( {where : { post : id  }, attributes : ["idcomentario"] }) ;
+
+      if(!respostas)
+
+
+      return res.status(200).json(comentarioObject);
+        
+  } catch (error) {
+
+    logger.error(`Erro interno no servidor. Detalhes: ${error.message}`, {
+      stack: error.stack,
+    });
+
+    return res.status(500).json({
+      error: "Ocorreu um erro interno ao criar comentário.",
+    });
+
+  }
+
+};
+
+
 controllers.respondComent = async (req, res) => {
 
   const { id } = req.params;
@@ -308,6 +401,62 @@ controllers.respondComent = async (req, res) => {
 
     return res.status(500).json({
       error: "Ocorreu um erro interno ao criar comentário.",
+    });
+
+  }
+
+};
+
+
+controllers.deleteComentario = async (req, res) => {
+
+  const { id } = req.params;
+  const utilizador = req.user.idutilizador;
+
+
+  const admin =
+    req.user.roles.find((roleEntry) => roleEntry.role === "admin")?.id || 0;
+
+
+  logger.debug(
+    `Recebida requisição para eleminar post. Query: ${JSON.stringify(
+      req.query
+    )}`
+  );
+
+
+  try {
+
+      const comentario = await models.comentario.findByPk(id);
+
+      if(!comentario){
+
+        return res.status(404).json({
+          error: "Post não encontrado.",
+        });
+
+      }
+
+      if(admin || utilizador == comentario.utilizador) {
+
+        await  comentario.destroy();
+        return res.status(200).json({message : "Comentario eleminado com sucesso"});
+
+      }
+
+
+      return res.status(403).json({
+        error: "Proibido: permissões insuficientes.",
+      });
+        
+  } catch (error) {
+
+    logger.error(`Erro interno no servidor. Detalhes: ${error.message}`, {
+      stack: error.stack,
+    });
+
+    return res.status(500).json({
+      error: "Ocorreu um erro interno ao eleminar o post.",
     });
 
   }
