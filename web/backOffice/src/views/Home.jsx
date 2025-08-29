@@ -25,7 +25,7 @@ export default function HomeBackOffice() {
                       <i className="ri-computer-line"></i>
                       <h5 className="card-title">Cursos</h5>
                       <p className="card-text">Gerir e criar novos cursos</p>
-                      <Link to="/cursos" className="btn">
+                      <Link to="/cursos" className="btn btn-primary">
                         Aceder <i className="ri-arrow-right-line"></i>
                       </Link>
                     </div>
@@ -38,7 +38,7 @@ export default function HomeBackOffice() {
                       <i className="ri-group-line"></i>
                       <h5 className="card-title">Utilizadores</h5>
                       <p className="card-text">Gerir utilizadores</p>
-                      <Link to="/utilizadores" className="btn">
+                      <Link to="/utilizadores" className="btn btn-primary">
                         Aceder <i className="ri-arrow-right-line"></i>
                       </Link>
                     </div>
@@ -51,7 +51,7 @@ export default function HomeBackOffice() {
                       <i className="ri-organization-chart-line"></i>
                       <h5 className="card-title">Gerir Estrutura</h5>
                       <p className="card-text">Organizar áreas, categorias e topicos</p>
-                      <Link to="/gerir-estrutura" className="btn">
+                      <Link to="/gerir-estrutura" className="btn btn-primary">
                         Aceder <i className="ri-arrow-right-line"></i>
                       </Link>
                     </div>
@@ -63,7 +63,16 @@ export default function HomeBackOffice() {
             <div className="col-lg-4 d-none d-lg-block"> 
               <div className="card shadow border-radius">
                 <div className="card-body">
-                  <Calendar />
+                  <Calendar locale="pt-PT"
+                    formatShortWeekday={(locale, date) =>
+                    date
+                    .toLocaleDateString(locale, { weekday: 'short' })
+                    .substring(0, 3) // força só 3 letras
+                    }             
+                  next2Label={null}            
+                  prev2Label={null}
+                  showNeighboringMonth={false} 
+                  onChange={(value) => console.log(value)} />
                 </div>
               </div>
             </div>
