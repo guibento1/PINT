@@ -887,7 +887,12 @@ const AvaliacoesSincrono = () => {
             </button>
           </div>
           {loadingSubmissoes ? (
-            <div className="text-muted">A carregar submissões...</div>
+                  <div className="container mt-5">
+        <div className="text-center my-5">
+          <div className="spinner-border text-primary" />
+          <p className="mt-2 text-muted">A carregar submissões...</p>
+        </div>
+      </div>
           ) : submissoesError ? (
             <div className="alert alert-danger py-2 small mb-0">
               {submissoesError}
@@ -1020,9 +1025,12 @@ const AvaliacoesSincrono = () => {
         <div className="mt-3">
           <h3 className="h6 mb-2">Avaliações Finais</h3>
           {loadingFinais ? (
-            <div className="text-muted small">
-              A carregar avaliações finais...
-            </div>
+      <div className="container mt-5">
+        <div className="text-center my-5">
+          <div className="spinner-border text-primary" />
+          <p className="mt-2 text-muted">A carregar avaliações finais...</p>
+        </div>
+      </div>
           ) : formandos?.length ? (
             <ul className="list-group">
               {formandos.map((f) => {

@@ -192,9 +192,12 @@ const Profile = () => {
 
     if (loading) {
         return (
-            <div className="container mt-5">
-                <p>Carregando perfil...</p>
-            </div>
+      <div className="container mt-5">
+        <div className="text-center my-5">
+          <div className="spinner-border text-primary" />
+          <p className="mt-2 text-muted">A carregar o perfil...</p>
+        </div>
+      </div>
         );
     }
 

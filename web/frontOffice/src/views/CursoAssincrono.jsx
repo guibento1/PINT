@@ -236,6 +236,11 @@ const CursoAssincrono = () => {
     );
   }
 
+  const now = new Date();
+  const hasEnded = curso?.fimdeinscricoes
+    ? new Date(curso.fimdeinscricoes) < now
+    : false;
+
   return (
     <>
       <Modal
@@ -292,14 +297,21 @@ const CursoAssincrono = () => {
           <div className="col-md-8">
             <h1 className="h3">{curso?.nome}</h1>
 
-            {curso?.disponivel !== null &&
+            {hasEnded ? (
+              <>
+                <div className="btn btn-dark static-button">Terminado</div>
+                <br />
+              </>
+            ) : (
+              curso?.disponivel !== null &&
               curso?.disponivel !== undefined &&
               !curso?.disponivel && (
                 <>
                   <div className="btn btn-primary static-button">Arquivado</div>
                   <br />
                 </>
-              )}
+              )
+            )}
 
             {!isFormando ? (
               <div className="alert alert-warning p-2 small mt-3">
@@ -309,20 +321,13 @@ const CursoAssincrono = () => {
               </div>
             ) : !inscrito ? (
               <>
-                {
+                {!hasEnded && curso?.disponivel !== false ? (
                   <>
                     <p className="mt-4">
                       <strong>Inscrições:</strong>{" "}
                       {formatData(curso?.iniciodeinscricoes)} até{" "}
                       {formatData(curso?.fimdeinscricoes)}
                       <br />
-                      {curso?.maxinscricoes && (
-                        <>
-                          <strong>Máx. inscrições:</strong>{" "}
-                          {curso?.maxinscricoes}
-                          <br />
-                        </>
-                      )}
                     </p>
                     <button
                       onClick={handleClickInscrever}
@@ -334,7 +339,11 @@ const CursoAssincrono = () => {
                         : "Inscrever"}
                     </button>
                   </>
-                }
+                ) : (
+                  <div className="alert alert-warning p-2 small mt-3">
+                    Curso terminado ou indisponível. Inscrições encerradas.
+                  </div>
+                )}
                 {enrollForbidden && (
                   <div className="alert alert-warning p-2 small mt-3">
                     Não pode se inscrever neste curso.
@@ -354,12 +363,13 @@ const CursoAssincrono = () => {
                             : "btn-outline-primary"
                         }`}
                         onClick={() => setActiveTab("conteudos")}
+                        disabled={hasEnded}
                       >
                         Conteúdos
                       </button>
                     </li>
                   </ul>
-              <button
+                  <button
                     onClick={handleClickSair}
                     className="btn btn-sm btn-outline-danger fw-semibold rounded-pill px-3 ms-auto"
                     disabled={loading}
@@ -369,6 +379,12 @@ const CursoAssincrono = () => {
                       : "Sair do Curso"}
                   </button>
                 </div>
+                {hasEnded && (
+                  <div className="alert alert-warning p-2 small mb-0">
+                    O curso terminou. Os conteúdos ficam indisponíveis até ser
+                    reativado.
+                  </div>
+                )}
                 {curso?.planocurricular && (
                   <p className="mb-0">
                     <strong>Plano Curricular:</strong>
@@ -427,7 +443,7 @@ const CursoAssincrono = () => {
           )}
         </div>
 
-        {inscrito && activeTab === "conteudos" && (
+        {inscrito && !hasEnded && activeTab === "conteudos" && (
           <div className="mt-5">
             <h2 className="h4">Lições e sessões passadas</h2>
             {curso?.licoes?.length > 0 ? (

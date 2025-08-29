@@ -67,7 +67,7 @@ export default function NavbarFront() {
           <img
             src={logoSoftskills}
             alt="SoftSkills"
-            style={{ height: "65px" }}
+            style={{ height: "64px" }}
           />
         </div>
 
@@ -133,39 +133,41 @@ export default function NavbarFront() {
                     </NavLink>
                   </li>
                   <li className="nav-item position-relative">
-                  <NavLink
-                    to="/notificacoes"
-                    className={({ isActive }) =>
-                      `nav-link ${isActive ? "active" : ""}`
-                    }
-                    onClick={() => {
-                      setNotificacoesAtivas(false);
-                      sessionStorage.setItem(STORAGE_KEY, "0");
-                      fecharMenu();
-                    }}
-                  >
-                    <span
-                      className="position-relative d-inline-block"
-                      style={{ width: 22, height: 22 }}
+                    <NavLink
+                      to="/notificacoes"
+                      className={({ isActive }) =>
+                        `nav-link ${isActive ? "active" : ""}`
+                      }
+                      onClick={() => {
+                        setNotificacoesAtivas(false);
+                        sessionStorage.setItem(STORAGE_KEY, "0");
+                        fecharMenu();
+                      }}
                     >
-                      <Notifications
-                        style={{ width: 22, height: 22, display: "block" }}
-                      />
-                      {notificacoesAtivas && (
+                      {({ isActive }) => (
                         <span
-                          className="position-absolute bg-danger rounded-circle"
-                          style={{
-                            top: -2,
-                            right: -2,
-                            width: 10,
-                            height: 10,
-                            border: "2px solid #fff",
-                          }}
-                          aria-label="Nova notificação"
-                        />
+                          className="position-relative d-inline-block"
+                          style={{ width: 24, height: 24 }}
+                        >
+                          <Notifications
+                            style={{ width: 24, height: 24, display: "block" }}
+                          />
+                          {notificacoesAtivas && (
+                            <span
+                              className="position-absolute bg-danger rounded-circle"
+                              style={{
+                                top: -2,
+                                right: -2,
+                                width: 10,
+                                height: 10,
+                                border: "2px solid #fff",
+                              }}
+                              aria-label="Nova notificação"
+                            />
+                          )}
+                        </span>
                       )}
-                    </span>
-                  </NavLink>
+                    </NavLink>
                   </li>
                   <li className="nav-item text-nowrap">
                     <NavLink
@@ -177,10 +179,8 @@ export default function NavbarFront() {
                     >
                       <Profile
                         style={{
-                          width: 22,
-                          height: 22,
-                          marginRight: 4,
-                          verticalAlign: "text-bottom",
+                          width: "24px",
+                          height: "24px",
                         }}
                       />{" "}
                       {nomeUsuario}

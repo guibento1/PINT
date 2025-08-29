@@ -1,11 +1,7 @@
 // web/frontend/backOffice/src/main.jsx
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import {
-  messaging,
-  onMessage,
-  subscribeToTopics,
-} from "@shared/services/firebase";
+import { messaging, onMessage, subscribeToTopics } from "@shared/services/firebase";
 import App from "./App.jsx";
 import "../../shared/styles/global.css";
 

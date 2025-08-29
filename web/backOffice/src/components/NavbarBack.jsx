@@ -68,7 +68,7 @@ export default function NavbarBack() {
           <img
             src={logoSoftskills}
             alt="SoftSkills"
-            style={{ height: "65px" }}
+            style={{ height: "64px" }}
           />
         </div>
         <div
@@ -152,10 +152,10 @@ export default function NavbarBack() {
                   >
                     <span
                       className="position-relative d-inline-block"
-                      style={{ width: 22, height: 22 }}
+                      style={{ width: 24, height: 24 }}
                     >
                       <Notifications
-                        style={{ width: 22, height: 22, display: "block" }}
+                        style={{ width: 24, height: 24, display: "block" }}
                       />
                       {notificacoesAtivas && (
                         <span
@@ -183,8 +183,8 @@ export default function NavbarBack() {
                   >
                     <Profile
                       style={{
-                        width: 22,
-                        height: 22,
+                        width: 24,
+                        height: 24,
                         marginRight: 4,
                         verticalAlign: "text-bottom",
                       }}
