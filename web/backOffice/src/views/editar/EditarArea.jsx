@@ -185,7 +185,7 @@ export default function EditarArea() {
         </button>
         <button
           type="button"
-          className="btn btn-secondary"
+          className="btn btn-danger"
           onClick={() => navigate("/gerir-estrutura")}
           disabled={submitting}
         >

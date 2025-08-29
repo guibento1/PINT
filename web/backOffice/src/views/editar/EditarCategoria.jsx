@@ -144,7 +144,7 @@ export default function EditarCategoria() {
         </button>
         <button
           type="button"
-          className="btn btn-secondary"
+          className="btn btn-danger"
           onClick={() => navigate("/gerir-estrutura")}
           disabled={submitting}
         >

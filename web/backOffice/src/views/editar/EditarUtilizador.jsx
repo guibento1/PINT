@@ -426,19 +426,18 @@ const EditarUtilizador = () => {
 
                                 <div className="d-flex justify-content-end gap-2 mt-4">
                                     <button
-                                        type="button"
-                                        onClick={handleCancelEdit}
-                                        className="btn btn-secondary"
-                                        disabled={loading}
-                                    >
-                                        Cancelar
-                                    </button>
-                                    <button
                                         type="submit"
                                         className="btn btn-primary"
                                         disabled={loading}
                                     >
                                         {loading ? 'A guardar...' : 'Guardar Alterações'}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className="btn btn-danger"
+                                        onClick={() => navigate("/utilizadores")}
+                                    >
+                                     Cancelar
                                     </button>
                                 </div>
                             </form>

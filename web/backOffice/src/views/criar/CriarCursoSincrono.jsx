@@ -352,7 +352,7 @@ const CriarCursoSincrono = () => {
             </button>
             <button
               type="button"
-              className="btn btn-secondary ms-2"
+              className="btn btn-danger ms-2"
               onClick={() => navigate("/cursos")}
             >
               Cancelar

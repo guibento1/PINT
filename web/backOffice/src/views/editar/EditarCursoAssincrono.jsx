@@ -578,7 +578,16 @@ const EditarCursoAssincrono = () => {
             >
               {loading ? "A Atualizar..." : "Atualizar Curso"}
             </button>
+            <button
+              type="button"
+              className="btn btn-danger"
+              onClick={() => navigate("/cursos")}
+          
+             >
+              Cancelar
+            </button>
           </div>
+          
         </div>
       </form>
 

@@ -97,9 +97,7 @@ export default function CriarEstrutura() {
     }
   };
 
-  const openResultModal = () => {
-    setIsResultModalOpen(true);
-  };
+  const openResultModal = () => setIsResultModalOpen(true);
 
   const closeResultModal = () => {
     setIsResultModalOpen(false);
@@ -205,14 +203,9 @@ export default function CriarEstrutura() {
   const handleTopicoAreaCheckboxChange = (e) => {
     const value = e.target.value;
     const isChecked = e.target.checked;
-
-    setTopicoAreasSelecionadas((prev) => {
-      if (isChecked) {
-        return [...prev, value];
-      } else {
-        return prev.filter((areaId) => areaId !== value);
-      }
-    });
+    setTopicoAreasSelecionadas((prev) =>
+      isChecked ? [...prev, value] : prev.filter((areaId) => areaId !== value)
+    );
   };
 
   if (dataLoading) {
@@ -280,6 +273,7 @@ export default function CriarEstrutura() {
       </ul>
 
       <div className="tab-content" id="myTabContent">
+        {/* Categoria */}
         <div
           className={`tab-pane fade ${
             activeTab === "categoria" ? "show active" : ""
@@ -303,16 +297,27 @@ export default function CriarEstrutura() {
                 disabled={loading}
               />
             </div>
-            <button
-              type="submit"
-              className="btn btn-primary"
-              disabled={loading}
-            >
-              {loading ? "A Criar..." : "Criar Categoria"}
-            </button>
+
+            <div className="d-flex gap-2">
+              <button
+                type="submit"
+                className="btn btn-primary"
+                disabled={loading}
+              >
+                {loading ? "A Criar..." : "Criar Categoria"}
+              </button>
+              <button
+                type="button"
+                className="btn btn-danger"
+                onClick={() => navigate("/gerir-estrutura")}
+              >
+                Cancelar
+              </button>
+            </div>
           </form>
         </div>
 
+        {/* Área */}
         <div
           className={`tab-pane fade ${
             activeTab === "area" ? "show active" : ""
@@ -363,16 +368,27 @@ export default function CriarEstrutura() {
                 </div>
               )}
             </div>
-            <button
-              type="submit"
-              className="btn btn-primary"
-              disabled={loading || categorias.length === 0}
-            >
-              {loading ? "A Criar..." : "Criar Área"}
-            </button>
+
+            <div className="d-flex gap-2">
+              <button
+                type="submit"
+                className="btn btn-primary"
+                disabled={loading || categorias.length === 0}
+              >
+                {loading ? "A Criar..." : "Criar Área"}
+              </button>
+              <button
+                type="button"
+                className="btn btn-danger"
+                onClick={() => navigate("/gerir-estrutura")}
+              >
+                Cancelar
+              </button>
+            </div>
           </form>
         </div>
 
+        {/* Tópico */}
         <div
           className={`tab-pane fade ${
             activeTab === "topico" ? "show active" : ""
@@ -431,17 +447,27 @@ export default function CriarEstrutura() {
                 </div>
               )}
             </div>
-            <button
-              type="submit"
-              className="btn btn-primary"
-              disabled={
-                loading ||
-                areas.length === 0 ||
-                topicoAreasSelecionadas.length === 0
-              }
-            >
-              {loading ? "A Criar..." : "Criar Tópico"}
-            </button>
+
+            <div className="d-flex gap-2">
+              <button
+                type="submit"
+                className="btn btn-primary"
+                disabled={
+                  loading ||
+                  areas.length === 0 ||
+                  topicoAreasSelecionadas.length === 0
+                }
+              >
+                {loading ? "A Criar..." : "Criar Tópico"}
+              </button>
+              <button
+                type="button"
+                className="btn btn-danger"
+                onClick={() => navigate("/gerir-estrutura")}
+              >
+                Cancelar
+              </button>
+            </div>
           </form>
         </div>
       </div>
