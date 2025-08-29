@@ -1,25 +1,27 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
-import Calendar from 'react-calendar';
-import '@shared/styles/calendar.css';
-import NavbarBack from '../components/NavbarBack';
-import Footer from '@shared/components/Footer';
+import React, { useState } from "react";
+import { Link } from "react-router-dom";
+import Calendar from "react-calendar";
+import "react-calendar/dist/Calendar.css";
+import "@shared/styles/calendar.css";
+import NavbarBack from "../components/NavbarBack";
+import Footer from "@shared/components/Footer";
 
 export default function HomeBackOffice() {
-
-  const user = JSON.parse(sessionStorage.getItem('user'));
+  const user = JSON.parse(sessionStorage.getItem("user"));
+  const [selectedDate, setSelectedDate] = useState(new Date());
 
   return (
     <div className="d-flex flex-column  bg-light">
-
       <main className="flex-grow-1 py-5">
         <div className="container">
-          <h2 className="mb-5 text-center">Bem vindo(a), {user?.nome.split(' ')[0]}!</h2>
+          <h2 className="mb-5 text-center">
+            Bem vindo(a), {user?.nome.split(" ")[0]}!
+          </h2>
 
           <div className="row g-4">
             <div className="col-lg-8">
               <div className="row g-4">
-                <div className="col-md-6 col-lg-6"> 
+                <div className="col-md-6 col-lg-6">
                   <div className="card h-100 shadow border-radius">
                     <div className="card-body d-flex flex-column align-items-center justify-content-center">
                       <i className="ri-computer-line"></i>
@@ -32,7 +34,7 @@ export default function HomeBackOffice() {
                   </div>
                 </div>
 
-                <div className="col-md-6 col-lg-6"> 
+                <div className="col-md-6 col-lg-6">
                   <div className="card h-100 shadow border-radius">
                     <div className="card-body d-flex flex-column align-items-center justify-content-center">
                       <i className="ri-group-line"></i>
@@ -45,12 +47,14 @@ export default function HomeBackOffice() {
                   </div>
                 </div>
 
-                <div className="col-md-6 col-lg-6"> 
+                <div className="col-md-6 col-lg-6">
                   <div className="card h-100 shadow border-radius">
                     <div className="card-body d-flex flex-column align-items-center justify-content-center">
                       <i className="ri-organization-chart-line"></i>
                       <h5 className="card-title">Gerir Estrutura</h5>
-                      <p className="card-text">Organizar áreas, categorias e topicos</p>
+                      <p className="card-text">
+                        Organizar áreas, categorias e topicos
+                      </p>
                       <Link to="/gerir-estrutura" className="btn btn-primary">
                         Aceder <i className="ri-arrow-right-line"></i>
                       </Link>
@@ -60,26 +64,19 @@ export default function HomeBackOffice() {
               </div>
             </div>
 
-            <div className="col-lg-4 d-none d-lg-block"> 
-              <div className="card shadow border-radius">
+            <div className="col-lg-4 d-none d-lg-block">
+              <div className="card shadow border-radius p-2 calendario-widget">
                 <div className="card-body">
-                  <Calendar locale="pt-PT"
-                    formatShortWeekday={(locale, date) =>
-                    date
-                    .toLocaleDateString(locale, { weekday: 'short' })
-                    .substring(0, 3) // força só 3 letras
-                    }             
-                  next2Label={null}            
-                  prev2Label={null}
-                  showNeighboringMonth={false} 
-                  onChange={(value) => console.log(value)} />
+                  <h5 className="mb-3 fw-semibold mb-1 text-center">
+                    Sabes que dia é hoje?
+                  </h5>
+                  <Calendar onChange={setSelectedDate} value={selectedDate} />
                 </div>
               </div>
             </div>
           </div>
         </div>
       </main>
-
     </div>
   );
 }

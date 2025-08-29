@@ -32,6 +32,7 @@ const CursoSincrono = () => {
   const [studentUploads, setStudentUploads] = useState({}); // { [idavaliacao]: { url?, nome?, nota? } }
   const [avaliacoesRemote, setAvaliacoesRemote] = useState(null);
   const [showAllTopicos, setShowAllTopicos] = useState(false);
+  // Materiais de sessão são geridos em /Criar/Agendar; aqui apenas leitura
   const maxVisibleTopics = 5;
 
   const openResultModal = () => setIsResultModalOpen(true);
@@ -219,43 +220,58 @@ const CursoSincrono = () => {
     );
   }, [myInscricao, user, resolveUserId]);
 
+  // Nota final do formando (só leitura)
   const studentFinal = useMemo(() => {
     const d = curso || {};
-    // Prefer explicit per-student keys if backend provides them
+    const targetId = currentFormandoId || resolveUserId;
+
+    if (!d) return null;
+
+    // Campos diretos por formando
     const mineDirect =
-      d.minhaAvaliacaoFinal || d.minhaavaliacaofinal || d.notaFinal;
+      d.minhaAvaliacaoFinal ||
+      d.minhaavaliacaofinal ||
+      d.notaFinal ||
+      d.avaliacaofinal;
     if (mineDirect != null) {
       if (typeof mineDirect === "object") {
         const n =
-          mineDirect.nota ??
-          mineDirect.classificacao ??
-          mineDirect.valor ??
-          mineDirect;
+          mineDirect.nota ?? mineDirect.classificacao ?? mineDirect.valor;
         if (n != null) return { nota: n };
       } else {
         return { nota: mineDirect };
       }
     }
-    let list =
-      (Array.isArray(d.avaliacaofinal) && d.avaliacaofinal) ||
-      (Array.isArray(d.avaliacoesfinais) && d.avaliacoesfinais) ||
-      (Array.isArray(d.avaliacoesFinais) && d.avaliacoesFinais) ||
-      (Array.isArray(d.finais) && d.finais) ||
-      [];
-    const targetId = currentFormandoId ?? resolveUserId;
-    if (Array.isArray(list) && list.length) {
-      for (const it of list) {
-        const fid =
-          it?.formando ??
-          it?.idformando ??
-          it?.id ??
-          it?.utilizador ??
-          it?.userId;
-        const nota = it?.nota ?? it?.classificacao;
-        if (String(fid) === String(targetId)) return { nota };
+
+    // Arrays de finais
+    const arrs = [
+      d.avaliacoesFinais,
+      d.avaliacoesfinal,
+      d.finais,
+      d.final,
+      d.avaliacaofinal,
+    ];
+    for (const arr of arrs) {
+      if (Array.isArray(arr)) {
+        const found = arr.find((it) => {
+          const fid =
+            it?.idformando ??
+            it?.formando ??
+            it?.idutilizador ??
+            it?.utilizador ??
+            it?.id;
+
+          return targetId != null && String(fid) === String(targetId);
+        });
+        if (found) {
+          const n =
+            found.nota ?? found.classificacao ?? found.valor ?? found.resultado;
+          if (n != null) return { nota: n };
+        }
       }
     }
-    // object-shaped
+
+    // Objetos mapeados por id
     const maps = [d.avaliacaofinal, d.finais];
     for (const m of maps) {
       if (m && !Array.isArray(m) && typeof m === "object") {
@@ -267,103 +283,49 @@ const CursoSincrono = () => {
         }
       }
     }
-    return null;
-  }, [curso, resolveUserId, currentFormandoId]);
 
-  // Fetch student's own submission per avaliação when opening Submissões
-  const fetchedSubsRef = useRef(false);
-  useEffect(() => {
-    const run = async () => {
-      if (fetchedSubsRef.current) return;
-      if (activeTab !== "submissoes") return;
-      // If course payload lacks evaluations, try a dedicated endpoint
-      if (!avaliacoesContinuas?.length) {
-        try {
-          const res = await api.get(
-            `/curso/cursosincrono/${id}/avalicaocontinua`
-          );
-          const arr = Array.isArray(res.data)
-            ? res.data
-            : Array.isArray(res.data?.data)
-            ? res.data.data
-            : [];
-          if (arr.length) setAvaliacoesRemote(arr);
-        } catch {
-          // ignore; fallback to course payload only
-        }
-      }
-      if (!avaliacoesContinuas?.length) return;
-      // Only trainers can call the submissions listing endpoint; students rely on embedded "minhasubmissao"
-      if (!isFormadorDoCurso) return;
-      try {
-        const results = await Promise.all(
-          avaliacoesContinuas.map(async (av) => {
-            const idav =
-              av.idavaliacaocontinua || av.idavaliacao || av.id || av.codigo;
-            try {
-              const res = await api.get(
-                `/curso/cursosincrono/${id}/avalicaocontinua/${idav}/submissoes`
-              );
-              const arr = Array.isArray(res.data)
-                ? res.data
-                : Array.isArray(res.data?.data)
-                ? res.data.data
-                : [];
-              const mine = arr.find((s) => {
-                const sid =
-                  s?.idformando ??
-                  s?.formando ??
-                  s?.utilizador ??
-                  s?.userId ??
-                  s?.id;
-                const semail = s?.email || s?.formando || s?.formandoEmail;
-                return (
-                  (currentFormandoId != null &&
-                    String(sid) === String(currentFormandoId)) ||
-                  (user?.email &&
-                    semail &&
-                    String(semail).toLowerCase() ===
-                      String(user.email).toLowerCase())
-                );
-              });
-              if (mine) {
-                return [
-                  idav,
-                  {
-                    submitted: true,
-                    nota: mine?.nota ?? mine?.classificacao,
-                    link: mine?.link || mine?.url || mine?.ficheiro,
-                  },
-                ];
-              }
-              return null;
-            } catch {
-              return null;
-            }
-          })
-        );
-        const mapped = results.filter(Boolean);
-        if (mapped.length) {
-          setStudentUploads((prev) => {
-            const next = { ...prev };
-            for (const [k, v] of mapped) next[k] = { ...(prev[k] || {}), ...v };
-            return next;
-          });
-        }
-        fetchedSubsRef.current = true;
-      } catch {
-        // ignore
-      }
-    };
-    run();
-  }, [
-    activeTab,
-    avaliacoesContinuas,
-    id,
-    currentFormandoId,
-    user,
-    isFormadorDoCurso,
-  ]);
+    // Derivar da própria inscrição (myInscricao) ou do inscrito correspondente
+    const candidate = myInscricao;
+    const base =
+      candidate?.formando ||
+      candidate?.user ||
+      candidate?.utilizador ||
+      candidate;
+    const notaFromEntryTop =
+      candidate?.notaFinal ??
+      candidate?.nota ??
+      candidate?.avaliacaofinal ??
+      candidate?.avaliacaoFinal ??
+      candidate?.classificacaoFinal ??
+      candidate?.classificacao;
+    const notaFromEntryObj =
+      (typeof candidate?.avaliacaofinal === "object" &&
+        candidate?.avaliacaofinal !== null &&
+        (candidate?.avaliacaofinal?.nota ??
+          candidate?.avaliacaofinal?.classificacao)) ||
+      (typeof candidate?.avaliacaoFinal === "object" &&
+        candidate?.avaliacaoFinal !== null &&
+        (candidate?.avaliacaoFinal?.nota ??
+          candidate?.avaliacaoFinal?.classificacao)) ||
+      (typeof candidate?.final === "object" &&
+        candidate?.final !== null &&
+        (candidate?.final?.nota ?? candidate?.final?.classificacao));
+    const notaFromBase =
+      base?.notaFinal ??
+      base?.nota ??
+      base?.avaliacaofinal ??
+      base?.avaliacaoFinal ??
+      base?.classificacaoFinal ??
+      base?.classificacao;
+    const notaDerived = notaFromEntryObj ?? notaFromEntryTop ?? notaFromBase;
+    if (notaDerived != null) return { nota: notaDerived };
+
+    return null;
+  }, [curso, resolveUserId, currentFormandoId, myInscricao]);
+
+  // Evitar chamadas extra: confiar no payload de /curso/:id para nota final
+
+  // Evitar chamada às submissões: usar apenas os campos embebidos no payload
 
   // No per-formando GET for finals to avoid 404; rely on course payload
 
@@ -377,7 +339,10 @@ const CursoSincrono = () => {
       // Try common field names
       fd.append("ficheiro", file);
       fd.append("resolucao", file);
-      const url = `/curso/cursosincrono/${id}/avalicaocontinua/${idavaliacao}/submeter`;
+      // Prefer the cronograma id (idcrono) when calling cursosincrono endpoints
+      const cronId = curso?.idcrono || id;
+      // Correct endpoint path spelling: avaliacaocontinua
+      const url = `/curso/cursosincrono/${cronId}/avaliacaocontinua/${idavaliacao}/submeter`;
       if (isUpdate)
         await api.put(url, fd, {
           headers: { "Content-Type": "multipart/form-data" },
@@ -519,10 +484,10 @@ const CursoSincrono = () => {
                 </button>
                 <button
                   type="button"
-                  className={`btn btn-sm btn-outline-primary`}
+                  className={`btn btn-sm btn-outline-primary ms-auto`}
                   onClick={() => navigate(`/curso-sincrono/${id}/agendar`)}
                 >
-                  Agenda
+                  Agendar Sessões
                 </button>
                 <button
                   type="button"
@@ -533,7 +498,7 @@ const CursoSincrono = () => {
                 </button>
                 <button
                   type="button"
-                  className="btn btn-sm btn-outline-primary ms-auto"
+                  className="btn btn-sm btn-outline-primary"
                   onClick={() => navigate(`/editar/curso-sincrono/${id}`)}
                 >
                   Editar Curso
@@ -676,29 +641,90 @@ const CursoSincrono = () => {
                 <h2 className="h5">Sessões</h2>
                 <ul className="list-group small">
                   {curso.sessoes.map((s) => (
-                    <li
-                      key={s.idsessao}
-                      className="list-group-item d-flex justify-content-between align-items-center"
-                    >
-                      <div>
-                        <strong>{s.titulo}</strong>
-                        <br />
-                        <span className="text-muted">
-                          {formatDataHora(s.datahora)} ({s.duracaohoras}h)
-                        </span>
-                        {s.linksessao && (
-                          <>
-                            <br />
-                            <a
-                              href={s.linksessao}
-                              target="_blank"
-                              rel="noreferrer"
-                            >
-                              Link
-                            </a>
-                          </>
-                        )}
+                    <li key={s.idsessao} className="list-group-item">
+                      <div className="d-flex justify-content-between align-items-start gap-3">
+                        <div>
+                          <strong>{s.titulo}</strong>
+                          <br />
+                          <span className="text-muted">
+                            {formatDataHora(s.datahora)} ({s.duracaohoras}h)
+                          </span>
+                          {s.linksessao && (
+                            <>
+                              <br />
+                              <a
+                                href={s.linksessao}
+                                target="_blank"
+                                rel="noreferrer"
+                              >
+                                Link
+                              </a>
+                            </>
+                          )}
+                        </div>
                       </div>
+
+                      {/* Materiais da sessão (leitura) */}
+                      {(() => {
+                        const mats =
+                          s?.materiais ||
+                          s?.materials ||
+                          s?.conteudos ||
+                          s?.materiaisSessao ||
+                          s?.conteudosSessao ||
+                          [];
+                        return (
+                          <div className="mt-2">
+                            <div className="d-flex align-items-center justify-content-between">
+                              <span className="fw-semibold">Materiais</span>
+                            </div>
+                            {Array.isArray(mats) && mats.length > 0 ? (
+                              <ul className="mt-2 mb-0 ps-3">
+                                {mats.map((m, idx) => {
+                                  const mid =
+                                    m?.idmaterial || m?.id || m?.codigo || idx;
+                                  const mname =
+                                    m?.nome ||
+                                    m?.filename ||
+                                    m?.titulo ||
+                                    m?.designacao ||
+                                    `Material ${idx + 1}`;
+                                  const murl =
+                                    m?.url ||
+                                    m?.link ||
+                                    m?.ficheiro ||
+                                    m?.file ||
+                                    m?.path;
+                                  return (
+                                    <li
+                                      key={mid}
+                                      className="d-flex align-items-center justify-content-between gap-2"
+                                    >
+                                      <div>
+                                        {murl ? (
+                                          <a
+                                            href={murl}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                          >
+                                            {mname}
+                                          </a>
+                                        ) : (
+                                          <span>{mname}</span>
+                                        )}
+                                      </div>
+                                    </li>
+                                  );
+                                })}
+                              </ul>
+                            ) : (
+                              <p className="text-muted mb-0 mt-1">
+                                Sem materiais.
+                              </p>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </li>
                   ))}
                 </ul>
@@ -870,13 +896,11 @@ const CursoSincrono = () => {
               <div>
                 <h2 className="h5">Avaliação Final</h2>
                 {studentFinal?.nota != null ? (
-                  <div className="alert alert-success mb-0">
-                    Nota final: <strong>{String(studentFinal?.nota)}</strong>
+                  <div className="alert alert-success">
+                    Nota final: <strong>{String(studentFinal.nota)}</strong>
                   </div>
                 ) : (
-                  <div className="alert alert-info mb-0">
-                    Ainda não atribuída.
-                  </div>
+                  <div className="alert alert-info">Ainda não atribuída.</div>
                 )}
               </div>
             )}
