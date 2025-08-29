@@ -23,6 +23,7 @@ const area = require('./routes/areaRoute.js');
 const topico = require('./routes/topicoRoute.js');
 const notificacao = require('./routes/notificacaoRoute.js');
 const curso = require('./routes/cursoRoute.js');
+const forum = require('./routes/forumRoute.js');
 
 // Defenicao de rotas
 
@@ -40,5 +41,6 @@ app.use('/area',area);
 app.use('/topico',topico);
 app.use('/notificacao',notificacao);
 app.use('/curso',curso);
+app.use('/forum',forum);
 
 

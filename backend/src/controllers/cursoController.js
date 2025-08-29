@@ -2008,8 +2008,6 @@ controllers.rmSessaoContent = async (req, res) => {
 
 };
 
-//TODO
-
 
 controllers.createAvaliacaoContinua = async (req, res) => {
 

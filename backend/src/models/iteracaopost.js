@@ -1,35 +1,39 @@
 const Sequelize = require('sequelize');
 module.exports = function(sequelize, DataTypes) {
-  return sequelize.define('respostacomentario', {
-    idcomentario: {
+  return sequelize.define('iteracaopost', {
+    post: {
       type: DataTypes.BIGINT,
       allowNull: false,
       primaryKey: true,
       references: {
-        model: 'comentario',
-        key: 'idcomentario'
+        model: 'post',
+        key: 'idpost'
       }
     },
-    comentario: {
+    utilizador: {
       type: DataTypes.BIGINT,
       allowNull: false,
       primaryKey: true,
       references: {
-        model: 'comentario',
-        key: 'idcomentario'
+        model: 'utilizadores',
+        key: 'idutilizador'
       }
+    },
+    positiva: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false
     }
   }, {
-    tableName: 'respostacomentario',
+    tableName: 'iteracaopost',
     schema: 'public',
     timestamps: false,
     indexes: [
       {
-        name: "respostacomentario_pk",
+        name: "post_iteracao_pk",
         unique: true,
         fields: [
-          { name: "idcomentario" },
-          { name: "comentario" },
+          { name: "post" },
+          { name: "utilizador" },
         ]
       },
     ]

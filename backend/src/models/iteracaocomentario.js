@@ -1,15 +1,6 @@
 const Sequelize = require('sequelize');
 module.exports = function(sequelize, DataTypes) {
-  return sequelize.define('respostacomentario', {
-    idcomentario: {
-      type: DataTypes.BIGINT,
-      allowNull: false,
-      primaryKey: true,
-      references: {
-        model: 'comentario',
-        key: 'idcomentario'
-      }
-    },
+  return sequelize.define('iteracaocomentario', {
     comentario: {
       type: DataTypes.BIGINT,
       allowNull: false,
@@ -18,18 +9,31 @@ module.exports = function(sequelize, DataTypes) {
         model: 'comentario',
         key: 'idcomentario'
       }
+    },
+    utilizador: {
+      type: DataTypes.BIGINT,
+      allowNull: false,
+      primaryKey: true,
+      references: {
+        model: 'utilizadores',
+        key: 'idutilizador'
+      }
+    },
+    positiva: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false
     }
   }, {
-    tableName: 'respostacomentario',
+    tableName: 'iteracaocomentario',
     schema: 'public',
     timestamps: false,
     indexes: [
       {
-        name: "respostacomentario_pk",
+        name: "comentario_iteracao_pk",
         unique: true,
         fields: [
-          { name: "idcomentario" },
           { name: "comentario" },
+          { name: "utilizador" },
         ]
       },
     ]

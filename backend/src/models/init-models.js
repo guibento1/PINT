@@ -18,6 +18,8 @@ var _formador = require("./formador");
 var _formando = require("./formando");
 var _historiconotificacoes = require("./historiconotificacoes");
 var _inscricao = require("./inscricao");
+var _iteracaocomentario = require("./iteracaocomentario");
+var _iteracaopost = require("./iteracaopost");
 var _licao = require("./licao");
 var _licaomaterial = require("./licaomaterial");
 var _material = require("./material");
@@ -52,6 +54,8 @@ function initModels(sequelize) {
   var formando = _formando(sequelize, DataTypes);
   var historiconotificacoes = _historiconotificacoes(sequelize, DataTypes);
   var inscricao = _inscricao(sequelize, DataTypes);
+  var iteracaocomentario = _iteracaocomentario(sequelize, DataTypes);
+  var iteracaopost = _iteracaopost(sequelize, DataTypes);
   var licao = _licao(sequelize, DataTypes);
   var licaomaterial = _licaomaterial(sequelize, DataTypes);
   var material = _material(sequelize, DataTypes);
@@ -69,6 +73,10 @@ function initModels(sequelize) {
   area.belongsToMany(topico, { as: 'topico_topico_topicoareas', through: topicoarea, foreignKey: "area", otherKey: "topico" });
   avaliacaocontinua.belongsToMany(avaliacaocontinua, { as: 'cursosincrono_avaliacaocontinuas', through: submissao, foreignKey: "avaliacaocontinua", otherKey: "cursosincrono" });
   avaliacaocontinua.belongsToMany(avaliacaocontinua, { as: 'avaliacaocontinua_avaliacaocontinuas', through: submissao, foreignKey: "cursosincrono", otherKey: "avaliacaocontinua" });
+  comentario.belongsToMany(comentario, { as: 'comentario_comentario_respostacomentarios', through: respostacomentario, foreignKey: "idcomentario", otherKey: "comentario" });
+  comentario.belongsToMany(comentario, { as: 'idcomentario_comentarios', through: respostacomentario, foreignKey: "comentario", otherKey: "idcomentario" });
+  comentario.belongsToMany(post, { as: 'post_post_respostaposts', through: respostapost, foreignKey: "idcomentario", otherKey: "post" });
+  comentario.belongsToMany(utilizadores, { as: 'utilizador_utilizadores', through: iteracaocomentario, foreignKey: "comentario", otherKey: "utilizador" });
   curso.belongsToMany(formando, { as: 'formando_formando_inscricaos', through: inscricao, foreignKey: "curso", otherKey: "formando" });
   curso.belongsToMany(topico, { as: 'topico_topicos', through: cursotopico, foreignKey: "curso", otherKey: "topico" });
   cursosincrono.belongsToMany(formando, { as: 'formando_formandos', through: avaliacaofinal, foreignKey: "cursosincrono", otherKey: "formando" });
@@ -76,8 +84,12 @@ function initModels(sequelize) {
   formando.belongsToMany(cursosincrono, { as: 'cursosincrono_cursosincronos', through: avaliacaofinal, foreignKey: "formando", otherKey: "cursosincrono" });
   licao.belongsToMany(material, { as: 'material_materials', through: licaomaterial, foreignKey: "licao", otherKey: "material" });
   material.belongsToMany(licao, { as: 'licao_licaos', through: licaomaterial, foreignKey: "material", otherKey: "licao" });
+  post.belongsToMany(comentario, { as: 'idcomentario_comentario_respostaposts', through: respostapost, foreignKey: "post", otherKey: "idcomentario" });
+  post.belongsToMany(utilizadores, { as: 'utilizador_utilizadores_iteracaoposts', through: iteracaopost, foreignKey: "post", otherKey: "utilizador" });
   topico.belongsToMany(area, { as: 'area_areas', through: topicoarea, foreignKey: "topico", otherKey: "area" });
   topico.belongsToMany(curso, { as: 'curso_cursos', through: cursotopico, foreignKey: "topico", otherKey: "curso" });
+  utilizadores.belongsToMany(comentario, { as: 'comentario_comentarios', through: iteracaocomentario, foreignKey: "utilizador", otherKey: "comentario" });
+  utilizadores.belongsToMany(post, { as: 'post_posts', through: iteracaopost, foreignKey: "utilizador", otherKey: "post" });
   topicoarea.belongsTo(area, { as: "area_area", foreignKey: "area"});
   area.hasMany(topicoarea, { as: "topicoareas", foreignKey: "area"});
   submissao.belongsTo(avaliacaocontinua, { as: "avaliacaocontinua_avaliacaocontinua", foreignKey: "avaliacaocontinua"});
@@ -92,8 +104,14 @@ function initModels(sequelize) {
   categoria.hasMany(area, { as: "areas", foreignKey: "categoria"});
   denunciacomentario.belongsTo(comentario, { as: "comentario_comentario", foreignKey: "comentario"});
   comentario.hasMany(denunciacomentario, { as: "denunciacomentarios", foreignKey: "comentario"});
+  iteracaocomentario.belongsTo(comentario, { as: "comentario_comentario", foreignKey: "comentario"});
+  comentario.hasMany(iteracaocomentario, { as: "iteracaocomentarios", foreignKey: "comentario"});
+  respostacomentario.belongsTo(comentario, { as: "idcomentario_comentario", foreignKey: "idcomentario"});
+  comentario.hasMany(respostacomentario, { as: "respostacomentarios", foreignKey: "idcomentario"});
   respostacomentario.belongsTo(comentario, { as: "comentario_comentario", foreignKey: "comentario"});
-  comentario.hasMany(respostacomentario, { as: "respostacomentarios", foreignKey: "comentario"});
+  comentario.hasMany(respostacomentario, { as: "comentario_respostacomentarios", foreignKey: "comentario"});
+  respostapost.belongsTo(comentario, { as: "idcomentario_comentario", foreignKey: "idcomentario"});
+  comentario.hasMany(respostapost, { as: "respostaposts", foreignKey: "idcomentario"});
   cursoassincrono.belongsTo(curso, { as: "curso_curso", foreignKey: "curso"});
   curso.hasMany(cursoassincrono, { as: "cursoassincronos", foreignKey: "curso"});
   cursosincrono.belongsTo(curso, { as: "curso_curso", foreignKey: "curso"});
@@ -130,6 +148,8 @@ function initModels(sequelize) {
   material.hasMany(licaomaterial, { as: "licaomaterials", foreignKey: "material"});
   denunciapost.belongsTo(post, { as: "post_post", foreignKey: "post"});
   post.hasMany(denunciapost, { as: "denunciaposts", foreignKey: "post"});
+  iteracaopost.belongsTo(post, { as: "post_post", foreignKey: "post"});
+  post.hasMany(iteracaopost, { as: "iteracaoposts", foreignKey: "post"});
   respostapost.belongsTo(post, { as: "post_post", foreignKey: "post"});
   post.hasMany(respostapost, { as: "respostaposts", foreignKey: "post"});
   denuncia.belongsTo(tipodenuncia, { as: "tipo_tipodenuncium", foreignKey: "tipo"});
@@ -154,6 +174,10 @@ function initModels(sequelize) {
   utilizadores.hasMany(formador, { as: "formadors", foreignKey: "utilizador"});
   formando.belongsTo(utilizadores, { as: "utilizador_utilizadore", foreignKey: "utilizador"});
   utilizadores.hasMany(formando, { as: "formandos", foreignKey: "utilizador"});
+  iteracaocomentario.belongsTo(utilizadores, { as: "utilizador_utilizadore", foreignKey: "utilizador"});
+  utilizadores.hasMany(iteracaocomentario, { as: "iteracaocomentarios", foreignKey: "utilizador"});
+  iteracaopost.belongsTo(utilizadores, { as: "utilizador_utilizadore", foreignKey: "utilizador"});
+  utilizadores.hasMany(iteracaopost, { as: "iteracaoposts", foreignKey: "utilizador"});
   material.belongsTo(utilizadores, { as: "criador_utilizadore", foreignKey: "criador"});
   utilizadores.hasMany(material, { as: "materials", foreignKey: "criador"});
   post.belongsTo(utilizadores, { as: "utilizador_utilizadore", foreignKey: "utilizador"});
@@ -179,6 +203,8 @@ function initModels(sequelize) {
     formando,
     historiconotificacoes,
     inscricao,
+    iteracaocomentario,
+    iteracaopost,
     licao,
     licaomaterial,
     material,

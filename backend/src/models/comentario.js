@@ -24,6 +24,16 @@ module.exports = function(sequelize, DataTypes) {
       type: DataTypes.BIGINT,
       allowNull: false,
       defaultValue: 0
+    },
+    nrespostas: {
+      type: DataTypes.BIGINT,
+      allowNull: false,
+      defaultValue: 0
+    },
+    criado: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      defaultValue: Sequelize.Sequelize.literal('CURRENT_TIMESTAMP')
     }
   }, {
     tableName: 'comentario',
