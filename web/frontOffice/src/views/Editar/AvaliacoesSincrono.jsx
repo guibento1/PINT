@@ -1,11 +1,11 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import api from "@shared/services/axios";
 import Modal from "@shared/components/Modal";
 import useUserRole from "@shared/hooks/useUserRole";
 
 const AvaliacoesSincrono = () => {
-  const { id } = useParams(); // id curso sincrono
+  const { id } = useParams();
   const navigate = useNavigate();
   const user = JSON.parse(sessionStorage.getItem("user") || "{}");
   const { isFormador } = useUserRole();
@@ -45,6 +45,50 @@ const AvaliacoesSincrono = () => {
     setIsResultModalOpen(false);
     setOperationStatus(null);
     setOperationMessage("");
+  };
+
+  // Small helpers to avoid repetition
+  const normalizeInscrito = (entry) => {
+    const base = entry?.formando || entry?.user || entry?.utilizador || entry;
+    const [first = "", ...rest] = (base?.nome || "").split(" ");
+    return {
+      ...base,
+      idformando:
+        base?.idformando ??
+        entry?.formando ??
+        base?.formando ??
+        base?.id ??
+        base?.utilizador ??
+        base?.userId,
+      primeiroNome:
+        base?.primeiroNome ||
+        base?.primeiro ||
+        base?.firstName ||
+        base?.primeiro_nome ||
+        first,
+      ultimoNome:
+        base?.ultimoNome ||
+        base?.ultimo ||
+        base?.lastName ||
+        base?.ultimo_nome ||
+        (rest.length ? rest.join(" ") : ""),
+    };
+  };
+
+  const mapObjToFinais = (obj) => {
+    if (!obj || Array.isArray(obj) || typeof obj !== "object") return [];
+    return Object.entries(obj)
+      .map(([k, v]) => {
+        const raw =
+          typeof v === "object" && v !== null
+            ? v.nota ?? v.classificacao ?? v.valor ?? v
+            : v;
+        if (typeof raw === "boolean" || raw == null || raw === "") return null;
+        const notaParsed = typeof raw === "number" ? raw : Number(raw);
+        if (!Number.isFinite(notaParsed)) return null;
+        return { formando: Number(k) || k, nota: notaParsed };
+      })
+      .filter(Boolean);
   };
 
   // Finals local cache (sessionStorage) to prevent visual regressions on refresh
@@ -89,293 +133,155 @@ const AvaliacoesSincrono = () => {
 
   const fetchCurso = useCallback(async () => {
     setLoading(true);
-    try {
-      const res = await api.get(`/curso/${id}`);
-      setCurso(res.data || null);
-    } catch (e) {
-      setCurso(null);
-    } finally {
-      setLoading(false);
-    }
-  }, [id]);
-
-  const fetchAvaliacoes = useCallback(async () => {
-    // Avoid 404s: parse from course details only
+    setLoadingFinais(true);
+    setLoadingInscritos(true);
     try {
       const res = await api.get(`/curso/${id}`);
       const d = res.data || {};
-      const list =
+      setCurso(d);
+
+      // Avaliações contínuas a partir do payload do curso
+      const avList =
         (Array.isArray(d.avaliacaocontinua) && d.avaliacaocontinua) ||
         (Array.isArray(d.avaliacoes) && d.avaliacoes) ||
         (Array.isArray(d.avaliacoesContinuas) && d.avaliacoesContinuas) ||
         [];
-      setAvaliacoes(list);
-    } catch (e) {
-      // keep previous state on error
-    }
-  }, [id]);
+      setAvaliacoes(avList);
 
-  // Final evaluations: try a course-level finals endpoint, then fall back to course details parsing
-  const fetchFinais = useCallback(async () => {
-    setLoadingFinais(true);
-    try {
-      let list = [];
-      // Start with any cached values to reduce flicker
-      const cached = loadFinaisCache();
-      if (cached?.length) setFinais((prev) => (prev?.length ? prev : cached));
-
-      // 1) Try a dedicated finals endpoint for the course
-      try {
-        const r2 = await api.get(`/curso/cursosincrono/${id}/avaliacaofinal`);
-        const d2 = r2?.data;
-        if (Array.isArray(d2)) {
-          list = d2
-            .map((it) => {
-              const fRaw =
-                typeof it?.formando === "object" && it?.formando !== null
-                  ? it?.formando?.idformando ??
-                    it?.formando?.id ??
-                    it?.formando?.idutilizador ??
-                    it?.formando?.utilizador ??
-                    it?.formando?.userId
-                  : it?.formando;
-              const fid =
-                fRaw ??
-                it?.idformando ??
-                it?.id ??
-                it?.utilizador ??
-                it?.userId;
-              const nota =
-                it?.nota ??
-                it?.classificacao ??
-                (typeof it === "number" ? it : undefined);
-              if (fid == null || nota == null) return null;
-              return { formando: fid, nota };
-            })
-            .filter(Boolean);
-        } else if (d2 && typeof d2 === "object") {
-          list = Object.entries(d2).map(([k, v]) => {
-            const nota =
-              typeof v === "object" && v !== null
-                ? v.nota ?? v.classificacao ?? v.valor ?? v
-                : v;
-            return { formando: Number(k) || k, nota };
-          });
-        }
-      } catch (e0) {
-        // ignore if endpoint not available (404)
-      }
-
-      // 2) Fallback to course details
-      if (!list.length) {
-        const res = await api.get(`/curso/${id}`);
-        const d = res.data || {};
-        list =
-          (Array.isArray(d.avaliacaofinal) && d.avaliacaofinal) ||
-          (Array.isArray(d.avaliacoesfinais) && d.avaliacoesfinais) ||
-          (Array.isArray(d.avaliacoesFinais) && d.avaliacoesFinais) ||
-          (Array.isArray(d.finais) && d.finais) ||
-          [];
-
-        // Normalize array-shaped finals to flat { formando, nota }
-        if (Array.isArray(list) && list.length) {
-          const extractId = (x) =>
-            x?.idformando ??
-            x?.id ??
-            x?.idutilizador ??
-            x?.utilizador ??
-            x?.userId;
-          const normalized = list
-            .map((it) => {
-              const fid =
-                it?.formando != null
-                  ? typeof it.formando === "object" && it.formando !== null
-                    ? extractId(it.formando)
-                    : it.formando
-                  : extractId(it);
-              const nota =
-                it?.nota ??
-                it?.classificacao ??
-                (typeof it === "number" ? it : undefined);
-              if (fid == null || nota == null) return null;
-              return { formando: fid, nota };
-            })
-            .filter(Boolean);
-          if (normalized.length) list = normalized;
-        }
-
-        // Try object-shaped finals: { [idFormando]: { nota } } or { [idFormando]: nota }
-        if (
-          !list.length &&
-          d.avaliacaofinal &&
-          !Array.isArray(d.avaliacaofinal) &&
-          typeof d.avaliacaofinal === "object"
-        ) {
-          list = Object.entries(d.avaliacaofinal).map(([k, v]) => {
-            const val =
-              typeof v === "object" && v !== null
-                ? v.nota ?? v.classificacao ?? v.valor ?? v
-                : v;
-            return { formando: Number(k) || k, nota: val };
-          });
-        }
-
-        // Also support object-shaped d.finais maps
-        if (
-          !list.length &&
-          d.finais &&
-          !Array.isArray(d.finais) &&
-          typeof d.finais === "object"
-        ) {
-          list = Object.entries(d.finais).map(([k, v]) => {
-            const val =
-              typeof v === "object" && v !== null
-                ? v.nota ?? v.classificacao ?? v.valor ?? v
-                : v;
-            return { formando: Number(k) || k, nota: val };
-          });
-        }
-
-        // Try deriving from inscritos/participantes with embedded fields
-        if (!list.length) {
-          const arr =
-            (Array.isArray(d.inscritos) && d.inscritos) ||
-            (Array.isArray(d.participantes) && d.participantes) ||
-            (Array.isArray(d.formandos) && d.formandos) ||
-            (Array.isArray(d.alunos) && d.alunos) ||
-            [];
-          const derived = arr
-            .map((entry) => {
-              const base =
-                entry?.formando || entry?.user || entry?.utilizador || entry;
-              const fid =
-                base?.idformando ??
-                base?.id ??
-                base?.idutilizador ??
-                base?.utilizador ??
-                base?.userId;
-              const notaFromEntryTop =
-                entry?.notaFinal ??
-                entry?.nota ??
-                entry?.avaliacaofinal ??
-                entry?.avaliacaoFinal ??
-                entry?.classificacaoFinal ??
-                entry?.classificacao;
-              const notaFromEntryObj =
-                (typeof entry?.avaliacaofinal === "object" &&
-                  entry?.avaliacaofinal !== null &&
-                  (entry?.avaliacaofinal?.nota ??
-                    entry?.avaliacaofinal?.classificacao)) ||
-                (typeof entry?.avaliacaoFinal === "object" &&
-                  entry?.avaliacaoFinal !== null &&
-                  (entry?.avaliacaoFinal?.nota ??
-                    entry?.avaliacaoFinal?.classificacao)) ||
-                (typeof entry?.final === "object" &&
-                  entry?.final !== null &&
-                  (entry?.final?.nota ?? entry?.final?.classificacao));
-              const notaFromBase =
-                base?.notaFinal ??
-                base?.nota ??
-                base?.avaliacaofinal ??
-                base?.avaliacaoFinal ??
-                base?.classificacaoFinal ??
-                base?.classificacao;
-              const nota = notaFromEntryObj ?? notaFromEntryTop ?? notaFromBase;
-              if (fid == null || nota == null) return null;
-              return { formando: fid, nota };
-            })
-            .filter(Boolean);
-          if (derived.length) list = derived;
+      // Inscritos normalizados a partir do payload do curso
+      const rawInscritos =
+        (Array.isArray(d.inscritos) && d.inscritos) ||
+        (Array.isArray(d.participantes) && d.participantes) ||
+        (Array.isArray(d.alunos) && d.alunos) ||
+        (Array.isArray(d.formandos) && d.formandos) ||
+        (Array.isArray(d.utilizadores) && d.utilizadores) ||
+        (Array.isArray(d.users) && d.users) ||
+        [];
+      let normalizedInscritos = rawInscritos.map(normalizeInscrito);
+      // If no inscritos provided on course payload, fallback to dedicated route
+      if (!normalizedInscritos.length) {
+        try {
+          const cid = d.idcurso || id;
+          const resIns = await api.get(`/curso/inscricoes/${cid}`);
+          const list = Array.isArray(resIns.data) ? resIns.data : [];
+          normalizedInscritos = list.map(normalizeInscrito);
+        } catch (_) {
+          // ignore, keep empty inscritos
         }
       }
+      setInscritos(normalizedInscritos);
 
-      if (list.length) {
-        setFinais(list);
-        saveFinaisCache(list);
+      // Avaliações finais a partir do payload do curso (suporta número, array, mapa)
+      let finaisList = [];
+      finaisList =
+        (Array.isArray(d.avaliacaofinal) && d.avaliacaofinal) ||
+        (Array.isArray(d.avaliacoesfinais) && d.avaliacoesfinais) ||
+        (Array.isArray(d.avaliacoesFinais) && d.avaliacoesFinais) ||
+        (Array.isArray(d.finais) && d.finais) ||
+        finaisList;
+
+      if (Array.isArray(finaisList) && finaisList.length) {
+        const extractId = (x) =>
+          x?.idformando ??
+          x?.id ??
+          x?.idutilizador ??
+          x?.utilizador ??
+          x?.userId;
+        const normalized = finaisList
+          .map((it) => {
+            const fid =
+              it?.formando != null
+                ? typeof it.formando === "object" && it.formando !== null
+                  ? extractId(it.formando)
+                  : it.formando
+                : extractId(it);
+            const rawNota =
+              it?.nota ??
+              it?.classificacao ??
+              (typeof it === "number" ? it : undefined);
+            if (
+              typeof rawNota === "boolean" ||
+              rawNota == null ||
+              rawNota === ""
+            )
+              return null;
+            const notaParsed =
+              typeof rawNota === "number" ? rawNota : Number(rawNota);
+            if (fid == null || !Number.isFinite(notaParsed)) return null;
+            return { formando: fid, nota: notaParsed };
+          })
+          .filter(Boolean);
+        if (normalized.length) finaisList = normalized;
       }
-      // if empty, keep optimistic/local state
-    } catch (e) {
-      // keep previous state on error
-    } finally {
-      setLoadingFinais(false);
-    }
-  }, [id, loadFinaisCache, saveFinaisCache]);
 
-  // Inscritos from course details only; normalize common shapes
-  const fetchInscritos = useCallback(async () => {
-    setLoadingInscritos(true);
-    try {
-      // Try the provided endpoint first
-      try {
-        const res1 = await api.get(`/curso/inscricoes/${id}`);
-        const arr = Array.isArray(res1.data) ? res1.data : [];
-        const normalized1 = arr.map((base) => {
-          const [first = "", ...rest] = (base?.nome || "").split(" ");
-          return {
-            ...base,
-            // Prefer real formando id; fall back to other identifiers if needed
-            idformando:
+      if (!finaisList.length) finaisList = mapObjToFinais(d.avaliacaofinal);
+      if (!finaisList.length) finaisList = mapObjToFinais(d.finais);
+
+      if (!finaisList.length) {
+        const derived = normalizedInscritos
+          .map((entry) => {
+            const base = entry;
+            const fid =
               base?.idformando ??
-              base?.formando ??
               base?.id ??
               base?.idutilizador ??
               base?.utilizador ??
-              base?.userId,
-            idutilizador: base?.idutilizador,
-            primeiroNome: base?.primeiroNome || first,
-            ultimoNome: base?.ultimoNome || (rest.length ? rest.join(" ") : ""),
-          };
-        });
-        setInscritos(normalized1);
-      } catch (e1) {
-        // Fallback to course details
-        const res = await api.get(`/curso/${id}`);
-        const d = res.data || {};
-        const raw =
-          (Array.isArray(d.inscritos) && d.inscritos) ||
-          (Array.isArray(d.participantes) && d.participantes) ||
-          (Array.isArray(d.alunos) && d.alunos) ||
-          (Array.isArray(d.formandos) && d.formandos) ||
-          (Array.isArray(d.utilizadores) && d.utilizadores) ||
-          (Array.isArray(d.users) && d.users) ||
-          [];
-        const normalized = raw.map((entry) => {
-          const base =
-            entry?.formando || entry?.user || entry?.utilizador || entry;
-          const [first = "", ...rest] = (base?.nome || "").split(" ");
-          return {
-            ...base,
-            idformando:
-              base?.idformando ??
-              entry?.formando ??
-              base?.formando ??
-              base?.id ??
-              base?.utilizador ??
-              base?.userId,
-            primeiroNome:
-              base?.primeiroNome ||
-              base?.primeiro ||
-              base?.firstName ||
-              base?.primeiro_nome ||
-              first,
-            ultimoNome:
-              base?.ultimoNome ||
-              base?.ultimo ||
-              base?.lastName ||
-              base?.ultimo_nome ||
-              (rest.length ? rest.join(" ") : ""),
-          };
-        });
-        setInscritos(normalized);
+              base?.userId;
+            const notaFromEntryTop =
+              entry?.notaFinal ??
+              entry?.nota ??
+              entry?.avaliacaofinal ??
+              entry?.avaliacaoFinal ??
+              entry?.classificacaoFinal ??
+              entry?.classificacao;
+            const notaFromEntryObj =
+              (typeof entry?.avaliacaofinal === "object" &&
+                entry?.avaliacaofinal !== null &&
+                (entry?.avaliacaofinal?.nota ??
+                  entry?.avaliacaofinal?.classificacao)) ||
+              (typeof entry?.avaliacaoFinal === "object" &&
+                entry?.avaliacaoFinal !== null &&
+                (entry?.avaliacaoFinal?.nota ??
+                  entry?.avaliacaoFinal?.classificacao)) ||
+              (typeof entry?.final === "object" &&
+                entry?.final !== null &&
+                (entry?.final?.nota ?? entry?.final?.classificacao));
+            const notaFromBase =
+              base?.notaFinal ??
+              base?.nota ??
+              base?.avaliacaofinal ??
+              base?.avaliacaoFinal ??
+              base?.classificacaoFinal ??
+              base?.classificacao;
+            const raw = notaFromEntryObj ?? notaFromEntryTop ?? notaFromBase;
+            if (typeof raw === "boolean" || raw == null || raw === "")
+              return null;
+            const notaParsed = typeof raw === "number" ? raw : Number(raw);
+            if (fid == null || !Number.isFinite(notaParsed)) return null;
+            return { formando: fid, nota: notaParsed };
+          })
+          .filter(Boolean);
+        if (derived.length) finaisList = derived;
+      }
+
+      if (finaisList.length) {
+        setFinais(finaisList);
+        saveFinaisCache(finaisList);
+      } else {
+        setFinais([]);
       }
     } catch (e) {
+      setCurso(null);
+      setAvaliacoes([]);
       setInscritos([]);
+      setFinais([]);
     } finally {
+      setLoading(false);
+      setLoadingFinais(false);
       setLoadingInscritos(false);
     }
-  }, [id]);
+  }, [id, saveFinaisCache]);
 
-  // Final grades helpers and resolvers (must be defined before use)
   const formandos = useMemo(
     () => (inscritos?.length ? inscritos : curso?.inscritos || []),
     [inscritos, curso]
@@ -390,8 +296,12 @@ const AvaliacoesSincrono = () => {
     f?.userId;
   const resolveFinalFormandoId = (af) =>
     af?.formando ?? af?.idformando ?? af?.id ?? af?.utilizador ?? af?.userId;
-  const resolveNotaFromFinal = (af) =>
-    af?.nota != null ? af.nota : af?.classificacao;
+  const resolveNotaFromFinal = (af) => {
+    const raw = af?.nota != null ? af.nota : af?.classificacao;
+    if (typeof raw === "boolean" || raw == null || raw === "") return undefined;
+    const parsed = typeof raw === "number" ? raw : Number(raw);
+    return Number.isFinite(parsed) ? parsed : undefined;
+  };
   const getFinalByFormandoId = useCallback(
     (fid) =>
       finais.find((af) => String(resolveFinalFormandoId(af)) === String(fid)),
@@ -405,18 +315,9 @@ const AvaliacoesSincrono = () => {
     [getFinalByFormandoId]
   );
 
-  // Optional per-formando fallback removed to avoid 404 noise
-  const perFormandoFetchedRef = useRef(false);
-  const fetchFinaisPerFormando = useCallback(async () => {
-    return; // disabled
-  }, []);
-
   useEffect(() => {
     fetchCurso();
-    fetchAvaliacoes();
-    fetchFinais();
-    fetchInscritos();
-  }, [fetchCurso, fetchAvaliacoes, fetchFinais, fetchInscritos]);
+  }, [fetchCurso]);
 
   // Prefill nota when selecting a formando
   useEffect(() => {
@@ -426,18 +327,7 @@ const AvaliacoesSincrono = () => {
     else setNotaFinal("");
   }, [selectedFormando, getNotaByFormandoId]);
 
-  // After inscritos arrive, if we still don't have finals, per-formando fetch is disabled
-  useEffect(() => {
-    if (
-      !loadingInscritos &&
-      inscritos?.length &&
-      !finais?.length &&
-      !perFormandoFetchedRef.current
-    ) {
-      // perFormandoFetchedRef.current = true;
-      // fetchFinaisPerFormando();
-    }
-  }, [loadingInscritos, inscritos, finais, fetchFinaisPerFormando]);
+  // No extra fetches — rely only on GET /curso/:id
 
   const toIsoOrEmpty = (val) => (val ? new Date(val).toISOString() : "");
 
@@ -471,8 +361,9 @@ const AvaliacoesSincrono = () => {
       };
       fd.append("info", JSON.stringify(info));
       if (enunciadoFile) fd.append("enunciado", enunciadoFile);
+      const cronId = curso?.idcrono || id;
       const createdRes = await api.post(
-        `/curso/cursosincrono/${id}/avaliacaocontinua`,
+        `/curso/cursosincrono/${cronId}/avaliacaocontinua`,
         fd,
         {
           headers: { "Content-Type": "multipart/form-data" },
@@ -486,7 +377,7 @@ const AvaliacoesSincrono = () => {
       if (createdRes?.data) {
         setAvaliacoes((prev) => [createdRes.data, ...prev]);
       } else {
-        await fetchAvaliacoes();
+        await fetchCurso();
       }
       setOperationStatus(0);
       setOperationMessage("Avaliação contínua criada.");
@@ -504,8 +395,9 @@ const AvaliacoesSincrono = () => {
   const handleDeleteAvaliacao = async (idavaliacao) => {
     if (!window.confirm("Eliminar esta avaliação contínua?")) return;
     try {
+      const cronId = curso?.idcrono || id;
       await api.delete(
-        `/curso/cursosincrono/${id}/avaliacaocontinua/${idavaliacao}`
+        `/curso/cursosincrono/${cronId}/avaliacaocontinua/${idavaliacao}`
       );
       setAvaliacoes((prev) =>
         prev.filter((a) => {
@@ -530,8 +422,9 @@ const AvaliacoesSincrono = () => {
     setLoadingSubmissoes(true);
     setSubmissoesError("");
     try {
+      const cronId = curso?.idcrono || id;
       const res = await api.get(
-        `/curso/cursosincrono/${id}/avaliacaocontinua/${idavaliacao}/submissoes`
+        `/curso/cursosincrono/${cronId}/avaliacaocontinua/${idavaliacao}/submissoes`
       );
       const arr = Array.isArray(res.data)
         ? res.data
@@ -552,8 +445,9 @@ const AvaliacoesSincrono = () => {
   const handleCorrigirSubmissao = async (idsubmissao, nota) => {
     if (!selectedAvaliacao) return;
     try {
+      const cronId = curso?.idcrono || id;
       await api.put(
-        `/curso/cursosincrono/${id}/avaliacaocontinua/${selectedAvaliacao}/corrigir`,
+        `/curso/cursosincrono/${cronId}/avaliacaocontinua/${selectedAvaliacao}/corrigir`,
         { idsubmissao, nota: Number(nota) }
       );
       // refresh submissoes
@@ -570,9 +464,6 @@ const AvaliacoesSincrono = () => {
     }
   };
 
-  // Final grades helpers are defined above
-
-  // Auto create/update: try PUT first (update); if it fails, try POST (create)
   const handleGuardarFinal = async () => {
     if (!selectedFormando || notaFinal === "") {
       setOperationStatus(1);
@@ -588,19 +479,66 @@ const AvaliacoesSincrono = () => {
       setFinalSaving(false);
       return openResultModal();
     }
-    const body = { nota: parsedNota };
+    const bodyNota = { nota: parsedNota };
+    const bodyClassif = { classificacao: parsedNota };
     try {
-      // Try update first
-      try {
-        await api.put(
-          `/curso/cursosincrono/${id}/formando/${formandoId}/avaliacaofinal`,
-          body
-        );
-      } catch (e1) {
-        // If update fails, try create
-        await api.post(
-          `/curso/cursosincrono/${id}/formando/${formandoId}/avaliacaofinal`,
-          body
+      const cronId = curso?.idcrono || id;
+      const cursoId = curso?.idcurso || curso?.id || id;
+
+      const attemptSaveForId = async (anyId) => {
+        let lastErr = null;
+        // Try PUT nota
+        try {
+          await api.put(
+            `/curso/cursosincrono/${anyId}/formando/${formandoId}/avaliacaofinal`,
+            bodyNota
+          );
+          return { ok: true };
+        } catch (e1) {
+          lastErr = e1;
+        }
+        // Try PUT classificacao
+        try {
+          await api.put(
+            `/curso/cursosincrono/${anyId}/formando/${formandoId}/avaliacaofinal`,
+            bodyClassif
+          );
+          return { ok: true };
+        } catch (e2) {
+          lastErr = e2;
+        }
+        // Try POST nota
+        try {
+          await api.post(
+            `/curso/cursosincrono/${anyId}/formando/${formandoId}/avaliacaofinal`,
+            bodyNota
+          );
+          return { ok: true };
+        } catch (e3) {
+          lastErr = e3;
+        }
+        // Try POST classificacao
+        try {
+          await api.post(
+            `/curso/cursosincrono/${anyId}/formando/${formandoId}/avaliacaofinal`,
+            bodyClassif
+          );
+          return { ok: true };
+        } catch (e4) {
+          lastErr = e4;
+        }
+        return { ok: false, lastErr };
+      };
+
+      // First with idcrono
+      let result = await attemptSaveForId(cronId);
+      // If forbidden, retry with idcurso on the same endpoint
+      if (!result.ok && result.lastErr?.response?.status === 403) {
+        result = await attemptSaveForId(cursoId);
+      }
+      if (!result.ok) {
+        throw (
+          result.lastErr || new Error("Falha ao guardar a avaliação final.")
         );
       }
       // Optimistic update: reflect grade locally immediately
@@ -625,12 +563,16 @@ const AvaliacoesSincrono = () => {
       });
       setOperationStatus(0);
       setOperationMessage("Avaliação final guardada.");
-      // Optionally refresh in background, but keep optimistic state
-      fetchFinais();
+      // Refresh from single course fetch while keeping optimistic state
+      fetchCurso();
     } catch (err) {
+      const is403 = err?.response?.status === 403;
       setOperationStatus(1);
       setOperationMessage(
-        err?.response?.data?.error || "Erro ao guardar avaliação final."
+        (is403 && "Sem permissões para alterar a avaliação final.") ||
+          err?.response?.data?.error ||
+          err?.message ||
+          "Erro ao guardar avaliação final."
       );
     } finally {
       setFinalSaving(false);
@@ -649,9 +591,21 @@ const AvaliacoesSincrono = () => {
     setFinalSaving(true);
     try {
       const formandoId = Number(selectedFormando);
-      await api.delete(
-        `/curso/cursosincrono/${id}/formando/${formandoId}/avaliacaofinal`
-      );
+      const cronId = curso?.idcrono || id;
+      const cursoId = curso?.idcurso || curso?.id || id;
+      try {
+        await api.delete(
+          `/curso/cursosincrono/${cronId}/formando/${formandoId}/avaliacaofinal`
+        );
+      } catch (eDel) {
+        if (eDel?.response?.status === 403) {
+          await api.delete(
+            `/curso/cursosincrono/${cursoId}/formando/${formandoId}/avaliacaofinal`
+          );
+        } else {
+          throw eDel;
+        }
+      }
 
       setFinais((prev) => {
         const next = prev.filter(
@@ -662,7 +616,7 @@ const AvaliacoesSincrono = () => {
       });
       setOperationStatus(0);
       setOperationMessage("Avaliação final eliminada.");
-      fetchFinais();
+      fetchCurso();
     } catch (err) {
       setOperationStatus(1);
       setOperationMessage(
@@ -887,12 +841,12 @@ const AvaliacoesSincrono = () => {
             </button>
           </div>
           {loadingSubmissoes ? (
-                  <div className="container mt-5">
-        <div className="text-center my-5">
-          <div className="spinner-border text-primary" />
-          <p className="mt-2 text-muted">A carregar submissões...</p>
-        </div>
-      </div>
+            <div className="container mt-5">
+              <div className="text-center my-5">
+                <div className="spinner-border text-primary" />
+                <p className="mt-2 text-muted">A carregar submissões...</p>
+              </div>
+            </div>
           ) : submissoesError ? (
             <div className="alert alert-danger py-2 small mb-0">
               {submissoesError}
@@ -1025,12 +979,14 @@ const AvaliacoesSincrono = () => {
         <div className="mt-3">
           <h3 className="h6 mb-2">Avaliações Finais</h3>
           {loadingFinais ? (
-      <div className="container mt-5">
-        <div className="text-center my-5">
-          <div className="spinner-border text-primary" />
-          <p className="mt-2 text-muted">A carregar avaliações finais...</p>
-        </div>
-      </div>
+            <div className="container mt-5">
+              <div className="text-center my-5">
+                <div className="spinner-border text-primary" />
+                <p className="mt-2 text-muted">
+                  A carregar avaliações finais...
+                </p>
+              </div>
+            </div>
           ) : formandos?.length ? (
             <ul className="list-group">
               {formandos.map((f) => {

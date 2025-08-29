@@ -223,7 +223,10 @@ const CursoAssincrono = () => {
   if (loading) {
     return (
       <div className="container mt-5">
-        <p>Carregando...</p>
+        <div className="text-center my-5">
+          <div className="spinner-border text-primary" />
+          <p className="mt-2 text-muted">A carregar curso...</p>
+        </div>
       </div>
     );
   }
