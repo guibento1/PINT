@@ -58,6 +58,32 @@ END;
 $$ LANGUAGE plpgsql;
 
 
+CREATE OR REPLACE FUNCTION incrementar_comentarios() 
+RETURNS TRIGGER AS $$
+BEGIN
+    UPDATE post 
+    SET nComentarios = nComentarios + 1
+    WHERE idPost = NEW.post;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+
+CREATE OR REPLACE FUNCTION decrementar_comentarios() 
+RETURNS TRIGGER AS $$
+BEGIN
+
+    UPDATE post 
+    SET nComentarios = nComentarios - 1
+    WHERE idPost = OLD.post;
+
+    RETURN OLD;
+
+END;
+$$ LANGUAGE plpgsql;
+
+
 CREATE OR REPLACE FUNCTION ajustar_pontuacao_comentario()
 RETURNS TRIGGER AS $$
 BEGIN

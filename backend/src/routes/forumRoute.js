@@ -8,8 +8,17 @@ router.post('/post/topico/:idtopico', authenticateJWT, forumController.createPos
 router.get('/post/:id', authenticateJWT, forumController.getPost);
 router.delete('/post/:id', authenticateJWT, forumController.deletePost);
 router.post('/post/:id/comment', authenticateJWT, forumController.respondPost);
+router.get('/post/:id/comment', authenticateJWT, forumController.getRespostasPost);
 router.post('/comment/:id/respond', authenticateJWT, forumController.respondComent);
 router.delete('/comment/:id', authenticateJWT, forumController.deleteComentario);
+router.get('/comment/:id/replies', authenticateJWT, forumController.getRespostasComentario);
+
+router.get('/posts', authenticateJWT, (req, res) => {
+  return forumController.getPosts(req, res, null);
+});
+router.get('/posts/topico/:id', authenticateJWT, (req, res) => {
+  return forumController.getPosts(req, res, req.params.id);
+});
 
 
 // Iteracoes

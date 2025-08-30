@@ -1,4 +1,5 @@
 var initModels = require("../models/init-models.js");
+const Sequelize = require("sequelize");
 var db = require("../database.js");
 const logger = require('../logger.js');
 var models = initModels(db);
@@ -27,6 +28,29 @@ async function getUserInfo(user) {
     if (formador) roles.push("formador");
 
     return {id : user.idutilizador, roles: roles, nome: utilizadorObject.nome };
+}
+
+
+async function formatStuff(stuff,utilizador) {
+
+  return await Promise.all(
+    stuff.map(async (stuffObject) => {
+
+      if(stuffObject.utilizador == utilizador) {
+        stuffObject.dataValues.utilizador = "eu"; 
+      } else {
+
+        const utilizadorObject = await models.utilizadores.findByPk(stuffObject.utilizador,{
+          attributes: ["nome"]
+        });
+
+        stuffObject.dataValues.utilizador = utilizadorObject.nome; 
+      }
+
+      return stuffObject;
+    })
+  );
+
 }
 
 
@@ -161,6 +185,55 @@ controllers.getPost = async (req, res) => {
       post.dataValues.utilizador = await getUserInfo(req.user);
 
       return res.status(200).json(post);
+        
+  } catch (error) {
+
+    logger.error(`Erro interno no servidor. Detalhes: ${error.message}`, {
+      stack: error.stack,
+    });
+
+    return res.status(500).json({
+      error: "Ocorreu um erro interno ao obter post.",
+    });
+
+  }
+
+};
+
+
+controllers.getPosts = async (req, res, topico = null) => {
+
+  const { id } = req.params;
+  const utilizador = req.user.idutilizador;
+  const orderBy = req.query.order;
+
+  logger.debug(
+    `Recebida requisição para obter post. Query: ${JSON.stringify(
+      req.query
+    )}`
+  );
+
+  try {
+
+
+      const queryOptions = {};
+
+      if(orderBy == "recent"){
+        queryOptions.order = [['criado', 'DESC']];
+      } else {
+        queryOptions.order = [['pontuacao', 'DESC']];
+      }
+
+      if(topico != null){
+        queryOptions.where = { topico : topico } ;
+      }
+
+      let posts = await models.post.findAll(queryOptions);
+      if(posts.length > 0){
+        posts = await formatStuff(posts,utilizador);
+      }
+
+      return res.status(200).json(posts);
         
   } catch (error) {
 
@@ -319,6 +392,7 @@ controllers.getRespostasPost = async (req, res) => {
 
   const { id } = req.params;
   const utilizador = req.user.idutilizador;
+  const orderBy = req.query.order;
 
 
   logger.debug(
@@ -329,12 +403,30 @@ controllers.getRespostasPost = async (req, res) => {
 
   try {
 
-      const repostas = models.respostapost.findAll( {where : { post : id  }, attributes : ["idcomentario"] }) ;
+      const repostasObjects = await models.respostapost.findAll( {where : { post : id  }, attributes : ["idcomentario"] });
+      const respostasIds = repostasObjects.map((resposta) => resposta.idcomentario );
 
-      if(!respostas)
+      const queryOptions = {
+        where : { 
+          idcomentario : {
+            [Sequelize.Op.in]: respostasIds
+          }
+        }
+      };
 
+      if(orderBy == "recent"){
+        queryOptions.order = [['criado', 'DESC']];
+      } else {
+        queryOptions.order = [['pontuacao', 'DESC']];
+      }
 
-      return res.status(200).json(comentarioObject);
+      let comentarios = await models.comentario.findAll(queryOptions);
+
+      if(comentarios.length > 0){
+        comentarios = await formatStuff(comentarios,utilizador);
+      }
+
+      return res.status(200).json(comentarios);
         
   } catch (error) {
 
@@ -343,7 +435,62 @@ controllers.getRespostasPost = async (req, res) => {
     });
 
     return res.status(500).json({
-      error: "Ocorreu um erro interno ao criar comentário.",
+      error: "Ocorreu um erro interno ao obter comentário.",
+    });
+
+  }
+
+};
+
+
+controllers.getRespostasComentario = async (req, res) => {
+
+  const { id } = req.params;
+  const utilizador = req.user.idutilizador;
+  const orderBy = req.query.order;
+
+
+  logger.debug(
+    `Recebida requisição para criar comentario para o comentario com id ${id}. Query: ${JSON.stringify(
+      req.query
+    )}`
+  );
+
+  try {
+
+      const repostasObjects = await models.respostacomentario.findAll( {where : { comentario : id  }, attributes : ["idcomentario"] });
+      const respostasIds = repostasObjects.map((resposta) => resposta.idcomentario );
+
+      const queryOptions = {
+        where : { 
+          idcomentario : {
+            [Sequelize.Op.in]: respostasIds
+          }
+        }
+      };
+
+      if(orderBy == "recent"){
+        queryOptions.order = [['criado', 'DESC']];
+      } else {
+        queryOptions.order = [['pontuacao', 'DESC']];
+      }
+
+      let comentarios = await models.comentario.findAll(queryOptions);
+
+      if(comentarios.length > 0){
+        comentarios = await formatStuff(comentarios,utilizador);
+      }
+
+      return res.status(200).json(comentarios);
+        
+  } catch (error) {
+
+    logger.error(`Erro interno no servidor. Detalhes: ${error.message}`, {
+      stack: error.stack,
+    });
+
+    return res.status(500).json({
+      error: "Ocorreu um erro interno ao obter comentário.",
     });
 
   }

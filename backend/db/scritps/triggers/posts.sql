@@ -45,3 +45,15 @@ AFTER DELETE ON RespostaPost
 FOR EACH ROW
 EXECUTE FUNCTION cascade_after_delete_comentario();
 
+
+CREATE TRIGGER trigger_incrementar_comentarios
+AFTER INSERT ON RespostaPost
+FOR EACH ROW
+EXECUTE FUNCTION incrementar_comentarios();
+
+
+CREATE TRIGGER trigger_decrementar_comentarios
+AFTER DELETE ON RespostaPost
+FOR EACH ROW
+EXECUTE FUNCTION decrementar_comentarios();
+
