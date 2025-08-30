@@ -27,7 +27,7 @@ async function getUserInfo(user) {
     if (formando) roles.push("formando");
     if (formador) roles.push("formador");
 
-    return {id : user.idutilizador, roles: roles, nome: utilizadorObject.nome };
+    return {id : user.idutilizador, nome: utilizadorObject.nome };
 }
 
 
@@ -44,7 +44,7 @@ async function formatStuff(stuff,utilizador) {
           attributes: ["nome"]
         });
 
-        stuffObject.dataValues.utilizador = utilizadorObject.nome; 
+        stuffObject.dataValues.utilizador = {id : utilizadorObject.idutilizador, nome: utilizadorObject.nome };  
       }
 
       return stuffObject;
@@ -388,6 +388,63 @@ controllers.respondPost = async (req, res) => {
 };
 
 
+controllers.reportPost = async (req, res) => {
+
+  const { id } = req.params;
+  const { tipo, descricao } = req.body;
+  const utilizador = req.user.idutilizador;
+
+
+  logger.debug(
+    `Recebida requisição para criar denuncia para o post com id ${id}. Query: ${JSON.stringify(
+      req.query
+    )}`
+  );
+
+  try {
+
+      const denunciaObject = await models.denuncia.create(
+
+            {
+              tipo, 
+              descricao,
+              criador : utilizador
+            },
+
+            { returning: true }
+      );
+
+        
+      const denunciaPost = await models.denunciapost.create(
+        {
+          post : id,  
+          denuncia: denunciaObject.iddenuncia 
+        },
+        { returning: true }
+      );
+
+      if(!denunciaPost){
+        denunciaObject.destroy();
+        throw new Error("Denuncia não inserida na tabela DenunciaPost");
+      }
+
+      return res.status(200).json(denunciaObject);
+        
+  } catch (error) {
+
+    logger.error(`Erro interno no servidor. Detalhes: ${error.message}`, {
+      stack: error.stack,
+    });
+
+    return res.status(500).json({
+      error: "Ocorreu um erro interno ao criar denuncia.",
+    });
+
+  }
+
+};
+
+
 controllers.getRespostasPost = async (req, res) => {
 
   const { id } = req.params;
@@ -555,6 +612,113 @@ controllers.respondComent = async (req, res) => {
 };
 
 
+controllers.getComentario = async (req, res) => {
+
+  const { id } = req.params;
+
+  logger.debug(
+    `Recebida requisição para obter comentario. Query: ${JSON.stringify(
+      req.query
+    )}`
+  );
+
+  try {
+
+      const comentario = await models.comentario.findByPk(id);
+
+      if(comentario){
+
+        let context = await models.respostapost.findOne({where : { idcomentario : id } });
+
+        if(!context){
+
+          comentario.dataValues.alvo = "comentario";
+          context = await models.respostacomentario.findOne({where : { idcomentario : id } });
+
+          comentario.dataValues.idalvo = context.comentario;
+        } else {
+
+          comentario.dataValues.alvo = "post";
+          comentario.dataValues.idalvo = context.post;
+
+        }
+
+      }
+
+      return res.status(200).json(comentario);
+        
+  } catch (error) {
+
+    logger.error(`Erro interno no servidor. Detalhes: ${error.message}`, {
+      stack: error.stack,
+    });
+
+    return res.status(500).json({
+      error: "Ocorreu um erro interno ao obter comentario.",
+    });
+
+  }
+
+};
+
+
+controllers.reportComentario = async (req, res) => {
+
+  const { id } = req.params;
+  const { tipo, descricao } = req.body;
+  const utilizador = req.user.idutilizador;
+
+
+  logger.debug(
+    `Recebida requisição para criar denuncia para o comentario com id ${id}. Query: ${JSON.stringify(
+      req.query
+    )}`
+  );
+
+  try {
+
+      const denunciaObject = await models.denuncia.create(
+
+            {
+              tipo, 
+              descricao,
+              criador : utilizador
+            },
+
+            { returning: true }
+      );
+
+        
+      const denunciaPost = await models.denunciacomentario.create(
+        {
+          comentario : id,  
+          denuncia : denunciaObject.iddenuncia 
+        },
+        { returning: true }
+      );
+
+      if(!denunciaPost){
+        denunciaObject.destroy();
+        throw new Error("Denuncia não inserida na tabela DenunciaComentario");
+      }
+
+      return res.status(200).json(denunciaObject);
+        
+  } catch (error) {
+
+    logger.error(`Erro interno no servidor. Detalhes: ${error.message}`, {
+      stack: error.stack,
+    });
+
+    return res.status(500).json({
+      error: "Ocorreu um erro interno ao criar denuncia.",
+    });
+
+  }
+
+};
+
+
 controllers.deleteComentario = async (req, res) => {
 
   const { id } = req.params;
@@ -686,6 +850,191 @@ controllers.removeVoteComentario = async (req, res) => {
     
     return res.status(500).json({
         error: "Ocorreu um erro interno ao remover o voto a um comentario.",
+    });
+
+  }
+
+};
+
+
+controllers.getTiposDenuncia = async (req, res) => {
+
+  logger.debug(
+    `Recebida requisição para obter tipos de denuncia. Query: ${JSON.stringify(
+      req.query
+    )}`
+  );
+
+  try {
+
+      const tiposDenuncia = await models.tipodenuncia.findAll();
+
+
+      return res.status(200).json(tiposDenuncia);
+        
+  } catch (error) {
+
+    logger.error(`Erro interno no servidor. Detalhes: ${error.message}`, {
+      stack: error.stack,
+    });
+
+    return res.status(500).json({
+      error: "Ocorreu um erro interno ao tipos de denuncia.",
+    });
+
+  }
+
+};
+
+
+controllers.getDenunciaPosts = async (req, res) => {
+
+  logger.debug(
+    `Recebida requisição para obter tipos de denuncia. Query: ${JSON.stringify(
+      req.query
+    )}`
+  );
+
+  try {
+
+      queryOptions = {
+
+          include: [
+            {
+              model: models.denuncia,
+              as: "denuncia_denuncium",
+              attributes: ["tipo", "descricao", "criador"],
+            },
+          ]
+
+      }
+
+
+      const denunciaPosts = await models.denunciapost.findAll(queryOptions);
+
+
+      let denunciaPostResults = 
+
+        await Promise.all( denunciaPosts.map( async (denuncia) => {
+
+          const utilizadorObject = await models.utilizadores.findByPk(denuncia.denuncia_denuncium.criador,{
+              attributes: ["nome"]
+          });
+
+            return {
+              post: denuncia.post,
+              iddenuncia: denuncia.denuncia,
+              tipo: denuncia.denuncia_denuncium.tipo,
+              decricao: denuncia.denuncia_denuncium.descricao,
+              utilizador: { id : denuncia.denuncia_denuncium.criador, nome : utilizadorObject.nome }
+            };
+          })
+        );
+
+
+      return res.status(200).json(denunciaPostResults);
+        
+  } catch (error) {
+
+    logger.error(`Erro interno no servidor. Detalhes: ${error.message}`, {
+      stack: error.stack,
+    });
+
+    return res.status(500).json({
+      error: "Ocorreu um erro interno ao obter denuncias.",
+    });
+
+  }
+
+};
+
+
+controllers.getDenunciaComentarios = async (req, res) => {
+
+  logger.debug(
+    `Recebida requisição para obter tipos de denuncia. Query: ${JSON.stringify(
+      req.query
+    )}`
+  );
+
+  try {
+
+      queryOptions = {
+
+          include: [
+            {
+              model: models.denuncia,
+              as: "denuncia_denuncium",
+              attributes: ["tipo", "descricao", "criador"],
+            },
+          ]
+
+      }
+
+
+      const denunciaComentarios = await models.denunciacomentario.findAll(queryOptions);
+
+      let denunciaComentarioResults = 
+
+        await Promise.all( denunciaComentarios.map( async (denuncia) => {
+
+          const utilizadorObject = await models.utilizadores.findByPk(denuncia.denuncia_denuncium.criador,{
+              attributes: ["nome"]
+          });
+
+            return {
+              comentario: denuncia.comentario,
+              iddenuncia: denuncia.denuncia,
+              tipo: denuncia.denuncia_denuncium.tipo,
+              decricao: denuncia.denuncia_denuncium.descricao,
+              utilizador: { id : denuncia.denuncia_denuncium.criador, nome : utilizadorObject.nome }
+            };
+          })
+        );
+
+      return res.status(200).json(denunciaComentarioResults);
+        
+  } catch (error) {
+
+    logger.error(`Erro interno no servidor. Detalhes: ${error.message}`, {
+      stack: error.stack,
+    });
+
+    return res.status(500).json({
+      error: "Ocorreu um erro interno ao obter denuncias.",
+    });
+
+  }
+
+};
+
+
+controllers.rmDenuncia = async (req, res) => {
+
+
+  const { id } = req.params;
+
+  logger.debug(
+    `Recebida requisição para eleminar denuncia. Query: ${JSON.stringify(
+      req.query
+    )}`
+  );
+
+  try {
+
+      await models.denuncia.destroy({ where : { iddenuncia : id } });
+
+
+      return res.status(200).json({message : "denuncia eleminada com sucesso"});
+        
+  } catch (error) {
+
+    logger.error(`Erro interno no servidor. Detalhes: ${error.message}`, {
+      stack: error.stack,
+    });
+
+    return res.status(500).json({
+      error: "Ocorreu um erro interno ao eleminar denuncia.",
     });
 
   }
