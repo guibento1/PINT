@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import api from "@shared/services/axios";
+import FileUpload from "@shared/components/FileUpload";
 import Modal from "@shared/components/Modal";
 import useUserRole from "@shared/hooks/useUserRole";
 
@@ -20,12 +21,31 @@ const AvaliacoesSincrono = () => {
   const [enunciadoFile, setEnunciadoFile] = useState(null);
   const [inicioDisponibilidade, setInicioDisponibilidade] = useState("");
   const [inicioDeSubmissoes, setInicioDeSubmissoes] = useState("");
+  const [fimDisponibilidade, setFimDisponibilidade] = useState("");
+  const [fimDeSubmissoes, setFimDeSubmissoes] = useState("");
 
   // Submissions
   const [selectedAvaliacao, setSelectedAvaliacao] = useState(null);
   const [submissoes, setSubmissoes] = useState([]);
   const [loadingSubmissoes, setLoadingSubmissoes] = useState(false);
   const [submissoesError, setSubmissoesError] = useState("");
+
+  // Edit avaliação contínua
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingAvaliacao, setEditingAvaliacao] = useState(null);
+  const [editTitulo, setEditTitulo] = useState("");
+  const [editInicioDisponibilidade, setEditInicioDisponibilidade] =
+    useState("");
+  const [editInicioDeSubmissoes, setEditInicioDeSubmissoes] = useState("");
+  const [editFimDisponibilidade, setEditFimDisponibilidade] = useState("");
+  const [editFimDeSubmissoes, setEditFimDeSubmissoes] = useState("");
+  const [editEnunciadoFile, setEditEnunciadoFile] = useState(null);
+  const openEditModal = () => setIsEditModalOpen(true);
+  const closeEditModal = () => {
+    setIsEditModalOpen(false);
+    setEditingAvaliacao(null);
+    setEditEnunciadoFile(null);
+  };
 
   // Final grade
   const [selectedFormando, setSelectedFormando] = useState("");
@@ -52,6 +72,8 @@ const AvaliacoesSincrono = () => {
     const base = entry?.formando || entry?.user || entry?.utilizador || entry;
     const [first = "", ...rest] = (base?.nome || "").split(" ");
     return {
+      // keep any top-level fields from the endpoint (e.g., nota, idformando)
+      ...entry,
       ...base,
       idformando:
         base?.idformando ??
@@ -126,10 +148,43 @@ const AvaliacoesSincrono = () => {
     [cacheKey]
   );
 
+  // cache for inscritos to keep the list visible even if the inscritos endpoint fails
+  const inscritosCacheKey = useMemo(() => `inscritosCache_${id}`, [id]);
+  const loadInscritosCache = useCallback(() => {
+    try {
+      const txt = sessionStorage.getItem(inscritosCacheKey);
+      if (!txt) return [];
+      const arr = JSON.parse(txt);
+      return Array.isArray(arr) ? arr : [];
+    } catch {
+      return [];
+    }
+  }, [inscritosCacheKey]);
+  const saveInscritosCache = useCallback(
+    (list) => {
+      try {
+        const slim = (list || []).map((e) => ({
+          idformando:
+            e?.idformando ??
+            e?.id ??
+            e?.utilizador ??
+            e?.idutilizador ??
+            e?.userId,
+          nome: e?.nome || "",
+          email: e?.email || "",
+        }));
+        sessionStorage.setItem(inscritosCacheKey, JSON.stringify(slim));
+      } catch {}
+    },
+    [inscritosCacheKey]
+  );
+
   // permissions
   const idFormadorRole = user?.roles?.find((r) => r.role === "formador")?.id;
+  // allow any formador to access the UI; server will enforce the exact course-level permission
   const isFormadorDoCurso =
-    !!idFormadorRole && curso?.formador === idFormadorRole && isFormador;
+    isFormador &&
+    (curso?.formador == null || curso?.formador === idFormadorRole);
 
   const fetchCurso = useCallback(async () => {
     setLoading(true);
@@ -148,37 +203,75 @@ const AvaliacoesSincrono = () => {
         [];
       setAvaliacoes(avList);
 
-      // Inscritos normalizados a partir do payload do curso
-      const rawInscritos =
-        (Array.isArray(d.inscritos) && d.inscritos) ||
-        (Array.isArray(d.participantes) && d.participantes) ||
-        (Array.isArray(d.alunos) && d.alunos) ||
-        (Array.isArray(d.formandos) && d.formandos) ||
-        (Array.isArray(d.utilizadores) && d.utilizadores) ||
-        (Array.isArray(d.users) && d.users) ||
-        [];
-      let normalizedInscritos = rawInscritos.map(normalizeInscrito);
-      // If no inscritos provided on course payload, fallback to dedicated route
-      if (!normalizedInscritos.length) {
-        try {
-          const cid = d.idcurso || id;
-          const resIns = await api.get(`/curso/inscricoes/${cid}`);
-          const list = Array.isArray(resIns.data) ? resIns.data : [];
-          normalizedInscritos = list.map(normalizeInscrito);
-        } catch (_) {
-          // ignore, keep empty inscritos
-        }
+      // Inscritos: usar o endpoint dedicado que já inclui as notas; fallback para payload do curso
+      let normalizedInscritos = [];
+      try {
+        const cid = d.idcurso || id;
+        const resIns = await api.get(`/curso/inscricoes/${cid}`);
+        const list = Array.isArray(resIns.data)
+          ? resIns.data
+          : Array.isArray(resIns.data?.data)
+          ? resIns.data.data
+          : [];
+        normalizedInscritos = list.map(normalizeInscrito);
+      } catch (_) {
+        const rawInscritos =
+          (Array.isArray(d.inscritos) && d.inscritos) ||
+          (Array.isArray(d.participantes) && d.participantes) ||
+          (Array.isArray(d.alunos) && d.alunos) ||
+          (Array.isArray(d.formandos) && d.formandos) ||
+          (Array.isArray(d.utilizadores) && d.utilizadores) ||
+          (Array.isArray(d.users) && d.users) ||
+          [];
+        normalizedInscritos = rawInscritos.map(normalizeInscrito);
       }
-      setInscritos(normalizedInscritos);
+      if (normalizedInscritos.length) {
+        setInscritos(normalizedInscritos);
+        saveInscritosCache(normalizedInscritos);
+      } else {
+        const cached = loadInscritosCache();
+        if (cached.length) setInscritos(cached);
+        else setInscritos([]);
+      }
 
-      // Avaliações finais a partir do payload do curso (suporta número, array, mapa)
+      // Avaliações finais: preferir as notas que vieram nos inscritos
       let finaisList = [];
-      finaisList =
-        (Array.isArray(d.avaliacaofinal) && d.avaliacaofinal) ||
-        (Array.isArray(d.avaliacoesfinais) && d.avaliacoesfinais) ||
-        (Array.isArray(d.avaliacoesFinais) && d.avaliacoesFinais) ||
-        (Array.isArray(d.finais) && d.finais) ||
-        finaisList;
+      const fromInscricoes = (normalizedInscritos || [])
+        .map((entry) => {
+          const base = entry;
+          const fid =
+            base?.idformando ??
+            base?.id ??
+            base?.idutilizador ??
+            base?.utilizador ??
+            base?.userId;
+          const raw =
+            entry?.nota ??
+            entry?.notaFinal ??
+            entry?.classificacaoFinal ??
+            entry?.classificacao ??
+            base?.nota ??
+            base?.notaFinal ??
+            base?.classificacaoFinal ??
+            base?.classificacao;
+          if (typeof raw === "boolean" || raw == null || raw === "")
+            return null;
+          const notaParsed = typeof raw === "number" ? raw : Number(raw);
+          if (fid == null || !Number.isFinite(notaParsed)) return null;
+          return { formando: fid, nota: notaParsed };
+        })
+        .filter(Boolean);
+
+      if (fromInscricoes.length) {
+        finaisList = fromInscricoes;
+      } else {
+        finaisList =
+          (Array.isArray(d.avaliacaofinal) && d.avaliacaofinal) ||
+          (Array.isArray(d.avaliacoesfinais) && d.avaliacoesfinais) ||
+          (Array.isArray(d.avaliacoesFinais) && d.avaliacoesFinais) ||
+          (Array.isArray(d.finais) && d.finais) ||
+          [];
+      }
 
       if (Array.isArray(finaisList) && finaisList.length) {
         const extractId = (x) =>
@@ -273,14 +366,14 @@ const AvaliacoesSincrono = () => {
     } catch (e) {
       setCurso(null);
       setAvaliacoes([]);
-      setInscritos([]);
+      setInscritos((prev) => (prev?.length ? prev : loadInscritosCache()));
       setFinais([]);
     } finally {
       setLoading(false);
       setLoadingFinais(false);
       setLoadingInscritos(false);
     }
-  }, [id, saveFinaisCache]);
+  }, [id, saveFinaisCache, loadInscritosCache, saveInscritosCache]);
 
   const formandos = useMemo(
     () => (inscritos?.length ? inscritos : curso?.inscritos || []),
@@ -330,6 +423,13 @@ const AvaliacoesSincrono = () => {
   // No extra fetches — rely only on GET /curso/:id
 
   const toIsoOrEmpty = (val) => (val ? new Date(val).toISOString() : "");
+  const toInputLocal = (val) => {
+    if (!val) return "";
+    const d = new Date(val);
+    if (isNaN(d.getTime())) return "";
+    const local = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
+    return local.toISOString().slice(0, 16); // YYYY-MM-DDTHH:MM
+  };
 
   const handleCreateAvaliacao = async (e) => {
     e.preventDefault();
@@ -338,12 +438,22 @@ const AvaliacoesSincrono = () => {
       setOperationMessage("Indique o título.");
       return openResultModal();
     }
+    if (!inicioDisponibilidade || !inicioDeSubmissoes) {
+      setOperationStatus(1);
+      setOperationMessage(
+        "Indique o Início de Disponibilidade e o Início de Submissões."
+      );
+      return openResultModal();
+    }
+    if (!enunciadoFile) {
+      setOperationStatus(1);
+      setOperationMessage("Selecione o enunciado (PDF).");
+      return openResultModal();
+    }
     setSaving(true);
     try {
       const fd = new FormData();
       const info = {
-        cursosincrono: String(id),
-        // required
         titulo: newTitulo,
         // time windows (send both naming styles to be safe)
         ...(inicioDisponibilidade
@@ -358,21 +468,31 @@ const AvaliacoesSincrono = () => {
               iniciodesubmissoes: toIsoOrEmpty(inicioDeSubmissoes),
             }
           : {}),
+        ...(fimDisponibilidade
+          ? {
+              fimDisponibilidade: toIsoOrEmpty(fimDisponibilidade),
+              fimdisponibilidade: toIsoOrEmpty(fimDisponibilidade),
+            }
+          : {}),
+        ...(fimDeSubmissoes
+          ? {
+              fimDeSubmissoes: toIsoOrEmpty(fimDeSubmissoes),
+              fimdesubmissoes: toIsoOrEmpty(fimDeSubmissoes),
+            }
+          : {}),
       };
       fd.append("info", JSON.stringify(info));
       if (enunciadoFile) fd.append("enunciado", enunciadoFile);
-      const cronId = curso?.idcrono || id;
       const createdRes = await api.post(
-        `/curso/cursosincrono/${cronId}/avaliacaocontinua`,
-        fd,
-        {
-          headers: { "Content-Type": "multipart/form-data" },
-        }
+        `/curso/cursosincrono/${id}/avalicaocontinua`,
+        fd
       );
       setNewTitulo("");
       setEnunciadoFile(null);
       setInicioDisponibilidade("");
       setInicioDeSubmissoes("");
+      setFimDisponibilidade("");
+      setFimDeSubmissoes("");
       // Optimistic append using response
       if (createdRes?.data) {
         setAvaliacoes((prev) => [createdRes.data, ...prev]);
@@ -395,9 +515,8 @@ const AvaliacoesSincrono = () => {
   const handleDeleteAvaliacao = async (idavaliacao) => {
     if (!window.confirm("Eliminar esta avaliação contínua?")) return;
     try {
-      const cronId = curso?.idcrono || id;
       await api.delete(
-        `/curso/cursosincrono/${cronId}/avaliacaocontinua/${idavaliacao}`
+        `/curso/cursosincrono/${id}/avalicaocontinua/${idavaliacao}`
       );
       setAvaliacoes((prev) =>
         prev.filter((a) => {
@@ -422,9 +541,8 @@ const AvaliacoesSincrono = () => {
     setLoadingSubmissoes(true);
     setSubmissoesError("");
     try {
-      const cronId = curso?.idcrono || id;
       const res = await api.get(
-        `/curso/cursosincrono/${cronId}/avaliacaocontinua/${idavaliacao}/submissoes`
+        `/curso/cursosincrono/${id}/avalicaocontinua/${idavaliacao}/submissoes`
       );
       const arr = Array.isArray(res.data)
         ? res.data
@@ -445,9 +563,8 @@ const AvaliacoesSincrono = () => {
   const handleCorrigirSubmissao = async (idsubmissao, nota) => {
     if (!selectedAvaliacao) return;
     try {
-      const cronId = curso?.idcrono || id;
       await api.put(
-        `/curso/cursosincrono/${cronId}/avaliacaocontinua/${selectedAvaliacao}/corrigir`,
+        `/curso/cursosincrono/${id}/avalicaocontinua/${selectedAvaliacao}/corrigir`,
         { idsubmissao, nota: Number(nota) }
       );
       // refresh submissoes
@@ -480,66 +597,22 @@ const AvaliacoesSincrono = () => {
       return openResultModal();
     }
     const bodyNota = { nota: parsedNota };
-    const bodyClassif = { classificacao: parsedNota };
     try {
-      const cronId = curso?.idcrono || id;
-      const cursoId = curso?.idcurso || curso?.id || id;
-
-      const attemptSaveForId = async (anyId) => {
-        let lastErr = null;
-        // Try PUT nota
-        try {
-          await api.put(
-            `/curso/cursosincrono/${anyId}/formando/${formandoId}/avaliacaofinal`,
-            bodyNota
-          );
-          return { ok: true };
-        } catch (e1) {
-          lastErr = e1;
-        }
-        // Try PUT classificacao
-        try {
-          await api.put(
-            `/curso/cursosincrono/${anyId}/formando/${formandoId}/avaliacaofinal`,
-            bodyClassif
-          );
-          return { ok: true };
-        } catch (e2) {
-          lastErr = e2;
-        }
-        // Try POST nota
-        try {
-          await api.post(
-            `/curso/cursosincrono/${anyId}/formando/${formandoId}/avaliacaofinal`,
-            bodyNota
-          );
-          return { ok: true };
-        } catch (e3) {
-          lastErr = e3;
-        }
-        // Try POST classificacao
-        try {
-          await api.post(
-            `/curso/cursosincrono/${anyId}/formando/${formandoId}/avaliacaofinal`,
-            bodyClassif
-          );
-          return { ok: true };
-        } catch (e4) {
-          lastErr = e4;
-        }
-        return { ok: false, lastErr };
-      };
-
-      // First with idcrono
-      let result = await attemptSaveForId(cronId);
-      // If forbidden, retry with idcurso on the same endpoint
-      if (!result.ok && result.lastErr?.response?.status === 403) {
-        result = await attemptSaveForId(cursoId);
-      }
-      if (!result.ok) {
-        throw (
-          result.lastErr || new Error("Falha ao guardar a avaliação final.")
+      // Try update first; if not found, create
+      try {
+        await api.put(
+          `/curso/cursosincrono/${id}/formando/${formandoId}/avaliacaofinal`,
+          bodyNota
         );
+      } catch (ePut) {
+        if (ePut?.response?.status === 404) {
+          await api.post(
+            `/curso/cursosincrono/${id}/formando/${formandoId}/avaliacaofinal`,
+            bodyNota
+          );
+        } else {
+          throw ePut;
+        }
       }
       // Optimistic update: reflect grade locally immediately
       setFinais((prev) => {
@@ -591,21 +664,9 @@ const AvaliacoesSincrono = () => {
     setFinalSaving(true);
     try {
       const formandoId = Number(selectedFormando);
-      const cronId = curso?.idcrono || id;
-      const cursoId = curso?.idcurso || curso?.id || id;
-      try {
-        await api.delete(
-          `/curso/cursosincrono/${cronId}/formando/${formandoId}/avaliacaofinal`
-        );
-      } catch (eDel) {
-        if (eDel?.response?.status === 403) {
-          await api.delete(
-            `/curso/cursosincrono/${cursoId}/formando/${formandoId}/avaliacaofinal`
-          );
-        } else {
-          throw eDel;
-        }
-      }
+      await api.delete(
+        `/curso/cursosincrono/${id}/formando/${formandoId}/avaliacaofinal`
+      );
 
       setFinais((prev) => {
         const next = prev.filter(
@@ -676,6 +737,166 @@ const AvaliacoesSincrono = () => {
         <p className="mb-0">{operationMessage || "Operação concluída."}</p>
       </Modal>
 
+      {/* Editar avaliação contínua */}
+      <Modal
+        isOpen={isEditModalOpen}
+        onClose={closeEditModal}
+        title="Editar Avaliação Contínua"
+      >
+        <div className="row g-2">
+          <div className="col-md-6">
+            <label className="form-label form-label-sm mb-1 small">
+              Título
+            </label>
+            <input
+              type="text"
+              className="form-control form-control-sm"
+              value={editTitulo}
+              onChange={(e) => setEditTitulo(e.target.value)}
+            />
+          </div>
+          <div className="col-md-6">
+            <FileUpload
+              id="edit-enunciado"
+              label="Enunciado (PDF)"
+              accept="application/pdf"
+              onSelect={(file) => setEditEnunciadoFile(file || null)}
+              size="sm"
+            />
+          </div>
+          <div className="col-md-6">
+            <label className="form-label form-label-sm mb-1 small">
+              Início Disponibilidade
+            </label>
+            <input
+              type="datetime-local"
+              className="form-control form-control-sm"
+              value={editInicioDisponibilidade}
+              onChange={(e) => setEditInicioDisponibilidade(e.target.value)}
+            />
+          </div>
+          <div className="col-md-6">
+            <label className="form-label form-label-sm mb-1 small">
+              Início de Submissões
+            </label>
+            <input
+              type="datetime-local"
+              className="form-control form-control-sm"
+              value={editInicioDeSubmissoes}
+              onChange={(e) => setEditInicioDeSubmissoes(e.target.value)}
+            />
+          </div>
+          <div className="col-md-6">
+            <label className="form-label form-label-sm mb-1 small">
+              Fim Disponibilidade
+            </label>
+            <input
+              type="datetime-local"
+              className="form-control form-control-sm"
+              value={editFimDisponibilidade}
+              onChange={(e) => setEditFimDisponibilidade(e.target.value)}
+            />
+          </div>
+          <div className="col-md-6">
+            <label className="form-label form-label-sm mb-1 small">
+              Fim de Submissões
+            </label>
+            <input
+              type="datetime-local"
+              className="form-control form-control-sm"
+              value={editFimDeSubmissoes}
+              onChange={(e) => setEditFimDeSubmissoes(e.target.value)}
+            />
+          </div>
+          <div className="col-12 d-flex justify-content-end gap-2 mt-2">
+            <button
+              type="button"
+              className="btn btn-sm btn-outline-secondary"
+              onClick={closeEditModal}
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              className="btn btn-sm btn-primary"
+              onClick={async () => {
+                if (!editingAvaliacao) return;
+                try {
+                  const avId =
+                    editingAvaliacao.idavaliacaocontinua ??
+                    editingAvaliacao.idavaliacao ??
+                    editingAvaliacao.id ??
+                    editingAvaliacao.codigo;
+                  const fd = new FormData();
+                  const info = {
+                    ...(editTitulo !== "" ? { titulo: editTitulo } : {}),
+                    ...(editInicioDisponibilidade !== ""
+                      ? {
+                          inicioDisponibilidade: toIsoOrEmpty(
+                            editInicioDisponibilidade
+                          ),
+                        }
+                      : {}),
+                    ...(editInicioDeSubmissoes !== ""
+                      ? {
+                          inicioDeSubmissoes: toIsoOrEmpty(
+                            editInicioDeSubmissoes
+                          ),
+                        }
+                      : {}),
+                    ...(editFimDisponibilidade !== ""
+                      ? {
+                          fimDisponibilidade: toIsoOrEmpty(
+                            editFimDisponibilidade
+                          ),
+                        }
+                      : {}),
+                    ...(editFimDeSubmissoes !== ""
+                      ? { fimDeSubmissoes: toIsoOrEmpty(editFimDeSubmissoes) }
+                      : {}),
+                  };
+                  fd.append("info", JSON.stringify(info));
+                  if (editEnunciadoFile)
+                    fd.append("enunciado", editEnunciadoFile);
+                  const updatedRes = await api.put(
+                    `/curso/cursosincrono/${id}/avalicaocontinua/${avId}`,
+                    fd
+                  );
+                  if (updatedRes?.data) {
+                    setAvaliacoes((prev) => {
+                      const pid = String(avId);
+                      return prev.map((a) => {
+                        const aid = String(
+                          a.idavaliacaocontinua ??
+                            a.idavaliacao ??
+                            a.id ??
+                            a.codigo
+                        );
+                        return aid === pid ? updatedRes.data : a;
+                      });
+                    });
+                  } else {
+                    await fetchCurso();
+                  }
+                  setOperationStatus(0);
+                  setOperationMessage("Avaliação contínua editada.");
+                  closeEditModal();
+                } catch (err) {
+                  setOperationStatus(1);
+                  setOperationMessage(
+                    err?.response?.data?.error || "Erro ao editar avaliação."
+                  );
+                } finally {
+                  openResultModal();
+                }
+              }}
+            >
+              Guardar
+            </button>
+          </div>
+        </div>
+      </Modal>
+
       <div className="d-flex align-items-center mb-4 gap-2">
         <h1 className="h5 mb-0">Avaliações — {curso?.nome}</h1>
         <button
@@ -705,18 +926,30 @@ const AvaliacoesSincrono = () => {
           </div>
           <div className="col-md-3">
             <label className="form-label form-label-sm mb-1 small">
-              Início Disponibilidade
+              Início Disponibilidade <span className="text-danger">*</span>
             </label>
             <input
               type="datetime-local"
               className="form-control form-control-sm"
               value={inicioDisponibilidade}
               onChange={(e) => setInicioDisponibilidade(e.target.value)}
+              required
             />
           </div>
           <div className="col-md-3">
             <label className="form-label form-label-sm mb-1 small">
-              Início de Submissões
+              Fim Disponibilidade
+            </label>
+            <input
+              type="datetime-local"
+              className="form-control form-control-sm"
+              value={fimDisponibilidade}
+              onChange={(e) => setFimDisponibilidade(e.target.value)}
+            />
+          </div>
+          <div className="col-md-3">
+            <label className="form-label form-label-sm mb-1 small">
+              Início de Submissões <span className="text-danger">*</span>
             </label>
             <input
               type="datetime-local"
@@ -725,21 +958,34 @@ const AvaliacoesSincrono = () => {
               onChange={(e) => setInicioDeSubmissoes(e.target.value)}
             />
           </div>
-          <div className="col-md-2">
+          <div className="col-md-3">
             <label className="form-label form-label-sm mb-1 small">
-              Enunciado (PDF)
+              Fim de Submissões
             </label>
             <input
-              type="file"
-              accept="application/pdf"
+              type="datetime-local"
               className="form-control form-control-sm"
-              onChange={(e) => setEnunciadoFile(e.target.files?.[0] || null)}
+              value={fimDeSubmissoes}
+              onChange={(e) => setFimDeSubmissoes(e.target.value)}
+            />
+          </div>
+          <div className="col-md-3">
+            <FileUpload
+              id="create-enunciado"
+              label={
+                <>
+                  Enunciado (PDF) <span className="text-danger">*</span>
+                </>
+              }
+              accept="application/pdf"
+              onSelect={(file) => setEnunciadoFile(file || null)}
+              size="sm"
             />
           </div>
           <div className="col-md-2 d-flex">
             <button
               type="submit"
-              className="btn btn-sm btn-primary w-100 align-self-end"
+              className="btn btn-sm btn-primary w-100 align-self-start mt-4"
               disabled={saving}
             >
               {saving ? "A criar..." : "Adicionar"}
@@ -785,24 +1031,55 @@ const AvaliacoesSincrono = () => {
                           </a>
                         </>
                       )}
-                      {inicio && (
-                        <>
-                          <br />
-                          <small className="text-muted">
-                            Disponível desde:{" "}
-                            {new Date(inicio).toLocaleString("pt-PT")}
-                          </small>
-                        </>
-                      )}
-                      {fim && (
-                        <>
-                          <br />
-                          <small className="text-muted">
-                            Fim de submissões:{" "}
-                            {new Date(fim).toLocaleString("pt-PT")}
-                          </small>
-                        </>
-                      )}
+                      {(() => {
+                        const inicioDisp =
+                          av.iniciodisponibilidade || av.inicioDisponibilidade;
+                        const fimDisp =
+                          av.fimdisponibilidade || av.fimDisponibilidade;
+                        const inicioSub =
+                          av.iniciodesubmissoes || av.inicioDeSubmissoes;
+                        const fimSub = av.fimdesubmissoes || av.fimDeSubmissoes;
+                        return (
+                          <>
+                            {inicioDisp && (
+                              <>
+                                <br />
+                                <small className="text-muted">
+                                  Início da disponibilidade:{" "}
+                                  {new Date(inicioDisp).toLocaleString("pt-PT")}
+                                </small>
+                              </>
+                            )}
+                            {fimDisp && (
+                              <>
+                                <br />
+                                <small className="text-muted">
+                                  Fim da disponibilidade:{" "}
+                                  {new Date(fimDisp).toLocaleString("pt-PT")}
+                                </small>
+                              </>
+                            )}
+                            {inicioSub && (
+                              <>
+                                <br />
+                                <small className="text-muted">
+                                  Início das submissões:{" "}
+                                  {new Date(inicioSub).toLocaleString("pt-PT")}
+                                </small>
+                              </>
+                            )}
+                            {fimSub && (
+                              <>
+                                <br />
+                                <small className="text-muted">
+                                  Fim das submissões:{" "}
+                                  {new Date(fimSub).toLocaleString("pt-PT")}
+                                </small>
+                              </>
+                            )}
+                          </>
+                        );
+                      })()}
                     </div>
                     <div className="d-flex gap-2">
                       <button
@@ -810,6 +1087,38 @@ const AvaliacoesSincrono = () => {
                         onClick={() => handleLoadSubmissoes(avId)}
                       >
                         Ver Submissões
+                      </button>
+                      <button
+                        className="btn btn-sm btn-outline-primary"
+                        onClick={() => {
+                          setEditingAvaliacao(av);
+                          setEditTitulo(av.titulo || "");
+                          setEditInicioDisponibilidade(
+                            toInputLocal(
+                              av.inicioDisponibilidade ||
+                                av.iniciodisponibilidade
+                            )
+                          );
+                          setEditInicioDeSubmissoes(
+                            toInputLocal(
+                              av.inicioDeSubmissoes || av.iniciodesubmissoes
+                            )
+                          );
+                          setEditFimDisponibilidade(
+                            toInputLocal(
+                              av.fimDisponibilidade || av.fimdisponibilidade
+                            )
+                          );
+                          setEditFimDeSubmissoes(
+                            toInputLocal(
+                              av.fimDeSubmissoes || av.fimdesubmissoes
+                            )
+                          );
+                          setEditEnunciadoFile(null);
+                          openEditModal();
+                        }}
+                      >
+                        Editar
                       </button>
                       <button
                         className="btn btn-sm btn-outline-danger"
@@ -861,17 +1170,18 @@ const AvaliacoesSincrono = () => {
                   <div>
                     <div>
                       <strong>Formando:</strong>{" "}
-                      {s.formandoNome ||
+                      {s.formando_formando?.nome ||
+                        s.formandoNome ||
                         s.nome ||
                         s.email ||
                         s.idformando ||
                         s.formando ||
                         s.utilizador}
                     </div>
-                    {(s.link || s.url || s.ficheiro) && (
+                    {(s.link || s.url || s.ficheiro || s.submissao) && (
                       <div>
                         <a
-                          href={s.link || s.url || s.ficheiro}
+                          href={s.link || s.url || s.ficheiro || s.submissao}
                           target="_blank"
                           rel="noreferrer"
                         >

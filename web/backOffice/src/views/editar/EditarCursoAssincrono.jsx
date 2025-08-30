@@ -190,9 +190,7 @@ const EditarCursoAssincrono = () => {
       data.append("info", JSON.stringify(info));
 
       const endpoint = `/curso/cursoassincrono/${id}`;
-      const res = await api.put(endpoint, data, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+      const res = await api.put(endpoint, data);
 
       setOperationStatus(0);
       setOperationMessage(res.data.message || "Curso atualizado com sucesso!");
@@ -297,10 +295,7 @@ const EditarCursoAssincrono = () => {
 
       const res = await api.post(
         `/curso/licao/${lessonToAddTo.idlicao}/material`,
-        data,
-        {
-          headers: { "Content-Type": "multipart/form-data" },
-        }
+        data
       );
 
       setOperationStatus(0);
@@ -582,12 +577,10 @@ const EditarCursoAssincrono = () => {
               type="button"
               className="btn btn-danger"
               onClick={() => navigate("/cursos")}
-          
-             >
+            >
               Cancelar
             </button>
           </div>
-          
         </div>
       </form>
 

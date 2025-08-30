@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import api from "@shared/services/axios";
 import Modal from "@shared/components/Modal";
 import useUserRole from "@shared/hooks/useUserRole";
+import FileUpload from "@shared/components/FileUpload";
 
 const Agendar = () => {
   const { id } = useParams();
@@ -170,8 +171,7 @@ const Agendar = () => {
           `/curso/sessao/${idsessao}/material`,
           `/curso/cursosincrono/${curso?.idcrono}/sessao/${idsessao}/material`,
         ],
-        fd,
-        { headers: { "Content-Type": "multipart/form-data" } }
+        fd
       );
       await fetchCurso();
       setOperationStatus(0);
@@ -422,16 +422,15 @@ const Agendar = () => {
                     <div className="d-flex align-items-center justify-content-between">
                       <span className="fw-semibold">Materiais (opcional)</span>
                       <div className="ms-3" style={{ minWidth: 220 }}>
-                        <input
-                          type="file"
-                          className="form-control form-control-sm"
-                          disabled={uploadingSessao === s.idsessao}
-                          onChange={(e) => {
-                            const file = e.target.files?.[0];
+                        <FileUpload
+                          id={`sessao-mat-${s.idsessao}`}
+                          label={null}
+                          onSelect={(file) => {
                             if (file)
                               handleUploadSessaoMaterial(s.idsessao, file);
-                            e.target.value = "";
                           }}
+                          size="sm"
+                          disabled={uploadingSessao === s.idsessao}
                         />
                         {uploadingSessao === s.idsessao && (
                           <small className="text-muted">A enviar...</small>

@@ -161,9 +161,7 @@ const CriarCursoAssincrono = () => {
 
       data.append("info", JSON.stringify(info));
 
-      const res = await api.post("/curso/cursoassincrono", data, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+      const res = await api.post("/curso/cursoassincrono", data);
 
       setOperationStatus(0);
       setOperationMessage(res.data.message || "Curso criado com sucesso!");

@@ -165,9 +165,7 @@ const EditarCursoSincrono = () => {
 
       // Ajustar endpoint se o backend usar outro nome
       const endpoint = `/curso/cursosincrono/${id}`;
-      const res = await api.put(endpoint, fd, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+      const res = await api.put(endpoint, fd);
       setOperationStatus(0);
       setOperationMessage(res.data?.message || "Curso atualizado com sucesso.");
     } catch (err) {

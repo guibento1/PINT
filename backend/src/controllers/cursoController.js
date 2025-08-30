@@ -1237,50 +1237,44 @@ controllers.getCursoInscritos = async (req, res) => {
   }
 };
 
+
 controllers.getInscricoes = async (req, res) => {
   const { id } = req.params;
 
-
   const formador =
     req.user.roles.find((roleEntry) => roleEntry.role === "formador")?.id || 0;
-
   const admin =
     req.user.roles.find((roleEntry) => roleEntry.role === "admin")?.id || 0;
 
+  const toNumberOrNull = (v) => {
+    if (v === null || v === undefined || v === "" || typeof v === "boolean") return null;
+    const n = typeof v === "number" ? v : Number(v);
+    return Number.isFinite(n) ? n : null;
+  };
 
-  logger.debug(
-    `Recebida requisição para listar inscritos do curso com ID: ${id}`
-  );
+  logger.debug(`Recebida requisição para listar inscritos do curso com ID: ${id}`);
   try {
-
     const curso = await models.curso.findByPk(id);
-
     if (!curso) {
       logger.warn(`Curso com ID ${id} não encontrado.`);
-      return res.status(404).json({
-        error: "Curso não encontrado.",
-      });
+      return res.status(404).json({ error: "Curso não encontrado." });
     }
 
+    const cursoSinc = await models.cursosincrono.findOne({
+      where: { curso: id },
+      attributes: ["formador", "idcursosincrono"],
+    });
 
-    const cursoSinc = await models.cursosincrono.findOne({where : { curso : id }, attributes : ["formador","idcursosincrono"]});
-
-    if(!admin){
-
-      if(!cursoSinc || cursoSinc.formador != formador){
-
+    if (!admin) {
+      if (!cursoSinc || cursoSinc.formador != formador) {
         return res.status(403).json({
-          error:
-            "Proibido: permissões insuficientes para inscrever outro utilizador.",
+          error: "Proibido: permissões insuficientes para inscrever outro utilizador.",
         });
-
       }
     }
 
     const inscricoes = await models.inscricao.findAll({
-      where: {
-        curso: id,
-      },
+      where: { curso: id },
       include: [
         {
           model: models.formando,
@@ -1289,26 +1283,28 @@ controllers.getInscricoes = async (req, res) => {
         },
       ],
     });
-    const utilizadoresIndexes = inscricoes.map(
-      (entry) => entry.formando_formando.utilizador
-    );
+
+    const utilizadoresIndexes = inscricoes
+      .map((entry) => entry.formando_formando?.utilizador)
+      .filter(Boolean);
+
     if (utilizadoresIndexes.length === 0) {
       logger.info(`Nenhum inscrito encontrado para o curso com ID ${id}.`);
       return res.status(200).json([]);
     }
+
     let utilizadores = await models.utilizadores.findAll({
       attributes: ["idutilizador", "email", "nome"],
       where: {
-        idutilizador: {
-          [Sequelize.Op.in]: utilizadoresIndexes,
-        },
+        idutilizador: { [Sequelize.Op.in]: utilizadoresIndexes },
         ativo: true,
       },
     });
 
+    // Attach idformando from inscricao
     utilizadores = utilizadores.map((utilizador) => {
       const inscricao = inscricoes.find(
-        (entry) => entry.formando_formando.utilizador == utilizador.idutilizador
+        (entry) => entry.formando_formando?.utilizador == utilizador.idutilizador
       );
       if (inscricao) {
         utilizador.dataValues.idformando = inscricao.formando;
@@ -1316,28 +1312,30 @@ controllers.getInscricoes = async (req, res) => {
       return utilizador;
     });
 
-    if(cursoSinc){
+    // Attach nota (final) safely using a bulk fetch
+    if (cursoSinc) {
+      const formandoIds = utilizadores
+        .map((u) => u.dataValues.idformando)
+        .filter(Boolean);
 
-     utilizadores =  await Promise.all(
+      let finais = [];
+      if (formandoIds.length) {
+        finais = await models.avaliacaofinal.findAll({
+          where: {
+            cursosincrono: cursoSinc.idcursosincrono,
+            formando: { [Sequelize.Op.in]: formandoIds },
+          },
+          attributes: ["formando", "nota"], // only existing columns
+        });
+      }
 
-          utilizadores.map(async (utilizador) => {
-            const avaliacao = await models.avaliacaofinal.findOne({
-
-              where : {
-                cursosincrono : cursoSinc.idcursosincrono,
-                formando : utilizador.dataValues.idformando
-              }
-            });
-
-            utilizador.dataValues.nota = avaliacao.nota;
-
-            return utilizador;
-            
-          })
-      );
-
+      const finalByFormando = new Map(finais.map((f) => [f.formando, f]));
+      utilizadores = utilizadores.map((u) => {
+        const f = finalByFormando.get(u.dataValues.idformando) || null;
+        u.dataValues.nota = toNumberOrNull(f?.nota ?? null);
+        return u;
+      });
     }
-
 
     logger.info(
       `Lista de inscritos para o curso com ID ${id} retornada com sucesso. Total: ${utilizadores.length}`
@@ -1346,13 +1344,9 @@ controllers.getInscricoes = async (req, res) => {
   } catch (error) {
     logger.error(
       `Erro interno do servidor ao listar inscritos do curso. Detalhes: ${error.message}`,
-      {
-        stack: error.stack,
-      }
+      { stack: error.stack }
     );
-    return res.status(500).json({
-      error: "Ocorreu um erro interno ao buscar os inscritos.",
-    });
+    return res.status(500).json({ error: "Ocorreu um erro interno ao buscar os inscritos." });
   }
 };
 

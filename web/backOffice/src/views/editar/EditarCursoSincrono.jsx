@@ -143,9 +143,7 @@ const EditarCursoSincrono = () => {
       };
       if (formData.formador) info.formador = parseInt(formData.formador);
       fd.append("info", JSON.stringify(info));
-      const res = await api.put(`/curso/cursosincrono/${id}`, fd, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+      const res = await api.put(`/curso/cursosincrono/${id}`, fd);
       setOperationStatus(0);
       setOperationMessage(res.data?.message || "Curso atualizado com sucesso!");
     } catch (err) {

@@ -7,6 +7,8 @@ import React, {
   useRef,
 } from "react";
 import api from "@shared/services/axios";
+import FileUpload from "@shared/components/FileUpload";
+import SubmissionCard from "@shared/components/SubmissionCard";
 import "@shared/styles/curso.css";
 import Modal from "@shared/components/Modal";
 import useUserRole from "@shared/hooks/useUserRole";
@@ -29,7 +31,7 @@ const CursoSincrono = () => {
 
   const [activeTab, setActiveTab] = useState("overview");
   const [submittingId, setSubmittingId] = useState(null);
-  const [studentUploads, setStudentUploads] = useState({}); // { [idavaliacao]: { url?, nome?, nota? } }
+  const [studentUploads, setStudentUploads] = useState({}); // { [idavaliacao]: { submitted?, url?, ficheiro?, nota?, date? } }
   const [avaliacoesRemote, setAvaliacoesRemote] = useState(null);
   const [showAllTopicos, setShowAllTopicos] = useState(false);
   // Materiais de sessão são geridos em /Criar/Agendar; aqui apenas leitura
@@ -146,24 +148,58 @@ const CursoSincrono = () => {
   };
 
   // Student-centric helpers
+  // Persist my submissions locally so they remain visible after refresh
+  const uploadsCacheKey = useMemo(
+    () =>
+      `studentUploads_${id}_${
+        user?.idutilizador || user?.utilizador || user?.id || "anon"
+      }`,
+    [id, user?.idutilizador, user?.utilizador, user?.id]
+  );
+  const loadUploadsCache = useCallback(() => {
+    try {
+      const txt = sessionStorage.getItem(uploadsCacheKey);
+      if (!txt) return {};
+      const obj = JSON.parse(txt);
+      return obj && typeof obj === "object" ? obj : {};
+    } catch {
+      return {};
+    }
+  }, [uploadsCacheKey]);
+  const saveUploadsCache = useCallback(
+    (obj) => {
+      try {
+        sessionStorage.setItem(uploadsCacheKey, JSON.stringify(obj || {}));
+      } catch {}
+    },
+    [uploadsCacheKey]
+  );
+  useEffect(() => {
+    setStudentUploads((prev) => ({ ...prev, ...loadUploadsCache() }));
+  }, [loadUploadsCache]);
   const avaliacoesContinuas = useMemo(() => {
     if (Array.isArray(avaliacoesRemote) && avaliacoesRemote.length) {
       return avaliacoesRemote;
     }
     const d = curso || {};
+    // Preferir 'avaliacoes' pois inclui a submissao embebida
     return (
-      (Array.isArray(d.avaliacaocontinua) && d.avaliacaocontinua) ||
       (Array.isArray(d.avaliacoes) && d.avaliacoes) ||
+      (Array.isArray(d.avaliacaocontinua) && d.avaliacaocontinua) ||
       (Array.isArray(d.avaliacoesContinuas) && d.avaliacoesContinuas) ||
       []
     );
   }, [curso, avaliacoesRemote]);
 
   const getAvaliacaoWindow = (av) => {
-    const inicioDisp = av?.inicioDisponibilidade || av?.iniciodisponibilidade;
-    const inicioSub = av?.inicioDeSubmissoes || av?.iniciodesubmissoes;
-    const fimSub = av?.fimDeSubmissoes || av?.fimdesubmissoes || av?.deadline;
-    return { inicioDisp, inicioSub, fimSub };
+    // Prefer server field names for gating
+    const inicioSubRaw = av?.iniciodesubmissoes || av?.inicioDeSubmissoes;
+    const fimSubRaw =
+      av?.fimdesubmissoes || av?.fimDeSubmissoes || av?.deadline;
+    // Availability (display only)
+    const inicioDisp = av?.iniciodisponibilidade || av?.inicioDisponibilidade;
+    const fimDisp = av?.fimdisponibilidade || av?.fimDisponibilidade;
+    return { inicioDisp, fimDisp, inicioSub: inicioSubRaw, fimSub: fimSubRaw };
   };
 
   const now = useMemo(() => new Date(), [curso]);
@@ -328,6 +364,53 @@ const CursoSincrono = () => {
   // Evitar chamada às submissões: usar apenas os campos embebidos no payload
 
   // No per-formando GET for finals to avoid 404; rely on course payload
+  // Merge any embedded per-student submission from the course payload into the local cache
+  useEffect(() => {
+    const email = user?.email?.toLowerCase?.();
+    if (!Array.isArray(avaliacoesContinuas) || !avaliacoesContinuas.length)
+      return;
+    const myId = currentFormandoId;
+    const toMerge = {};
+    for (const av of avaliacoesContinuas) {
+      const idav =
+        av?.idavaliacaocontinua || av?.idavaliacao || av?.id || av?.codigo;
+      if (!idav) continue;
+      const subs = Array.isArray(av?.submissoes) ? av.submissoes : [];
+      const mine = subs.find((s) => {
+        const sid =
+          s?.idformando ?? s?.formando ?? s?.utilizador ?? s?.userId ?? s?.id;
+        const semail = s?.email || s?.formando || s?.formandoEmail;
+        return (
+          (myId != null && String(sid) === String(myId)) ||
+          (email && semail && String(semail).toLowerCase() === email)
+        );
+      });
+      if (mine) {
+        const url = mine.link || mine.url || mine.ficheiro || mine.submissao;
+        if (url) {
+          toMerge[idav] = {
+            submitted: true,
+            url,
+            ficheiro: url,
+            nota: mine.nota ?? mine.classificacao,
+            date:
+              mine.data ||
+              mine.dataSubmissao ||
+              mine.createdAt ||
+              mine.at ||
+              new Date().toISOString(),
+          };
+        }
+      }
+    }
+    if (Object.keys(toMerge).length) {
+      setStudentUploads((prev) => {
+        const next = { ...prev, ...toMerge };
+        saveUploadsCache(next);
+        return next;
+      });
+    }
+  }, [avaliacoesContinuas, currentFormandoId, user?.email, saveUploadsCache]);
 
   const handleSubmitContinuo = async (idavaliacao, file, isUpdate = false) => {
     if (!file) return;
@@ -336,26 +419,49 @@ const CursoSincrono = () => {
     setOperationMessage("");
     try {
       const fd = new FormData();
-      // Try common field names
+      // Backend expects single file field named 'ficheiro'
       fd.append("ficheiro", file);
-      fd.append("resolucao", file);
-      // Prefer the cronograma id (idcrono) when calling cursosincrono endpoints
-      const cronId = curso?.idcrono || id;
-      // Correct endpoint path spelling: avaliacaocontinua
-      const url = `/curso/cursosincrono/${cronId}/avaliacaocontinua/${idavaliacao}/submeter`;
-      if (isUpdate)
-        await api.put(url, fd, {
-          headers: { "Content-Type": "multipart/form-data" },
-        });
-      else
-        await api.post(url, fd, {
-          headers: { "Content-Type": "multipart/form-data" },
-        });
+      // Use course id for cursosincrono endpoints (server expects :id to be the curso id)
+      const cursoId = id;
+      // Correct endpoint path spelling: avalicaocontinua (server routes)
+      const url = `/curso/cursosincrono/${cursoId}/avalicaocontinua/${idavaliacao}/submeter`;
+      let resp;
+      try {
+        if (isUpdate) {
+          resp = await api.put(url, fd);
+        } else {
+          resp = await api.post(url, fd);
+        }
+      } catch (primaryErr) {
+        // Fallback: if update fails with 404/400, try create; if create fails with 409/400, try update
+        const status = primaryErr?.response?.status;
+        if (isUpdate && (status === 404 || status === 400)) {
+          resp = await api.post(url, fd);
+        } else if (!isUpdate && (status === 409 || status === 400)) {
+          resp = await api.put(url, fd);
+        } else {
+          throw primaryErr;
+        }
+      }
       // Keep local marker so UI shows submitted
-      setStudentUploads((prev) => ({
-        ...prev,
-        [idavaliacao]: { submitted: true },
-      }));
+      const subUrl =
+        resp?.data?.submissao ||
+        resp?.data?.url ||
+        resp?.data?.link ||
+        resp?.data?.ficheiro;
+      setStudentUploads((prev) => {
+        const next = {
+          ...prev,
+          [idavaliacao]: {
+            submitted: true,
+            url: subUrl,
+            ficheiro: subUrl,
+            date: new Date().toISOString(),
+          },
+        };
+        saveUploadsCache(next);
+        return next;
+      });
       setOperationStatus(0);
       setOperationMessage(
         isUpdate ? "Submissão atualizada." : "Submissão enviada."
@@ -742,9 +848,10 @@ const CursoSincrono = () => {
                         av.idavaliacao ||
                         av.id ||
                         av.codigo;
-                      const { inicioDisp, inicioSub, fimSub } =
+                      const { inicioDisp, fimDisp, inicioSub, fimSub } =
                         getAvaliacaoWindow(av);
-                      const beforeStart = isBefore(inicioSub || inicioDisp);
+                      // Gate exactly like the server: only submission window matters
+                      const beforeStart = isBefore(inicioSub);
                       const closed = isAfter(fimSub);
                       const isOpen = !beforeStart && !closed;
                       const localSub = studentUploads[idav];
@@ -773,16 +880,17 @@ const CursoSincrono = () => {
                               );
                             })
                           : null);
+                      const effectiveSub = mySubObj || localSub;
                       const nota =
                         av?.nota ??
                         av?.classificacao ??
-                        mySubObj?.nota ??
-                        mySubObj?.classificacao ??
+                        effectiveSub?.nota ??
+                        effectiveSub?.classificacao ??
                         localSub?.nota;
                       const status =
                         nota != null
                           ? `Nota: ${nota}`
-                          : localSub?.submitted
+                          : effectiveSub?.submitted
                           ? "Por avaliar"
                           : beforeStart
                           ? "Período de submissões ainda não começou"
@@ -812,29 +920,44 @@ const CursoSincrono = () => {
                                 </div>
                               )}
                               <div className="text-muted">
-                                {inicioSub && (
+                                {inicioDisp && (
                                   <span>
-                                    Início submissões: {formatData(inicioSub)}{" "}
+                                    Início disponibilidade:{" "}
+                                    {formatData(inicioDisp)}{" "}
                                   </span>
                                 )}
-                                {fimSub && (
+                                {fimDisp && (
                                   <span className="ms-2">
-                                    Fim: {formatData(fimSub)}
+                                    Fim disponibilidade: {formatData(fimDisp)}
                                   </span>
                                 )}
+                                <div>
+                                  {inicioSub && (
+                                    <span>
+                                      Início submissões: {formatData(inicioSub)}{" "}
+                                    </span>
+                                  )}
+                                  {fimSub && (
+                                    <span className="ms-2">
+                                      Fim: {formatData(fimSub)}
+                                    </span>
+                                  )}
+                                </div>
                               </div>
                               <div className="small mt-1">
                                 <em>{status}</em>
                               </div>
-                              {(mySubObj?.link ||
-                                mySubObj?.url ||
-                                mySubObj?.ficheiro) && (
+                              {(effectiveSub?.submissao ||
+                                effectiveSub?.link ||
+                                effectiveSub?.url ||
+                                effectiveSub?.ficheiro) && (
                                 <div className="small mt-1">
                                   <a
                                     href={
-                                      mySubObj.link ||
-                                      mySubObj.url ||
-                                      mySubObj.ficheiro
+                                      effectiveSub.submissao ||
+                                      effectiveSub.link ||
+                                      effectiveSub.url ||
+                                      effectiveSub.ficheiro
                                     }
                                     target="_blank"
                                     rel="noreferrer"
@@ -844,37 +967,60 @@ const CursoSincrono = () => {
                                 </div>
                               )}
                             </div>
-                            <div className="d-flex align-items-center gap-2">
-                              <input
-                                type="file"
-                                accept="application/pdf"
-                                className="form-control form-control-sm"
+                            <div className="d-flex flex-column gap-2 w-100">
+                              <FileUpload
                                 id={`file-${idav}`}
+                                label={null}
+                                accept="application/pdf"
                                 disabled={!isOpen || submittingId === idav}
-                                onChange={async (e) => {
-                                  const file = e.target.files?.[0];
+                                onSelect={async (file) => {
                                   if (!file) return;
+                                  const isUpdateArg = !!(
+                                    effectiveSub || localSub?.submitted
+                                  );
                                   await handleSubmitContinuo(
                                     idav,
                                     file,
-                                    !!localSub?.submitted
+                                    isUpdateArg
                                   );
-                                  e.target.value = "";
                                 }}
+                                size="sm"
                               />
-                              <button
-                                type="button"
-                                className="btn btn-sm btn-primary"
-                                disabled={!isOpen || submittingId === idav}
-                                onClick={() =>
-                                  document
-                                    .querySelector(`#file-${idav}`)
-                                    ?.click()
-                                }
-                                style={{ display: "none" }}
-                              >
-                                {localSub?.submitted ? "Atualizar" : "Submeter"}
-                              </button>
+                              {(effectiveSub?.submissao ||
+                                effectiveSub?.link ||
+                                effectiveSub?.url ||
+                                effectiveSub?.ficheiro) && (
+                                <SubmissionCard
+                                  filename={undefined}
+                                  type="application/pdf"
+                                  date={
+                                    effectiveSub?.date ||
+                                    effectiveSub?.data ||
+                                    effectiveSub?.dataSubmissao ||
+                                    effectiveSub?.createdAt ||
+                                    undefined
+                                  }
+                                  url={
+                                    effectiveSub?.submissao ||
+                                    effectiveSub?.link ||
+                                    effectiveSub?.url ||
+                                    effectiveSub?.ficheiro
+                                  }
+                                  statusLabel={
+                                    (effectiveSub?.nota ??
+                                      effectiveSub?.classificacao ??
+                                      localSub?.nota) != null
+                                      ? `Nota: ${
+                                          effectiveSub?.nota ??
+                                          effectiveSub?.classificacao ??
+                                          localSub?.nota
+                                        }`
+                                      : effectiveSub?.submitted
+                                      ? "Por avaliar"
+                                      : undefined
+                                  }
+                                />
+                              )}
                               {submittingId === idav && (
                                 <span className="text-muted small">
                                   A enviar...
@@ -895,13 +1041,33 @@ const CursoSincrono = () => {
             {activeTab === "final" && (
               <div>
                 <h2 className="h5">Avaliação Final</h2>
-                {studentFinal?.nota != null ? (
-                  <div className="alert alert-success">
-                    Nota final: <strong>{String(studentFinal.nota)}</strong>
-                  </div>
-                ) : (
-                  <div className="alert alert-info">Ainda não atribuída.</div>
-                )}
+                {(() => {
+                  const n = studentFinal?.nota;
+                  const parsed =
+                    n === null ||
+                    n === undefined ||
+                    n === "" ||
+                    typeof n === "boolean"
+                      ? null
+                      : typeof n === "number"
+                      ? n
+                      : Number(n);
+                  if (parsed != null && Number.isFinite(parsed)) {
+                    const isApproved = parsed >= 9.45;
+                    return (
+                      <div
+                        className={`alert ${
+                          isApproved ? "alert-success" : "alert-danger"
+                        }`}
+                      >
+                        Nota final: <strong>{String(parsed)}</strong>
+                      </div>
+                    );
+                  }
+                  return (
+                    <div className="alert alert-info">Ainda não atribuída.</div>
+                  );
+                })()}
               </div>
             )}
           </div>
