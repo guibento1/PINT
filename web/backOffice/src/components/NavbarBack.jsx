@@ -140,6 +140,17 @@ export default function NavbarBack() {
                 </li>
                 <li className="nav-item">
                   <NavLink
+                    to="/gerir-notificacoes-e-denuncias"
+                    className={({ isActive }) =>
+                      `nav-link fw-semibold ${isActive ? "active" : ""}`
+                    }
+                    onClick={fecharMenu}
+                  >
+                    Notificações e Denuncias
+                  </NavLink>
+                </li>
+                <li className="nav-item">
+                  <NavLink
                     to="/notificacoes"
                     className={({ isActive }) =>
                       `nav-link ${isActive ? "active" : ""}`

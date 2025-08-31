@@ -50,12 +50,26 @@ export default function HomeBackOffice() {
                 <div className="col-md-6 col-lg-6">
                   <div className="card h-100 shadow border-radius">
                     <div className="card-body d-flex flex-column align-items-center justify-content-center">
-                      <i className="ri-organization-chart-line"></i>
+                      <i className="ri-layout-masonry-line"></i>
                       <h5 className="card-title">Gerir Estrutura</h5>
                       <p className="card-text">
                         Organizar áreas, categorias e topicos
                       </p>
                       <Link to="/gerir-estrutura" className="btn btn-primary">
+                        Aceder <i className="ri-arrow-right-line"></i>
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+
+
+                <div className="col-md-6 col-lg-6">
+                  <div className="card h-100 shadow border-radius">
+                    <div className="card-body d-flex flex-column align-items-center justify-content-center">
+                      <i className="ri-alarm-warning-line"></i>
+                      <h5 className="card-title">Notificações e Denuncias</h5>
+                      <p className="card-text text-center">Criar notificações gerais, administrativas e pessoais, gerir denuncias.</p>
+                      <Link to="/gerir-notificacoes-e-denuncias" className="btn btn-primary">
                         Aceder <i className="ri-arrow-right-line"></i>
                       </Link>
                     </div>
