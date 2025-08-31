@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import api from "@shared/services/axios";
 import Modal from "@shared/components/Modal";
+import FileUpload from "@shared/components/FileUpload";
 import useUserRole from "@shared/hooks/useUserRole";
 
 const EditarCursoSincrono = () => {
@@ -39,10 +40,7 @@ const EditarCursoSincrono = () => {
   const [sessionPlataforma, setSessionPlataforma] = useState("");
   const [sessionLink, setSessionLink] = useState("");
 
-  const [isDeleteSessionModalOpen, setIsDeleteSessionModalOpen] =
-    useState(false);
-  const [sessionToDelete, setSessionToDelete] = useState(null);
-  const [deletingSession, setDeletingSession] = useState(false);
+  // removed session deletion UI per request
 
   // Resultado genérico
   const [operationStatus, setOperationStatus] = useState(null); // 0 sucesso | 1 erro
@@ -126,12 +124,10 @@ const EditarCursoSincrono = () => {
     });
   };
 
-  const handleThumbnailChange = (e) => {
-    const file = e.target.files?.[0];
-    setThumbnailFile(file || null);
-    setCurrentThumbnail(
-      file ? URL.createObjectURL(file) : curso?.thumbnail || ""
-    );
+  const handleThumbnailChange = (file) => {
+    const f = file || null;
+    setThumbnailFile(f);
+    setCurrentThumbnail(f ? URL.createObjectURL(f) : curso?.thumbnail || "");
   };
 
   const formatDataForInput = (iso) => {
@@ -217,29 +213,7 @@ const EditarCursoSincrono = () => {
     }
   };
 
-  const handleDeleteSessionClick = (sessao) => {
-    setSessionToDelete(sessao);
-    setIsDeleteSessionModalOpen(true);
-  };
-
-  const confirmDeleteSession = async () => {
-    if (!sessionToDelete) return;
-    setDeletingSession(true);
-    try {
-      await api.delete(`/sessao/${sessionToDelete.idsessao}`);
-      setOperationStatus(0);
-      setOperationMessage("Sessão eliminada.");
-      setIsDeleteSessionModalOpen(false);
-    } catch (err) {
-      setOperationStatus(1);
-      setOperationMessage(
-        err?.response?.data?.error || "Erro ao eliminar sessão."
-      );
-    } finally {
-      setDeletingSession(false);
-      openResultModal();
-    }
-  };
+  // session deletion helpers removed
 
   const formatDataHora = (dt) => {
     if (!dt) return "";
@@ -323,7 +297,9 @@ const EditarCursoSincrono = () => {
         <h2 className="h6 mb-4">Detalhes do Curso</h2>
         <div className="row g-3">
           <div className="col-md-6">
-            <label className="form-label">Nome</label>
+            <label className="form-label">
+              Nome <span className="text-danger">*</span>
+            </label>
             <input
               type="text"
               name="nome"
@@ -335,7 +311,9 @@ const EditarCursoSincrono = () => {
           </div>
 
           <div className="col-md-6">
-            <label className="form-label">Início das Inscrições</label>
+            <label className="form-label">
+              Início das Inscrições <span className="text-danger">*</span>
+            </label>
             <input
               type="datetime-local"
               name="iniciodeinscricoes"
@@ -347,7 +325,9 @@ const EditarCursoSincrono = () => {
           </div>
 
           <div className="col-md-6">
-            <label className="form-label">Fim das Inscrições</label>
+            <label className="form-label">
+              Fim das Inscrições <span className="text-danger">*</span>
+            </label>
             <input
               type="datetime-local"
               name="fimdeinscricoes"
@@ -367,47 +347,52 @@ const EditarCursoSincrono = () => {
               min="1"
               value={formData.maxinscricoes}
               onChange={handleChange}
+              disabled={
+                !(formData.iniciodeinscricoes && formData.fimdeinscricoes)
+              }
             />
-          </div>
-
-          <div className="col-md-4 d-flex align-items-end">
-            <div className="form-check form-switch">
-              <input
-                className="form-check-input"
-                type="checkbox"
-                id="disponivel"
-                name="disponivel"
-                checked={formData.disponivel}
-                onChange={handleChange}
-              />
-              <label className="form-check-label" htmlFor="disponivel">
-                Disponível
-              </label>
-            </div>
-          </div>
-
-          <div className="col-12">
-            <label className="form-label">Thumbnail</label>
-            <input
-              type="file"
-              className="form-control"
-              accept="image/*"
-              onChange={handleThumbnailChange}
-            />
-            {currentThumbnail && (
-              <div className="mt-2">
-                <img
-                  src={currentThumbnail}
-                  alt="Thumbnail"
-                  className="img-thumbnail"
-                  style={{ maxWidth: 160 }}
-                />
+            {!(formData.iniciodeinscricoes && formData.fimdeinscricoes) && (
+              <div className="form-text">
+                Defina primeiro a data-limite de inscrições para poder definir
+                vagas.
               </div>
             )}
           </div>
 
+          {/* Campo 'Disponível' removido para cursos síncronos */}
+
           <div className="col-12">
-            <label className="form-label">Tópicos</label>
+            <label className="form-label">Thumbnail</label>
+            <div className="d-flex align-items-start gap-3 flex-wrap">
+              <FileUpload
+                id="thumbnail-upload"
+                label={null}
+                onSelect={handleThumbnailChange}
+                accept="image/*"
+                size="sm"
+              />
+              {currentThumbnail && (
+                <div className="text-center">
+                  <img
+                    src={currentThumbnail}
+                    alt="Thumbnail atual"
+                    className="rounded shadow-sm border"
+                    style={{
+                      maxWidth: "280px",
+                      maxHeight: "180px",
+                      objectFit: "cover",
+                    }}
+                  />
+                  <div className="text-muted small mt-2">Pré-visualização</div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="col-12">
+            <label className="form-label">
+              Tópicos <span className="text-danger">*</span>
+            </label>
             <div className="border rounded p-3 d-flex flex-wrap gap-3">
               {allTopicos.map((t) => (
                 <div key={t.idtopico} className="form-check form-check-inline">
@@ -451,61 +436,6 @@ const EditarCursoSincrono = () => {
           </div>
         </div>
       </form>
-
-      <div className="p-4 border rounded shadow-sm">
-        <div className="d-flex justify-content-between align-items-center mb-3">
-          <h2 className="h6 mb-0">Sessões</h2>
-          <button
-            className="btn btn-success btn-sm"
-            onClick={openAddSessionModal}
-          >
-            <i className="ri-add-line"></i> Adicionar Sessão
-          </button>
-        </div>
-        {curso?.sessoes?.length ? (
-          <ul className="list-group">
-            {curso.sessoes.map((s) => (
-              <li
-                key={s.idsessao}
-                className="list-group-item d-flex justify-content-between align-items-start"
-              >
-                <div>
-                  <strong>{s.titulo}</strong>
-                  <br />
-                  <small className="text-muted">
-                    {formatDataHora(s.datahora)} ({s.duracaohoras}h) -{" "}
-                    {s.plataformavideoconferencia}
-                  </small>
-                  {s.linksessao && (
-                    <>
-                      <br />
-                      <a
-                        href={s.linksessao}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="small"
-                      >
-                        Link
-                      </a>
-                    </>
-                  )}
-                </div>
-                <button
-                  type="button"
-                  className="btn btn-outline-danger btn-sm"
-                  onClick={() => handleDeleteSessionClick(s)}
-                >
-                  <i className="ri-delete-bin-line"></i>
-                </button>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <div className="alert alert-info mb-0">
-            Nenhuma sessão adicionada.
-          </div>
-        )}
-      </div>
 
       {/* Modal Add Sessão */}
       <Modal
@@ -598,37 +528,7 @@ const EditarCursoSincrono = () => {
         </form>
       </Modal>
 
-      {/* Modal Delete Sessão */}
-      <Modal
-        isOpen={isDeleteSessionModalOpen}
-        onClose={() => setIsDeleteSessionModalOpen(false)}
-        title="Eliminar Sessão"
-      >
-        {sessionToDelete && (
-          <p>
-            Confirmar eliminação da sessão{" "}
-            <strong>"{sessionToDelete.titulo}"</strong>?
-          </p>
-        )}
-        <div className="d-flex justify-content-end gap-2 mt-4">
-          <button
-            type="button"
-            className="btn btn-secondary"
-            onClick={() => setIsDeleteSessionModalOpen(false)}
-            disabled={deletingSession}
-          >
-            Cancelar
-          </button>
-          <button
-            type="button"
-            className="btn btn-danger"
-            onClick={confirmDeleteSession}
-            disabled={deletingSession}
-          >
-            {deletingSession ? "A eliminar..." : "Eliminar"}
-          </button>
-        </div>
-      </Modal>
+      {/* Session removal UI intentionally removed */}
 
       {/* Modal Resultado */}
       <Modal
