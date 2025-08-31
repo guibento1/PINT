@@ -1440,7 +1440,7 @@ controllers.inscreverCurso = async (req, res) => {
 
     if(cursoSincronoEncontrado){
 
-      if( cursoSincronoEncontrado.maxinscricoes ) {
+      if( cursoSincronoEncontrado.maxincricoes ) {
 
         const nInscricoes = await models.inscricao.count({
           where: {
@@ -1449,7 +1449,7 @@ controllers.inscreverCurso = async (req, res) => {
         });
 
         if (
-          nInscricoes >= cursoEncontrado.maxinscricoes
+          nInscricoes >= cursoSincronoEncontrado.maxincricoes
         ) {
           logger.warn(`Limite máximo de inscrições atingido para o curso ${id}.`);
           return res.status(400).json({

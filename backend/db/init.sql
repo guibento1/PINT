@@ -153,6 +153,30 @@ CREATE TABLE HistoricoNotificacoes (
 );
 
 
+CREATE TABLE HistoricoNotificacoesPrivadas (
+
+    idNotificacao BIGINT GENERATED ALWAYS AS IDENTITY,
+    utilizador  BIGINT NOT NULL,
+    titulo VARCHAR(60) NOT NULL,
+    conteudo TEXT NOT NULL,
+    instante TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT UTILIZADOR_HISTORICONOTIFICACOES_FK FOREIGN KEY (utilizador) REFERENCES Utilizadores(idutilizador),
+    CONSTRAINT HISTORICONOTIFICACOESPRIVADAS_PK PRIMARY KEY(idNotificacao)
+
+);
+
+
+CREATE TABLE UtilizadorDispositivos (
+
+    utilizador BIGINT,
+    dispositivo VARCHAR(300),
+
+    CONSTRAINT UTILIZADORDISPOSITIVOS_PK PRIMARY KEY(utilizador,dispositivo),
+    CONSTRAINT UTILIZADOR_UTILIZADORDISPOSITIVOS_FK FOREIGN KEY (utilizador) REFERENCES Utilizadores(idutilizador)
+);
+
+
 -- CREATE TABLE Notificacao (
 --
 --     idNotificacao BIGINT GENERATED ALWAYS AS IDENTITY,

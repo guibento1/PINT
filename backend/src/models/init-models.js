@@ -17,6 +17,7 @@ var _denunciapost = require("./denunciapost");
 var _formador = require("./formador");
 var _formando = require("./formando");
 var _historiconotificacoes = require("./historiconotificacoes");
+var _historiconotificacoesprivadas = require("./historiconotificacoesprivadas");
 var _inscricao = require("./inscricao");
 var _iteracaocomentario = require("./iteracaocomentario");
 var _iteracaopost = require("./iteracaopost");
@@ -32,6 +33,7 @@ var _tipodenuncia = require("./tipodenuncia");
 var _tipomaterial = require("./tipomaterial");
 var _topico = require("./topico");
 var _topicoarea = require("./topicoarea");
+var _utilizadordispositivos = require("./utilizadordispositivos");
 var _utilizadores = require("./utilizadores");
 
 function initModels(sequelize) {
@@ -53,6 +55,7 @@ function initModels(sequelize) {
   var formador = _formador(sequelize, DataTypes);
   var formando = _formando(sequelize, DataTypes);
   var historiconotificacoes = _historiconotificacoes(sequelize, DataTypes);
+  var historiconotificacoesprivadas = _historiconotificacoesprivadas(sequelize, DataTypes);
   var inscricao = _inscricao(sequelize, DataTypes);
   var iteracaocomentario = _iteracaocomentario(sequelize, DataTypes);
   var iteracaopost = _iteracaopost(sequelize, DataTypes);
@@ -68,6 +71,7 @@ function initModels(sequelize) {
   var tipomaterial = _tipomaterial(sequelize, DataTypes);
   var topico = _topico(sequelize, DataTypes);
   var topicoarea = _topicoarea(sequelize, DataTypes);
+  var utilizadordispositivos = _utilizadordispositivos(sequelize, DataTypes);
   var utilizadores = _utilizadores(sequelize, DataTypes);
 
   area.belongsToMany(topico, { as: 'topico_topico_topicoareas', through: topicoarea, foreignKey: "area", otherKey: "topico" });
@@ -174,6 +178,8 @@ function initModels(sequelize) {
   utilizadores.hasMany(formador, { as: "formadors", foreignKey: "utilizador"});
   formando.belongsTo(utilizadores, { as: "utilizador_utilizadore", foreignKey: "utilizador"});
   utilizadores.hasMany(formando, { as: "formandos", foreignKey: "utilizador"});
+  historiconotificacoesprivadas.belongsTo(utilizadores, { as: "utilizador_utilizadore", foreignKey: "utilizador"});
+  utilizadores.hasMany(historiconotificacoesprivadas, { as: "historiconotificacoesprivadas", foreignKey: "utilizador"});
   iteracaocomentario.belongsTo(utilizadores, { as: "utilizador_utilizadore", foreignKey: "utilizador"});
   utilizadores.hasMany(iteracaocomentario, { as: "iteracaocomentarios", foreignKey: "utilizador"});
   iteracaopost.belongsTo(utilizadores, { as: "utilizador_utilizadore", foreignKey: "utilizador"});
@@ -182,6 +188,8 @@ function initModels(sequelize) {
   utilizadores.hasMany(material, { as: "materials", foreignKey: "criador"});
   post.belongsTo(utilizadores, { as: "utilizador_utilizadore", foreignKey: "utilizador"});
   utilizadores.hasMany(post, { as: "posts", foreignKey: "utilizador"});
+  utilizadordispositivos.belongsTo(utilizadores, { as: "utilizador_utilizadore", foreignKey: "utilizador"});
+  utilizadores.hasMany(utilizadordispositivos, { as: "utilizadordispositivos", foreignKey: "utilizador"});
 
   return {
     admin,
@@ -202,6 +210,7 @@ function initModels(sequelize) {
     formador,
     formando,
     historiconotificacoes,
+    historiconotificacoesprivadas,
     inscricao,
     iteracaocomentario,
     iteracaopost,
@@ -217,6 +226,7 @@ function initModels(sequelize) {
     tipomaterial,
     topico,
     topicoarea,
+    utilizadordispositivos,
     utilizadores,
   };
 }

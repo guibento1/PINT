@@ -1,5 +1,5 @@
 const Sequelize = require('sequelize');
-const { sendNotification, subscribeToCanal, unsubscribeFromCanal } = require('../utils.js');
+const { sendNotification, sendNotificationToUtilizador, subscribeToCanal, unsubscribeFromCanal } = require('../utils.js');
 var initModels = require("../models/init-models.js");
 var db = require("../database.js");
 var models = initModels(db);
@@ -64,16 +64,10 @@ controllers.criarNotificacaoGeral = async (req, res) => {
             error: 'Os campos "titulo" e "conteudo" são obrigatórios.'
         });
     }
-    const insertData = {
-        canal: 1,
-        titulo,
-        conteudo
-    };
     try {
-        const createdRow = await models.historiconotificacoes.create(insertData);
-        await sendNotification('canal_' + insertData.canal, titulo, conteudo);
-        logger.info(`Notificação geral criada e enviada com sucesso. ID: ${createdRow.idnotificacao}`);
-        return res.status(201).json(createdRow);
+        await sendNotification(1, titulo, conteudo);
+        logger.info(`Notificação administrativa criada e enviada com sucesso.`);
+        return res.status(201).json({sucess : true, message: "notificacao enviada com sucesso"});
     } catch (error) {
         logger.error(`Erro ao criar e enviar notificação geral. Detalhes: ${error.message}`, {
             stack: error.stack
@@ -94,16 +88,10 @@ controllers.criarNotificacaoAdministrativa = async (req, res) => {
             error: 'Os campos "titulo" e "conteudo" são obrigatórios.'
         });
     }
-    const insertData = {
-        canal: 2,
-        titulo,
-        conteudo
-    };
     try {
-        const createdRow = await models.historiconotificacoes.create(insertData);
-        await sendNotification('canal_' + insertData.canal, titulo, conteudo);
-        logger.info(`Notificação administrativa criada e enviada com sucesso. ID: ${createdRow.idnotificacao}`);
-        return res.status(201).json(createdRow);
+        await sendNotification(2, titulo, conteudo);
+        logger.info(`Notificação administrativa criada e enviada com sucesso.`);
+        return res.status(201).json({sucess : true, message: "notificacao enviada com sucesso"});
     } catch (error) {
         logger.error(`Erro ao criar e enviar notificação administrativa. Detalhes: ${error.message}`, {
             stack: error.stack
@@ -137,15 +125,9 @@ controllers.criarNotificacaoCurso = async (req, res) => {
             });
         }
         const canal = curso.canal;
-        const insertData = {
-            canal,
-            titulo,
-            conteudo
-        };
-        const createdRow = await models.historiconotificacoes.create(insertData);
-        await sendNotification('canal_' + insertData.canal, titulo, conteudo);
-        logger.info(`Notificação de curso para o curso ${idcurso} criada e enviada com sucesso. ID: ${createdRow.idnotificacao}`);
-        return res.status(201).json(createdRow);
+        await sendNotification(canal, titulo, conteudo);
+        logger.info(`Notificação de curso para o curso ${idcurso} criada e enviada com sucesso.`);
+        return res.status(201).json({sucess : true, message: "notificacao enviada com sucesso"});
     } catch (error) {
         logger.error(`Erro ao criar e enviar notificação de curso. Detalhes: ${error.message}`, {
             stack: error.stack
@@ -154,6 +136,42 @@ controllers.criarNotificacaoCurso = async (req, res) => {
             error: 'Ocorreu um erro interno ao criar ou enviar a notificação.'
         });
     }
+};
+
+
+controllers.criarNotificacaoUtilizador = async (req, res) => {
+
+
+    const { idutilizador } = req.params;
+    const { titulo, conteudo } = req.body;
+
+    logger.debug(`Recebida requisição para criar para notificacao para utilizador. Dados: ${JSON.stringify(req.body)}`);
+
+
+    if (!titulo || !conteudo) {
+        logger.warn(`Tentativa de criar notificação de curso com campos faltando. Dados recebidos: ${JSON.stringify(req.body)}`);
+        return res.status(400).json({
+            error: 'Os campos "titulo" e "conteudo" são obrigatórios.'
+        });
+    }
+
+    try {
+
+        await sendNotificationToUtilizador(idutilizador, titulo, conteudo);
+        logger.info(`Notificação de curso para o utilizador ${idutilizador} criada e enviada com sucesso.`);
+        return res.status(201).json({sucess : true, message: "notificacao enviada com sucesso"});
+        
+    } catch (error) {
+
+        logger.error(`Erro ao criar e enviar notificação de curso. Detalhes: ${error.message}`, {
+            stack: error.stack
+        });
+        return res.status(500).json({
+            error: 'Ocorreu um erro interno ao criar ou enviar a notificação.'
+        });
+        
+    }
+
 };
 
 controllers.getCanaisInscritos = async (req, res) => {
@@ -247,7 +265,9 @@ controllers.listUserNotifications = async (req, res) => {
 
     try {
 
-        const notificacoes = await models.historiconotificacoes.findAll({
+        let notificacoes = [];
+
+        const notificacoesGerais = await models.historiconotificacoes.findAll({
 
             where : {
 
@@ -263,6 +283,26 @@ controllers.listUserNotifications = async (req, res) => {
             limit : 10
         })
 
+        notificacoes.push(...notificacoesGerais);
+
+
+        const notificacoesPrivadas = await models.historiconotificacoesprivadas.findAll({
+
+            where : {
+                utilizador : idutilizador
+            },
+
+            order: [
+                ['instante','DESC']
+            ],
+
+            limit : 10
+        })
+
+
+        notificacoes.push(...notificacoesPrivadas);
+
+        notificacoes.sort((a, b) => new Date(b.instante) - new Date(a.instante));
 
         logger.info(`Notificacoes encontradas com sucesso`);
         return res.status(200).json(notificacoes);
@@ -304,7 +344,6 @@ controllers.subscribeDeviceToCanais = async (req, res) => {
     const allCanalIds = allCanais.map(c => parseInt(c.canal)).filter(Boolean);
 
     for (const canal of allCanalIds) {
-      console.log(`canal_${canal}`);
       await unsubscribeFromCanal(device, `canal_${canal}`); 
     }
 
@@ -317,7 +356,6 @@ controllers.subscribeDeviceToCanais = async (req, res) => {
     const userCanais = canaisDB.map(c => parseInt(c.canal)).filter(Boolean);
 
     for (const canal of userCanais) {
-      console.log(`canal_${canal}`);
       await subscribeToCanal(device, `canal_${canal}`); 
     }
 
@@ -334,6 +372,47 @@ controllers.subscribeDeviceToCanais = async (req, res) => {
     });
     return res.status(500).json({
       error: 'Erro interno ao processar a inscrição do dispositivo.'
+    });
+  }
+};
+
+
+controllers.registerDevice = async (req, res) => {
+
+  const { device } = req.body;
+  const utilizador = req.user.idutilizador;
+
+  logger.debug(`Recebida requisição para registo do dispositivo. Token: ${device}`);
+
+  if (!device || typeof device !== 'string') {
+    logger.warn(`Token de dispositivo inválido ou ausente na requisição.`);
+    return res.status(400).json({
+      error: 'Campo "device" (string) é obrigatório.'
+    });
+  }
+
+  try {
+
+    await models.utilizadordispositivos.upsert({
+            utilizador,
+            dispositivo : device
+    });
+
+
+    logger.info(`Dispositivo registado`);
+
+
+    return res.status(200).json({
+      success: true,
+      message: 'Dispositivo registado com sucesso.',
+    });
+
+  } catch (error) {
+    logger.error(`Erro ao processar registo do dispositivo. Detalhes: ${error.message}`, {
+      stack: error.stack
+    });
+    return res.status(500).json({
+      error: 'Erro interno ao processar registo do dispositivo.'
     });
   }
 };

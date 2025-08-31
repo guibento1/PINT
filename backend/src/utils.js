@@ -7,6 +7,10 @@ const { GoogleAuth } = require('google-auth-library');
 const logger = require('./logger');
 const firebaseAdmin = require('../config/firebaseAdmin.js');
 
+var initModels = require("./models/init-models.js");
+var db = require("./database.js");
+var models = initModels(db);
+
 require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
 
 function isLink(str) {
@@ -232,10 +236,8 @@ async function getGoogleAuthToken() {
 
 async function sendNotification(topic, title, body, imageUrl = null) {
   try {
-    if (typeof topic !== 'string' || typeof title !== 'string' || typeof body !== 'string') {
-      logger.warn('Invalid input data types for FCM notification.', { topic, title, body });
-      throw new Error('Invalid input data types');
-    }
+
+    const topicFormated = "canal_" + topic;
 
     const message = {
       notification: {
@@ -243,7 +245,7 @@ async function sendNotification(topic, title, body, imageUrl = null) {
         body,
         ...(imageUrl && { imageUrl }),
       },
-      topic,
+      topic : topicFormated,
     };
 
     logger.debug('FCM message payload:', message);
@@ -254,11 +256,96 @@ async function sendNotification(topic, title, body, imageUrl = null) {
       messageId: response,
     });
 
+
+    const insertData = {
+        canal : topic,
+        titulo : title,
+        conteudo : body
+    };
+
+    const createdRow = await models.historiconotificacoes.create(insertData);
+
     return response;
 
   } catch (error) {
     logger.error(`Error sending FCM notification to topic "${topic}": ${error.message}`, {
       topic,
+      title,
+      body,
+      stack: error.stack,
+    });
+  }
+}
+
+
+async function sendNotificationToUtilizador(utilizador, title, body, imageUrl = null) {
+  try {
+    let utilizadorDeviceTokens = await models.utilizadordispositivos.findAll({
+      where: { utilizador },
+      attributes: ['dispositivo']
+    });
+
+    utilizadorDeviceTokens = utilizadorDeviceTokens.map((utilizadorDeviceToken) => utilizadorDeviceToken.dispositivo);
+
+    if (!Array.isArray(utilizadorDeviceTokens) || utilizadorDeviceTokens.some(token => typeof token !== 'string')) {
+      logger.warn('Invalid input data for device tokens.', { deviceTokens });
+      throw new Error('Invalid device token array');
+    }
+
+    if (typeof title !== 'string' || typeof body !== 'string') {
+      logger.warn('Invalid input data types for FCM notification.', { title, body });
+      throw new Error('Invalid input data types');
+    }
+
+    const message = {
+      notification: {
+        title,
+        body,
+        ...(imageUrl && { imageUrl }),
+      },
+    };
+
+    logger.debug('FCM message payload:', message);
+
+    const insertData = {
+      utilizador,
+      titulo: title,
+      conteudo: body
+    };
+
+    const createdRow = await models.historiconotificacoesprivadas.create(insertData);
+
+    let successCount = 0;
+    let failureCount = 0;
+
+    for (const token of utilizadorDeviceTokens) {
+      try {
+        const response = await firebaseAdmin.messaging().send({
+          ...message,
+          token,
+        });
+
+        if (response.successCount > 0) {
+          successCount++;
+        } else {
+          failureCount++;
+        }
+      } catch (error) {
+        logger.error(`Error sending notification to token "${token}": ${error.message}`, {
+          token,
+          title,
+          body,
+          stack: error.stack,
+        });
+        failureCount++;
+      }
+    }
+
+    logger.info(`FCM notifications sent to devices. Successes: ${successCount}, Failures: ${failureCount}`);
+    return { successCount, failureCount };
+
+  } catch (error) {
+    logger.error(`Error sending FCM notification: ${error.message}`, {
       title,
       body,
       stack: error.stack,
@@ -298,4 +385,4 @@ async function unsubscribeFromCanal(deviceTokens, topic) {
   }
 }
 
-module.exports = { isLink, uploadFile, deleteFile, updateFile, generateSASUrl, sendEmail, sendNotification, subscribeToCanal, unsubscribeFromCanal};
+module.exports = { isLink, uploadFile, deleteFile, updateFile, generateSASUrl, sendEmail, sendNotification, sendNotificationToUtilizador, subscribeToCanal, unsubscribeFromCanal};
