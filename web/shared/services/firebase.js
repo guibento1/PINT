@@ -33,7 +33,16 @@ const subscribeToTopics = async () => {
 
     if (token) {
       console.log("Token received, subscribing to topics...");
-      const res = await api.post('/notificacao/devicesub', { device: token });
+
+      let res = await api.post('/notificacao/deviceregister', { device: token });
+
+      if (res.status == 200) {
+        console.log('Registed token successfully');
+      } else {
+        console.error('Failed to register token');
+      }
+
+      res = await api.post('/notificacao/devicesub', { device: token });
 
       if (res.status == 200) {
         console.log('Subscribed to topics successfully');

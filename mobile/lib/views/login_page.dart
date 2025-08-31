@@ -73,14 +73,22 @@ class _LoginPageState extends State<LoginPage> {
         }
 
         final subscriptions = await _fetchUserSubscriptions(userId);
-        if (googleServices && subscriptions != null && subscriptions.isNotEmpty) {
-          for (var topicId in subscriptions) {
-            try {
-              await _notificationService.subscribeToCourseTopic(topicId);
-            } catch (e) {
-              print("Could not subscribe");
+
+        if(googleServices){
+
+          await servidor.postData('notificacao/deviceregister', {'device': _notificationService.token});
+
+          if (subscriptions != null && subscriptions.isNotEmpty) {
+            for (var topicId in subscriptions) {
+              try {
+                await _notificationService.subscribeToCourseTopic(topicId);
+              } catch (e) {
+                print("Could not subscribe");
+              }
             }
           }
+
+
         }
 
         if (mounted) {

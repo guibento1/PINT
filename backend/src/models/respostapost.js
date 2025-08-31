@@ -22,6 +22,7 @@ module.exports = function(sequelize, DataTypes) {
   }, {
     tableName: 'respostapost',
     schema: 'public',
+    hasTrigger: true,
     timestamps: false,
     indexes: [
       {

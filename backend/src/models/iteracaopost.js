@@ -26,6 +26,7 @@ module.exports = function(sequelize, DataTypes) {
   }, {
     tableName: 'iteracaopost',
     schema: 'public',
+    hasTrigger: true,
     timestamps: false,
     indexes: [
       {

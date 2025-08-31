@@ -1,15 +1,6 @@
 const Sequelize = require('sequelize');
 module.exports = function(sequelize, DataTypes) {
-  return sequelize.define('iteracaocomentario', {
-    comentario: {
-      type: DataTypes.BIGINT,
-      allowNull: false,
-      primaryKey: true,
-      references: {
-        model: 'comentario',
-        key: 'idcomentario'
-      }
-    },
+  return sequelize.define('utilizadordispositivos', {
     utilizador: {
       type: DataTypes.BIGINT,
       allowNull: false,
@@ -19,22 +10,22 @@ module.exports = function(sequelize, DataTypes) {
         key: 'idutilizador'
       }
     },
-    positiva: {
-      type: DataTypes.BOOLEAN,
-      allowNull: false
+    dispositivo: {
+      type: DataTypes.STRING(300),
+      allowNull: false,
+      primaryKey: true
     }
   }, {
-    tableName: 'iteracaocomentario',
+    tableName: 'utilizadordispositivos',
     schema: 'public',
-    hasTrigger: true,
     timestamps: false,
     indexes: [
       {
-        name: "comentario_iteracao_pk",
+        name: "utilizadordispositivos_pk",
         unique: true,
         fields: [
-          { name: "comentario" },
           { name: "utilizador" },
+          { name: "dispositivo" },
         ]
       },
     ]

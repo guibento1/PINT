@@ -31,6 +31,9 @@ class NotificationService {
 
   final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
 
+  String? _token; 
+  String? get token => _token; 
+
   final List<NotificationMessage> _notifications = [];
   List<NotificationMessage> get notifications => _notifications;
 
@@ -39,7 +42,6 @@ class NotificationService {
 
   Stream<NotificationMessage> get notificationStream => _notificationStreamController.stream;
 
-
   Future<void> setupListeners() async {
     await _firebaseMessaging.requestPermission(
       alert: true,
@@ -47,18 +49,18 @@ class NotificationService {
       sound: true,
     );
 
-    final token = await _firebaseMessaging.getToken();
+    _token = await _firebaseMessaging.getToken(); // Save token here
     print("======================================");
-    print("FCM Token: $token");
+    print("FCM Token: $_token");
     print("======================================");
 
-    // Listener para quando a app está aberta (em primeiro plano)
+    // Listener for when the app is in the foreground
     FirebaseMessaging.onMessage.listen(_handleMessage);
 
-    // Listener para quando o utilizador clica na notificação (app em 2º plano)
+    // Listener for when the user taps on a notification (app in the background)
     FirebaseMessaging.onMessageOpenedApp.listen(_handleMessage);
 
-    // Verifica se a app foi aberta a partir de uma notificação (app fechada)
+    // Check if the app was opened from a notification (app was closed)
     RemoteMessage? initialMessage = await _firebaseMessaging.getInitialMessage();
     if (initialMessage != null) {
       _handleMessage(initialMessage);

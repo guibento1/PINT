@@ -1449,7 +1449,7 @@ controllers.inscreverCurso = async (req, res) => {
         });
 
         if (
-          nInscricoes >= cursoEncontrado.maxinscricoes
+          nInscricoes >= cursoEncontrado.maxinscricoes - 1
         ) {
           logger.warn(`Limite máximo de inscrições atingido para o curso ${id}.`);
           return res.status(400).json({
