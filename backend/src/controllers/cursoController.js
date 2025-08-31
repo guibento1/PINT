@@ -814,12 +814,29 @@ controllers.getCurso = async (req, res) => {
     curso = (await addTipo(curso))[0];
     
     if(curso.dataValues.sincrono){
+
         const cursoSinc = await models.cursosincrono.findOne({
           where: {
             curso: id,
           },
-          attributes: ["formador"],
+          attributes: ["idcursosincrono","formador","inicio","fim","nhoras","maxincricoes"],
         });
+
+
+        const nInscricoes = await models.inscricao.count({
+          where: {
+            curso: id,
+          },
+        });
+
+        curso.dataValues.idcrono = cursoSinc.idcursosincrono;
+        curso.dataValues.formador = cursoSinc.formador;
+        curso.dataValues.inicio = cursoSinc.inicio;
+        curso.dataValues.fim = cursoSinc.fim;
+        curso.dataValues.nhoras = cursoSinc.nhoras;
+        curso.dataValues.maxincricoes = cursoSinc.maxincricoes;
+        curso.dataValues.inscricoes = cursoSinc.nInscricoes;
+
 
         if(cursoSinc.formador == formador) acessible = true;
     }
@@ -849,20 +866,6 @@ controllers.getCurso = async (req, res) => {
       if (curso.dataValues.sincrono) {
 
         logger.debug(`Curso sincrono.`);
-
-        const cursoSincrono = await models.cursosincrono.findOne({
-          where: {
-            curso: id,
-          },
-          attributes: ["idcursosincrono","formador","inicio","fim","nhoras","maxincricoes"],
-        });
-
-        curso.dataValues.idcrono = cursoSincrono.idcursosincrono;
-        curso.dataValues.formador = cursoSincrono.formador;
-        curso.dataValues.inicio = cursoSincrono.inicio;
-        curso.dataValues.fim = cursoSincrono.fim;
-        curso.dataValues.nhoras = cursoSincrono.nhoras;
-        curso.dataValues.maxincricoes = cursoSincrono.maxincricoes;
 
         const sessoes = await models.sessao.findAll({
           where: {
