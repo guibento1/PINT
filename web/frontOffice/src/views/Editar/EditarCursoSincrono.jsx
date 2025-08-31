@@ -387,17 +387,6 @@ const EditarCursoSincrono = () => {
           </div>
 
           <div className="col-12">
-            <label className="form-label">Plano Curricular</label>
-            <textarea
-              name="planocurricular"
-              className="form-control"
-              rows="5"
-              value={formData.planocurricular}
-              onChange={handleChange}
-            />
-          </div>
-
-          <div className="col-12">
             <label className="form-label">Thumbnail</label>
             <input
               type="file"
@@ -438,6 +427,20 @@ const EditarCursoSincrono = () => {
                   </label>
                 </div>
               ))}
+            </div>
+          </div>
+
+          {/* Plano Curricular reposicionado abaixo dos Tópicos */}
+          <div className="col-12">
+            <div className="border rounded p-3 bg-light-subtle">
+              <label className="form-label">Plano Curricular</label>
+              <textarea
+                name="planocurricular"
+                className="form-control"
+                rows="5"
+                value={formData.planocurricular}
+                onChange={handleChange}
+              />
             </div>
           </div>
 

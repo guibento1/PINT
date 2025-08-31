@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import api from "@shared/services/axios";
 import FileUpload from "@shared/components/FileUpload";
+import SubmissionManager from "@shared/components/SubmissionManager";
 import Modal from "@shared/components/Modal";
 import useUserRole from "@shared/hooks/useUserRole";
 
@@ -982,10 +983,10 @@ const AvaliacoesSincrono = () => {
               size="sm"
             />
           </div>
-          <div className="col-md-2 d-flex">
+          <div className="col-md-3 d-flex align-items-start">
             <button
               type="submit"
-              className="btn btn-sm btn-primary w-100 align-self-start mt-4"
+              className="btn btn-sm btn-primary w-100 mt-4"
               disabled={saving}
             >
               {saving ? "A criar..." : "Adicionar"}
@@ -1161,61 +1162,88 @@ const AvaliacoesSincrono = () => {
               {submissoesError}
             </div>
           ) : submissoes?.length ? (
-            <ul className="list-group">
-              {submissoes.map((s) => (
-                <li
-                  key={s.idsubmissao ?? s.id ?? s.submissaoId}
-                  className="list-group-item d-flex justify-content-between align-items-start"
-                >
-                  <div>
-                    <div>
-                      <strong>Formando:</strong>{" "}
-                      {s.formando_formando?.nome ||
-                        s.formandoNome ||
-                        s.nome ||
-                        s.email ||
-                        s.idformando ||
-                        s.formando ||
-                        s.utilizador}
-                    </div>
-                    {(s.link || s.url || s.ficheiro || s.submissao) && (
-                      <div>
-                        <a
-                          href={s.link || s.url || s.ficheiro || s.submissao}
-                          target="_blank"
-                          rel="noreferrer"
-                        >
-                          Ver Submissão
-                        </a>
-                      </div>
-                    )}
-                    {(s.nota != null || s.classificacao != null) && (
-                      <small className="text-muted">
-                        Nota atual: {s.nota ?? s.classificacao}
-                      </small>
-                    )}
-                  </div>
-                  <div className="d-flex align-items-center gap-2">
-                    <input
-                      type="number"
-                      step="0.5"
-                      min="0"
-                      className="form-control form-control-sm"
-                      placeholder="Nota"
-                      defaultValue={s.nota ?? s.classificacao ?? ""}
-                      onBlur={(e) => {
-                        const val = e.target.value;
-                        if (val !== "")
-                          handleCorrigirSubmissao(
-                            s.idsubmissao ?? s.id ?? s.submissaoId,
-                            val
-                          );
-                      }}
-                    />
-                  </div>
-                </li>
-              ))}
-            </ul>
+            <div>
+              {submissoes.map((s) => {
+                const subUrl = s.link || s.url || s.ficheiro || s.submissao;
+                const subDate =
+                  s.dataSubmissao || s.createdAt || s.data || s.at || undefined;
+                const sid = s.idsubmissao ?? s.id ?? s.submissaoId;
+                const fid =
+                  s.idformando || s.formando || s.utilizador || s.userId || sid;
+                // Try to resolve the student's display name from multiple possible shapes
+                let nomeResolved =
+                  s.formando_formando?.nome ||
+                  s.formando?.nome ||
+                  s.formandoNome ||
+                  s.nomeCompleto ||
+                  s.utilizadorNome ||
+                  s.nome ||
+                  "";
+                if (
+                  !nomeResolved &&
+                  Array.isArray(inscritos) &&
+                  inscritos.length
+                ) {
+                  const match = inscritos.find(
+                    (x) => String(resolveFormandoId(x)) === String(fid)
+                  );
+                  if (match) {
+                    const apn =
+                      match.primeiroNome ||
+                      match.primeiro ||
+                      match.firstName ||
+                      match.primeiro_nome ||
+                      match.nome?.split(" ")[0];
+                    const aun =
+                      match.ultimoNome ||
+                      match.ultimo ||
+                      match.lastName ||
+                      match.ultimo_nome ||
+                      match.nome?.split(" ").slice(1).join(" ") ||
+                      "";
+                    nomeResolved =
+                      (match.nome && match.nome.trim()) ||
+                      [apn, aun].filter(Boolean).join(" ").trim();
+                  }
+                }
+                const student = {
+                  id: fid,
+                  nome: nomeResolved,
+                  email: s.email || "",
+                };
+                const notaAtual = s.nota ?? s.classificacao ?? null;
+                return (
+                  <SubmissionManager
+                    key={sid}
+                    dense
+                    student={student}
+                    submission={{ url: subUrl, date: subDate }}
+                    nota={notaAtual}
+                    onGuardarNota={async (nota) => {
+                      await handleCorrigirSubmissao(sid, nota);
+                    }}
+                    onEliminarNota={async () => {
+                      try {
+                        await api.put(
+                          `/curso/cursosincrono/${id}/avalicaocontinua/${selectedAvaliacao}/corrigir`,
+                          { idsubmissao: sid, nota: null }
+                        );
+                        await handleLoadSubmissoes(selectedAvaliacao);
+                        setOperationStatus(0);
+                        setOperationMessage("Nota removida.");
+                      } catch (err) {
+                        setOperationStatus(1);
+                        setOperationMessage(
+                          err?.response?.data?.error || "Erro ao remover nota."
+                        );
+                      } finally {
+                        openResultModal();
+                      }
+                    }}
+                  />
+                );
+              })}
+            </div>
           ) : (
             <div className="text-muted small">Sem submissões.</div>
           )}

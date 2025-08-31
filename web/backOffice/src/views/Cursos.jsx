@@ -45,7 +45,66 @@ export default function GerirCursos() {
         apiParams.sincrono = currentFilters.sincrono;
 
       const data = await getCursos(apiParams);
-      setCursos(data);
+
+      // Enriquecer com 'maxincricoes' quando faltar no /curso/list, buscando /curso/:id apenas nos necessários
+      const normalizeIsSyn = (c) => {
+        const t = (c.tipo || "").toString().toLowerCase();
+        const s = c.sincrono;
+        return (
+          (t && (t.includes("sincrono") || t.includes("síncrono"))) ||
+          s === true ||
+          s === 1 ||
+          s === "1" ||
+          (typeof s === "string" && s.toLowerCase() === "true")
+        );
+      };
+      const hasMax = (c) => {
+        const raw =
+          c.maxInscricoes ??
+          c.maxinscricoes ??
+          c.maxincricoes ??
+          c?.cursosincrono?.maxInscricoes ??
+          c?.cursosincrono?.maxinscricoes ??
+          c?.cursosincrono?.maxincricoes;
+        return !(
+          raw === undefined ||
+          raw === null ||
+          (typeof raw === "string" && raw.trim() === "")
+        );
+      };
+
+      let list = Array.isArray(data) ? data : [];
+      const toEnrich = list.filter((c) => normalizeIsSyn(c) && !hasMax(c));
+      if (toEnrich.length > 0) {
+        const details = await Promise.all(
+          toEnrich.map((c) => {
+            const idc = c.idcurso || c.id;
+            return api
+              .get(`/curso/${idc}`)
+              .then((r) => ({ id: idc, data: r.data[0] || r.data }))
+              .catch(() => null);
+          })
+        );
+        const map = new Map(details.filter(Boolean).map((d) => [d.id, d.data]));
+        list = list.map((c) => {
+          const idc = c.idcurso || c.id;
+          if (normalizeIsSyn(c) && !hasMax(c) && map.has(idc)) {
+            const d = map.get(idc);
+            const max =
+              d.maxInscricoes ??
+              d.maxinscricoes ??
+              d.maxincricoes ??
+              d?.cursosincrono?.maxInscricoes ??
+              d?.cursosincrono?.maxinscricoes ??
+              d?.cursosincrono?.maxincricoes ??
+              null;
+            return { ...c, maxincricoes: max };
+          }
+          return c;
+        });
+      }
+
+      setCursos(list);
     } catch (err) {
       setError("Erro ao carregar cursos. Tente novamente mais tarde.");
       console.error(err);
@@ -236,9 +295,6 @@ export default function GerirCursos() {
                         : null;
                       const terminou = fim && now >= fim;
 
-                      // Requisito 8:
-                      // - Assíncrono terminado: oculto para formandos (independentemente de 'disponivel').
-                      // - Síncrono terminado: inscrições/visibilidade geral fechadas, mas inscritos continuam a ver conteúdos.
                       if (curso.sincrono === false && terminou) {
                         return (
                           <span
@@ -261,7 +317,6 @@ export default function GerirCursos() {
                         );
                       }
 
-                      // Não terminou: respeita o valor manual de 'disponivel'
                       if (curso.disponivel) {
                         return (
                           <span
@@ -317,7 +372,59 @@ export default function GerirCursos() {
                       ? new Date(curso.fimdeinscricoes).toLocaleDateString()
                       : "N/A"}
                   </td>
-                  <td>{curso.maxinscricoes}</td>
+                  <td>
+                    {(() => {
+                      const t = (curso.tipo || "").toString().toLowerCase();
+                      const s = curso.sincrono;
+                      const isSyn =
+                        (t &&
+                          (t.includes("sincrono") || t.includes("síncrono"))) ||
+                        s === true ||
+                        s === 1 ||
+                        s === "1" ||
+                        (typeof s === "string" && s.toLowerCase() === "true");
+                      const isAsync =
+                        (t &&
+                          (t.includes("assincrono") ||
+                            t.includes("assíncrono"))) ||
+                        s === false ||
+                        s === 0 ||
+                        s === "0" ||
+                        (typeof s === "string" && s.toLowerCase() === "false");
+
+                      const rawMax =
+                        curso.maxInscricoes ??
+                        curso.maxinscricoes ??
+                        curso.maxincricoes ??
+                        curso?.cursosincrono?.maxInscricoes ??
+                        curso?.cursosincrono?.maxinscricoes ??
+                        curso?.cursosincrono?.maxincricoes ??
+                        null;
+                      const max =
+                        typeof rawMax === "string"
+                          ? rawMax.trim() === ""
+                            ? null
+                            : parseInt(rawMax, 10)
+                          : rawMax;
+
+                      if (isSyn) {
+                        return max !== null &&
+                          max !== undefined &&
+                          !Number.isNaN(max) ? (
+                          <span
+                            className="badge bg-secondary-subtle text-secondary-emphasis"
+                            title="Máximo de inscrições"
+                          >
+                            {max}
+                          </span>
+                        ) : (
+                          <span className="text-muted">Não atribuído</span>
+                        );
+                      }
+                      if (isAsync) return <span className="text-muted">—</span>;
+                      return <span className="text-muted">N/A</span>;
+                    })()}
+                  </td>
                   <td>
                     <Link
                       to={`/curso/${curso.idcurso}`}

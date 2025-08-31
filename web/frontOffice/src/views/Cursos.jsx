@@ -103,7 +103,6 @@ export default function CursosPage() {
           const visibleCursos = cursos.filter((c) => {
             const fim = c.fimdeinscricoes ? new Date(c.fimdeinscricoes) : null;
             const ended = fim && now >= fim;
-            // Assíncrono terminado deve ficar oculto do FrontOffice
             if (c.sincrono === false && ended) return false;
             return true;
           });

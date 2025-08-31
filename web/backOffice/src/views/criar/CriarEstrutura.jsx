@@ -222,7 +222,16 @@ export default function CriarEstrutura() {
   return (
     <div className="container mt-4">
       <br />
-      <h2 className="mb-4">Criar Nova Estrutura</h2>
+      <div className="d-flex align-items-center mb-4 gap-2">
+        <h2 className="h4 mb-0">Criar Nova Estrutura</h2>
+        <button
+          type="button"
+          className="btn btn-outline-secondary btn-sm ms-auto"
+          onClick={() => navigate("/gerir-estrutura")}
+        >
+          Voltar
+        </button>
+      </div>
 
       <ul className="nav nav-tabs" id="myTab" role="tablist">
         <li className="nav-item" role="presentation">

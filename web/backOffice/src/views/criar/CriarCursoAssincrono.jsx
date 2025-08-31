@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import api from "@shared/services/axios.js";
 import { fetchTopicosCached } from "@shared/services/dataCache";
 import Modal from "@shared/components/Modal";
+import FileUpload from "@shared/components/FileUpload";
 
 const CriarCursoAssincrono = () => {
   const navigate = useNavigate();
@@ -89,14 +90,10 @@ const CriarCursoAssincrono = () => {
     }));
   };
 
-  const handleThumbnailChange = (e) => {
-    const file = e.target.files[0];
-    setThumbnailFile(file);
-    if (file) {
-      setPreviewThumbnail(URL.createObjectURL(file));
-    } else {
-      setPreviewThumbnail("");
-    }
+  const handleThumbnailSelect = (file) => {
+    const f = file || null;
+    setThumbnailFile(f);
+    setPreviewThumbnail(f ? URL.createObjectURL(f) : "");
   };
 
   const handleTopicChange = (e) => {
@@ -201,7 +198,18 @@ const CriarCursoAssincrono = () => {
 
   return (
     <div className="container mt-5">
-      <h1 className="text-primary-blue mb-4">Criar Novo Curso Assíncrono</h1>
+      <div className="d-flex align-items-center mb-4 gap-2">
+        <h1 className="text-primary-blue h4 mb-0">
+          Criar Novo Curso Assíncrono
+        </h1>
+        <button
+          type="button"
+          className="btn btn-outline-secondary btn-sm ms-auto"
+          onClick={() => navigate("/cursos")}
+        >
+          Voltar
+        </button>
+      </div>
 
       <form
         onSubmit={handleSubmit}
@@ -289,28 +297,30 @@ const CriarCursoAssincrono = () => {
           </div>
 
           <div className="col-12">
-            <label htmlFor="thumbnail" className="form-label">
-              Thumbnail:
-            </label>
-            <input
-              type="file"
-              className="form-control"
-              id="thumbnail"
-              name="thumbnail"
-              onChange={handleThumbnailChange}
-              accept="image/*"
-            />
-            {previewThumbnail && (
-              <div className="mt-2">
-                <img
-                  src={previewThumbnail}
-                  alt="Preview da Thumbnail"
-                  className="img-thumbnail"
-                  style={{ maxWidth: "150px" }}
-                />
-                <p className="text-muted mt-1">Preview da nova thumbnail</p>
-              </div>
-            )}
+            <label className="form-label d-block">Thumbnail:</label>
+            <div className="d-flex align-items-start gap-3 flex-wrap">
+              <FileUpload
+                id="thumbnail-upload"
+                label={null}
+                onSelect={handleThumbnailSelect}
+                size="sm"
+              />
+              {previewThumbnail && (
+                <div className="text-center">
+                  <img
+                    src={previewThumbnail}
+                    alt="Preview da Thumbnail"
+                    className="rounded shadow-sm border"
+                    style={{
+                      maxWidth: "280px",
+                      maxHeight: "180px",
+                      objectFit: "cover",
+                    }}
+                  />
+                  <div className="text-muted small mt-2">Pré-visualização</div>
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="col-12">

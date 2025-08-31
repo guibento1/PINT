@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import api from "../../../../shared/services/axios.js";
-import Modal from "../../../../shared/components/Modal";
+import api from "@shared/services/axios.js";
+import Modal from "@shared/components/Modal";
+import FileUpload from "@shared/components/FileUpload";
+import SubmissionCard from "@shared/components/SubmissionCard";
 
 const EditarCursoAssincrono = () => {
   const { id } = useParams();
@@ -144,13 +146,10 @@ const EditarCursoAssincrono = () => {
     }));
   };
 
-  const handleThumbnailChange = (e) => {
-    setThumbnailFile(e.target.files[0]);
-    if (e.target.files[0]) {
-      setCurrentThumbnail(URL.createObjectURL(e.target.files[0]));
-    } else {
-      setCurrentThumbnail(curso?.thumbnail || "");
-    }
+  const handleThumbnailSelect = (file) => {
+    const f = file || null;
+    setThumbnailFile(f);
+    setCurrentThumbnail(f ? URL.createObjectURL(f) : curso?.thumbnail || "");
   };
 
   const handleTopicChange = (e) => {
@@ -375,6 +374,42 @@ const EditarCursoAssincrono = () => {
     }
   };
 
+  // Helpers para apresentar materiais no SubmissionCard
+  const resolveMaterialUrl = (m) =>
+    m?.url ||
+    m?.link ||
+    m?.referencia ||
+    m?.ficheiro ||
+    m?.file ||
+    m?.path ||
+    null;
+
+  const deriveMaterialType = (m) => {
+    if (m?.tipo === 3 || (m?.link && !m?.referencia)) return "Link";
+    const url = resolveMaterialUrl(m);
+    if (!url) return null;
+    const clean = url.split("?")[0].split("#")[0];
+    const parts = clean.split(".");
+    const ext = parts.length > 1 ? parts.pop().toLowerCase() : "";
+    if (!ext || ext.length > 5) return null;
+    const map = {
+      pdf: "PDF",
+      doc: "Word",
+      docx: "Word",
+      xls: "Excel",
+      xlsx: "Excel",
+      ppt: "PowerPoint",
+      pptx: "PowerPoint",
+      mp4: "Vídeo",
+      mov: "Vídeo",
+      avi: "Vídeo",
+      txt: "Texto",
+      csv: "CSV",
+      zip: "ZIP",
+    };
+    return map[ext] || ext.toUpperCase();
+  };
+
   if (loading) {
     return (
       <div className="container mt-5">
@@ -424,9 +459,18 @@ const EditarCursoAssincrono = () => {
 
   return (
     <div className="container mt-5">
-      <h1 className="text-primary-blue mb-4">
-        Editar Curso Assíncrono: {curso.nome}
-      </h1>
+      <div className="d-flex align-items-center mb-4 gap-2">
+        <h1 className="text-primary-blue h4 mb-0">
+          Editar Curso Assíncrono: {curso.nome}
+        </h1>
+        <button
+          type="button"
+          className="btn btn-outline-secondary btn-sm ms-auto"
+          onClick={() => navigate("/cursos")}
+        >
+          Voltar
+        </button>
+      </div>
 
       <form
         onSubmit={handleSubmit}
@@ -436,7 +480,7 @@ const EditarCursoAssincrono = () => {
         <div className="row g-3">
           <div className="col-md-6">
             <label htmlFor="nome" className="form-label">
-              Nome do Curso:
+              Nome do Curso <span className="text-danger">*</span>:
             </label>
             <input
               type="text"
@@ -451,7 +495,7 @@ const EditarCursoAssincrono = () => {
 
           <div className="col-md-6">
             <label htmlFor="iniciodeinscricoes" className="form-label">
-              Início das Inscrições:
+              Início das Inscrições <span className="text-danger">*</span>:
             </label>
             <input
               type="datetime-local"
@@ -465,7 +509,8 @@ const EditarCursoAssincrono = () => {
           </div>
           <div className="col-md-6">
             <label htmlFor="fimdeinscricoes" className="form-label">
-              {`Fim das Inscrições${formData.disponivel ? " *" : ""}:`}
+              Fim das Inscrições
+              {formData.disponivel && <span className="text-danger"> *</span>}:
             </label>
             <input
               type="datetime-local"
@@ -514,7 +559,9 @@ const EditarCursoAssincrono = () => {
           </div>
 
           <div className="col-12">
-            <label className="form-label">Tópicos:</label>
+            <label className="form-label">
+              Tópicos <span className="text-danger">*</span>:
+            </label>
             <div className="border p-3 rounded d-flex flex-wrap gap-2">
               {allTopicos.map((topico) => (
                 <div
@@ -541,31 +588,33 @@ const EditarCursoAssincrono = () => {
           </div>
 
           <div className="col-12">
-            <label htmlFor="thumbnail" className="form-label">
-              Thumbnail:
-            </label>
-            <input
-              type="file"
-              className="form-control"
-              id="thumbnail"
-              name="thumbnail"
-              onChange={handleThumbnailChange}
-              accept="image/*"
-            />
-            {currentThumbnail && (
-              <div className="mt-2">
-                <img
-                  src={currentThumbnail}
-                  alt="Thumbnail atual"
-                  className="img-thumbnail"
-                  style={{ maxWidth: "150px" }}
-                />
-                <p className="text-muted mt-1">Thumbnail atual</p>
-              </div>
-            )}
+            <label className="form-label d-block">Thumbnail:</label>
+            <div className="d-flex align-items-start gap-3 flex-wrap">
+              <FileUpload
+                id="thumbnail-upload"
+                label={null}
+                onSelect={handleThumbnailSelect}
+                size="sm"
+              />
+              {currentThumbnail && (
+                <div className="text-center">
+                  <img
+                    src={currentThumbnail}
+                    alt="Thumbnail atual"
+                    className="rounded shadow-sm border"
+                    style={{
+                      maxWidth: "280px",
+                      maxHeight: "180px",
+                      objectFit: "cover",
+                    }}
+                  />
+                  <div className="text-muted small mt-2">Pré-visualização</div>
+                </div>
+              )}
+            </div>
           </div>
 
-          <div className="col-12 text-end">
+          <div className="col-12 d-flex justify-content-end gap-3">
             <button
               type="submit"
               className="btn btn-primary"
@@ -608,14 +657,6 @@ const EditarCursoAssincrono = () => {
                   <div>
                     <button
                       type="button"
-                      className="btn btn-sm btn-outline-info me-2"
-                      onClick={() => handleAddContentClick(licao)}
-                      title="Adicionar Conteúdo"
-                    >
-                      <i className="ri-add-box-line"></i> Conteúdo
-                    </button>
-                    <button
-                      type="button"
                       className="btn btn-sm btn-outline-danger"
                       onClick={() => handleDeleteLessonClick(licao)}
                       title="Eliminar Lição"
@@ -626,44 +667,65 @@ const EditarCursoAssincrono = () => {
                 </div>
                 <p className="text-muted small">{licao.descricao}</p>
 
-                {licao.materiais && licao.materiais.length > 0 && (
-                  <div className="mt-3">
-                    <strong>Materiais:</strong>
-                    <ul className="list-unstyled mb-0">
-                      {licao.materiais.map((material) => (
-                        <li
-                          key={material.idmaterial}
-                          className="d-flex justify-content-between align-items-center border-top pt-2 mt-2"
-                        >
-                          <div>
-                            {getMaterialIcon(material.tipo)}
-                            {material.titulo}
-                            {material.link && (
-                              <span className="ms-2 badge bg-light text-dark">
-                                Link
-                              </span>
-                            )}
-                            {material.referencia && !material.link && (
-                              <span className="ms-2 badge bg-light text-dark">
-                                Ficheiro
-                              </span>
-                            )}
-                          </div>
-                          <button
-                            type="button"
-                            className="btn btn-sm btn-outline-danger"
-                            onClick={() =>
-                              handleDeleteMaterialClick(material, licao.idlicao)
-                            }
-                            title="Eliminar Material"
-                          >
-                            <i className="ri-delete-bin-line"></i>
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
+                <div className="mt-3">
+                  <div className="d-flex justify-content-between align-items-center mb-2">
+                    <strong>Materiais</strong>
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-outline-success"
+                      onClick={() => handleAddContentClick(licao)}
+                      title="Adicionar Material"
+                    >
+                      <i className="ri-add-line"></i> Adicionar Material
+                    </button>
                   </div>
-                )}
+                  {licao.materiais && licao.materiais.length > 0 ? (
+                    <div className="d-flex flex-column gap-2">
+                      {licao.materiais.map((material) => {
+                        const url = resolveMaterialUrl(material);
+                        const type = deriveMaterialType(material);
+                        const filename =
+                          material.titulo ||
+                          (url ? url.split("/").pop() : "Material");
+                        const statusLabel = material.link ? "Link" : "Ficheiro";
+                        return (
+                          <div
+                            key={material.idmaterial}
+                            className="d-flex align-items-stretch gap-2"
+                          >
+                            <div className="flex-grow-1">
+                              <SubmissionCard
+                                filename={filename}
+                                type={type}
+                                url={url}
+                                statusLabel={statusLabel}
+                              />
+                            </div>
+                            <div className="d-flex align-items-center">
+                              <button
+                                type="button"
+                                className="btn btn-sm btn-outline-danger"
+                                onClick={() =>
+                                  handleDeleteMaterialClick(
+                                    material,
+                                    licao.idlicao
+                                  )
+                                }
+                                title="Eliminar Material"
+                              >
+                                <i className="ri-delete-bin-line"></i>
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="text-muted small">
+                      Sem materiais para esta lição.
+                    </div>
+                  )}
+                </div>
               </li>
             ))}
           </ul>
@@ -896,7 +958,7 @@ const EditarCursoAssincrono = () => {
         title={getResultModalTitle()}
       >
         {getResultModalBody()}
-        <div className="d-flex justify-content-end mt-4">
+        <div className="d-flex justify-content-end mt-3">
           <button
             type="button"
             className="btn btn-primary"

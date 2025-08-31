@@ -4,6 +4,7 @@ import api from "@shared/services/axios";
 import Modal from "@shared/components/Modal";
 import useUserRole from "@shared/hooks/useUserRole";
 import FileUpload from "@shared/components/FileUpload";
+import SubmissionCard from "@shared/components/SubmissionCard";
 
 const Agendar = () => {
   const { id } = useParams();
@@ -16,6 +17,16 @@ const Agendar = () => {
   const [loading, setLoading] = useState(true);
   const [uploadingSessao, setUploadingSessao] = useState(null); // idsessao em upload
   const [deletingMaterialId, setDeletingMaterialId] = useState(null); // idmaterial em delete
+  // editar sessão
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingSessao, setEditingSessao] = useState(null);
+  const [editTitulo, setEditTitulo] = useState("");
+  const [editDescricao, setEditDescricao] = useState("");
+  const [editDataHora, setEditDataHora] = useState("");
+  const [editDuracao, setEditDuracao] = useState("");
+  const [editPlataforma, setEditPlataforma] = useState("");
+  const [editLink, setEditLink] = useState("");
+  const [savingEdit, setSavingEdit] = useState(false);
 
   // formulário
   const [sessaoTitulo, setSessaoTitulo] = useState("");
@@ -79,6 +90,76 @@ const Agendar = () => {
   useEffect(() => {
     fetchCurso();
   }, [fetchCurso]);
+
+  const toInputLocal = (val) => {
+    if (!val) return "";
+    const d = new Date(val);
+    if (isNaN(d.getTime())) return "";
+    const local = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
+    return local.toISOString().slice(0, 16); // YYYY-MM-DDTHH:MM
+  };
+
+  const openEditSessao = (s) => {
+    setEditingSessao(s || null);
+    setEditTitulo(s?.titulo || "");
+    setEditDescricao(s?.descricao || "");
+    setEditDataHora(toInputLocal(s?.datahora));
+    setEditDuracao(s?.duracaohoras != null ? String(s.duracaohoras) : "");
+    setEditPlataforma(s?.plataformavideoconferencia || "");
+    setEditLink(s?.linksessao || "");
+    setIsEditModalOpen(true);
+  };
+  const closeEditSessao = () => {
+    setIsEditModalOpen(false);
+    setEditingSessao(null);
+  };
+  const handleSaveEditSessao = async () => {
+    if (!editingSessao) return;
+    if (
+      !editTitulo ||
+      !editDescricao ||
+      !editDataHora ||
+      !editDuracao ||
+      !editPlataforma ||
+      !editLink
+    ) {
+      setOperationStatus(1);
+      setOperationMessage("Preencha todos os campos da sessão.");
+      return openResultModal();
+    }
+    setSavingEdit(true);
+    try {
+      const payload = {
+        titulo: editTitulo,
+        descricao: editDescricao,
+        datahora: editDataHora,
+        duracaohoras: Number(editDuracao),
+        plataformavideoconferencia: editPlataforma,
+        linksessao: editLink,
+      };
+      await tryEndpoints(
+        "put",
+        [
+          `/sessao/${editingSessao.idsessao}`,
+          `/curso/cursosincrono/${curso?.idcrono}/sessao/${editingSessao.idsessao}`,
+          `/curso/${id}/sessao/${editingSessao.idsessao}`,
+        ],
+        payload
+      );
+      await fetchCurso();
+      setOperationStatus(0);
+      setOperationMessage("Sessão atualizada.");
+      closeEditSessao();
+    } catch (err) {
+      setOperationStatus(1);
+      setOperationMessage(
+        err?.response?.data?.error || "Erro ao atualizar sessão."
+      );
+    } finally {
+      setSavingEdit(false);
+      openResultModal();
+    }
+  };
 
   const handleAddSessao = async (e) => {
     e.preventDefault();
@@ -163,6 +244,9 @@ const Agendar = () => {
     setOperationMessage("");
     try {
       const fd = new FormData();
+      // Backend expects 'info' JSON com titulo e tipo (numérico). tipo: 1 => ficheiro
+      const info = { titulo: file.name || "Material", tipo: 1 };
+      fd.append("info", JSON.stringify(info));
       fd.append("ficheiro", file);
       await tryEndpoints(
         "post",
@@ -262,6 +346,7 @@ const Agendar = () => {
 
   return (
     <div className="container mt-5">
+      {/* Modal resultado genérico */}
       <Modal
         isOpen={isResultModalOpen}
         onClose={closeResultModal}
@@ -274,6 +359,101 @@ const Agendar = () => {
         }
       >
         <p className="mb-0">{operationMessage || "Operação concluída."}</p>
+      </Modal>
+
+      {/* Modal editar sessão */}
+      <Modal
+        isOpen={isEditModalOpen}
+        onClose={closeEditSessao}
+        title="Editar Sessão"
+      >
+        <div className="row g-2">
+          <div className="col-md-6">
+            <label className="form-label form-label-sm mb-1 small">
+              Título
+            </label>
+            <input
+              type="text"
+              className="form-control form-control-sm"
+              value={editTitulo}
+              onChange={(e) => setEditTitulo(e.target.value)}
+            />
+          </div>
+          <div className="col-md-6">
+            <label className="form-label form-label-sm mb-1 small">
+              Plataforma
+            </label>
+            <input
+              type="text"
+              className="form-control form-control-sm"
+              value={editPlataforma}
+              onChange={(e) => setEditPlataforma(e.target.value)}
+            />
+          </div>
+          <div className="col-md-12">
+            <label className="form-label form-label-sm mb-1 small">
+              Descrição
+            </label>
+            <input
+              type="text"
+              className="form-control form-control-sm"
+              value={editDescricao}
+              onChange={(e) => setEditDescricao(e.target.value)}
+            />
+          </div>
+          <div className="col-md-4">
+            <label className="form-label form-label-sm mb-1 small">
+              Data/Hora
+            </label>
+            <input
+              type="datetime-local"
+              className="form-control form-control-sm"
+              value={editDataHora}
+              onChange={(e) => setEditDataHora(e.target.value)}
+            />
+          </div>
+          <div className="col-md-2">
+            <label className="form-label form-label-sm mb-1 small">
+              Duração (h)
+            </label>
+            <input
+              type="number"
+              step="0.5"
+              min="0.5"
+              className="form-control form-control-sm"
+              value={editDuracao}
+              onChange={(e) => setEditDuracao(e.target.value)}
+            />
+          </div>
+          <div className="col-md-6">
+            <label className="form-label form-label-sm mb-1 small">
+              Link Sessão
+            </label>
+            <input
+              type="url"
+              className="form-control form-control-sm"
+              value={editLink}
+              onChange={(e) => setEditLink(e.target.value)}
+            />
+          </div>
+          <div className="col-12 d-flex justify-content-end gap-2 mt-2">
+            <button
+              type="button"
+              className="btn btn-sm btn-outline-secondary"
+              onClick={closeEditSessao}
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              className="btn btn-sm btn-primary"
+              onClick={handleSaveEditSessao}
+              disabled={savingEdit}
+            >
+              {savingEdit ? "A guardar..." : "Guardar"}
+            </button>
+          </div>
+        </div>
       </Modal>
 
       <div className="d-flex align-items-center mb-4 gap-2">
@@ -376,27 +556,41 @@ const Agendar = () => {
         <ul className="list-group small">
           {curso.sessoes.map((s) => (
             <li key={s.idsessao} className="list-group-item">
-              <div className="d-flex justify-content-between align-items-start gap-3">
-                <div>
-                  <strong>{s.titulo}</strong>
-                  <br />
-                  <span className="text-muted">
-                    {formatDataHora(s.datahora)} ({s.duracaohoras}h) -{" "}
-                    {s.plataformavideoconferencia}
-                  </span>
-                  <br />
-                  {s.linksessao && (
-                    <a
-                      href={s.linksessao}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="small"
-                    >
-                      Aceder
-                    </a>
-                  )}
+              <div className="row g-2 align-items-start">
+                <div className="col-md-8">
+                  <div className="d-flex flex-column">
+                    <div className="d-flex align-items-center gap-2 flex-wrap">
+                      <strong className="me-1">{s.titulo}</strong>
+                    </div>
+                    <div className="d-flex align-items-center flex-wrap gap-2 small">
+                      <span className="text-muted">
+                        {formatDataHora(s.datahora)} ({s.duracaohoras}h) —{" "}
+                        {s.plataformavideoconferencia}
+                      </span>
+                      {s.linksessao && (
+                        <a
+                          href={s.linksessao}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="btn btn-sm btn-outline-primary ms-3"
+                        >
+                          Link da Reunião
+                        </a>
+                      )}
+                    </div>
+                    {s.descricao && (
+                      <div className="small mt-1">{s.descricao}</div>
+                    )}
+                  </div>
                 </div>
-                <div className="d-flex gap-1">
+                <div className="col-md-4 d-flex justify-content-md-end gap-2">
+                  <button
+                    className="btn btn-sm btn-outline-primary"
+                    type="button"
+                    onClick={() => openEditSessao(s)}
+                  >
+                    Editar Sessão
+                  </button>
                   <button
                     className="btn btn-sm btn-outline-danger"
                     type="button"
@@ -418,87 +612,100 @@ const Agendar = () => {
                   s?.conteudosSessao ||
                   [];
                 return (
-                  <div className="mt-2">
-                    <div className="d-flex align-items-center justify-content-between">
-                      <span className="fw-semibold">Materiais (opcional)</span>
-                      <div className="ms-3" style={{ minWidth: 220 }}>
-                        <FileUpload
-                          id={`sessao-mat-${s.idsessao}`}
-                          label={null}
-                          onSelect={(file) => {
-                            if (file)
-                              handleUploadSessaoMaterial(s.idsessao, file);
-                          }}
-                          size="sm"
-                          disabled={uploadingSessao === s.idsessao}
-                        />
-                        {uploadingSessao === s.idsessao && (
-                          <small className="text-muted">A enviar...</small>
-                        )}
+                  <div className="mt-2 pt-2 border-top mb-2">
+                    <div className="row align-items-start g-2">
+                      <div className="col-md-8">
+                        <div className="fw-semibold">Materiais:</div>
+                        <div className="mt-2">
+                          {Array.isArray(mats) && mats.length > 0 ? (
+                            <div className="d-flex flex-column gap-2">
+                              {mats.map((m, idx) => {
+                                const mid =
+                                  m?.idmaterial || m?.id || m?.codigo || idx;
+                                const mname =
+                                  m?.nome ||
+                                  m?.filename ||
+                                  m?.titulo ||
+                                  m?.designacao ||
+                                  `Material ${idx + 1}`;
+                                const murl =
+                                  m?.url ||
+                                  m?.link ||
+                                  m?.referencia ||
+                                  m?.ficheiro ||
+                                  m?.file ||
+                                  m?.path;
+                                const isPdf =
+                                  String(mname)
+                                    .toLowerCase()
+                                    .endsWith(".pdf") ||
+                                  String(murl || "")
+                                    .toLowerCase()
+                                    .endsWith(".pdf");
+                                return (
+                                  <div
+                                    key={mid}
+                                    className="d-flex align-items-center justify-content-between gap-2"
+                                  >
+                                    <div className="flex-grow-1">
+                                      <SubmissionCard
+                                        filename={mname}
+                                        type={
+                                          isPdf ? "application/pdf" : undefined
+                                        }
+                                        date={undefined}
+                                        url={murl}
+                                      />
+                                    </div>
+                                    {(m?.idmaterial || m?.id || m?.codigo) && (
+                                      <button
+                                        className="btn btn-sm btn-outline-danger"
+                                        disabled={
+                                          deletingMaterialId ===
+                                          (m?.idmaterial || m?.id || m?.codigo)
+                                        }
+                                        onClick={() =>
+                                          handleDeleteSessaoMaterial(
+                                            s.idsessao,
+                                            m?.idmaterial || m?.id || m?.codigo
+                                          )
+                                        }
+                                      >
+                                        {deletingMaterialId ===
+                                        (m?.idmaterial || m?.id || m?.codigo)
+                                          ? "A remover..."
+                                          : "Remover"}
+                                      </button>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          ) : (
+                            <p className="text-muted mb-0 mt-1">
+                              Sem materiais.
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      <div className="col-md-4 d-flex justify-content-md-end mt-4">
+                        <div style={{ minWidth: 220 }}>
+                          <FileUpload
+                            id={`sessao-mat-${s.idsessao}`}
+                            label={null}
+                            onSelect={(file) => {
+                              if (file)
+                                handleUploadSessaoMaterial(s.idsessao, file);
+                            }}
+                            size="sm"
+                            disabled={uploadingSessao === s.idsessao}
+                          />
+                          {uploadingSessao === s.idsessao && (
+                            <small className="text-muted">A enviar...</small>
+                          )}
+                        </div>
                       </div>
                     </div>
-                    {Array.isArray(mats) && mats.length > 0 ? (
-                      <ul className="mt-2 mb-0 ps-3">
-                        {mats.map((m, idx) => {
-                          const mid =
-                            m?.idmaterial || m?.id || m?.codigo || idx;
-                          const mname =
-                            m?.nome ||
-                            m?.filename ||
-                            m?.titulo ||
-                            m?.designacao ||
-                            `Material ${idx + 1}`;
-                          const murl =
-                            m?.url ||
-                            m?.link ||
-                            m?.ficheiro ||
-                            m?.file ||
-                            m?.path;
-                          return (
-                            <li
-                              key={mid}
-                              className="d-flex align-items-center justify-content-between gap-2"
-                            >
-                              <div>
-                                {murl ? (
-                                  <a
-                                    href={murl}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                  >
-                                    {mname}
-                                  </a>
-                                ) : (
-                                  <span>{mname}</span>
-                                )}
-                              </div>
-                              {(m?.idmaterial || m?.id || m?.codigo) && (
-                                <button
-                                  className="btn btn-sm btn-outline-danger"
-                                  disabled={
-                                    deletingMaterialId ===
-                                    (m?.idmaterial || m?.id || m?.codigo)
-                                  }
-                                  onClick={() =>
-                                    handleDeleteSessaoMaterial(
-                                      s.idsessao,
-                                      m?.idmaterial || m?.id || m?.codigo
-                                    )
-                                  }
-                                >
-                                  {deletingMaterialId ===
-                                  (m?.idmaterial || m?.id || m?.codigo)
-                                    ? "A remover..."
-                                    : "Remover"}
-                                </button>
-                              )}
-                            </li>
-                          );
-                        })}
-                      </ul>
-                    ) : (
-                      <p className="text-muted mb-0 mt-1">Sem materiais.</p>
-                    )}
                   </div>
                 );
               })()}

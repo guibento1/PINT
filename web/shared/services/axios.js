@@ -1,5 +1,3 @@
-// web/frontend/shared/services/axios.js
-
 import axios from "axios";
 
 const api = axios.create({
@@ -8,11 +6,11 @@ const api = axios.create({
 
 api.interceptors.request.use(
   (config) => {
-    const token = sessionStorage.getItem("token"); //
+    const token = sessionStorage.getItem("token"); 
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
-    // If sending FormData, let the browser set the multipart boundary
+    
     if (config.data instanceof FormData) {
       if (config.headers && "Content-Type" in config.headers) {
         delete config.headers["Content-Type"];

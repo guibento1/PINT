@@ -1,7 +1,6 @@
-// Lightweight client-side caching for common datasets
 import api from "./axios.js";
 
-const TTL_MS = 5 * 60 * 1000; // 5 minutes
+const TTL_MS = 5 * 60 * 1000; 
 const cache = {
   topicos: { data: null, ts: 0 },
   formadores: { data: null, ts: 0 },
@@ -32,7 +31,7 @@ export async function fetchFormadoresCached() {
         .map((r) => ({ id: r.id, nome: u.nome }))
     )
     .flat();
-  // dedupe by id
+  
   const map = new Map();
   formadores.forEach((f) => {
     if (!map.has(f.id)) map.set(f.id, f);

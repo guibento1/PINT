@@ -4,11 +4,22 @@
 
 html,
 body {
+  /* font-family: 'Adam Display', sans-serif; */
   color: var(--text-dark);
   background-color: var(--background-light);
   margin: 0;
   padding: 0;
   height: 100%;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+@font-face {
+  font-family: 'Adam Display';
+  src: url('../assets/ADLaMDisplay-Regular.ttf') format('truetype'); 
+  font-weight: normal;
+  font-style: normal;
 }
 
 main {
@@ -731,15 +742,6 @@ h6 {
   fill: #fff !important;
   stroke: #fff !important;
   color: #fff !important;
-}
-
-/* Adicione este ficheiro se não existir */
-
-/* Melhora a renderização de fontes em vários browsers */
-body {
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
 }
 
 /* Evita pixelização de SVGs e imagens em diferentes browsers */

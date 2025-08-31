@@ -1,11 +1,6 @@
 import React, { useRef, useState } from "react";
 
-// Reusable, elegant file upload with drag-and-drop and Bootstrap semantics
-// Props:
-// - id, label, accept, disabled
-// - onSelect(file)
-// - hint (small helper text)
-// - size: "sm" | undefined
+
 const FileUpload = ({
   id,
   label = "Carregar ficheiro",
@@ -98,7 +93,6 @@ const FileUpload = ({
           disabled={disabled}
           onChange={handleChange}
           onClick={(e) => {
-            // allow selecting the same file twice
             e.target.value = null;
           }}
         />

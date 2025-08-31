@@ -12,7 +12,6 @@ export const getCursoStatus = (
   const inicio = parseDate(iniciodeinscricoes);
   const fim = parseDate(fimdeinscricoes);
 
-  // Default to Pendente if no valid dates yet
   let key = "pendente";
   // 1) Se passou da data de fim, é Terminado (independentemente de 'disponivel')
   if (fim && now >= fim) {

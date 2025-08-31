@@ -1,7 +1,6 @@
 import React from "react";
 
-// Displays a submission with meta and actions
-// Props: { filename, type, date, url, statusLabel }
+
 const SubmissionCard = ({ filename, type, date, url, statusLabel }) => {
   const formatted = date
     ? new Date(date).toLocaleString("pt-PT", {

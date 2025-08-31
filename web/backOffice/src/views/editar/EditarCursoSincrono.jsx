@@ -6,6 +6,7 @@ import {
   fetchFormadoresCached,
 } from "@shared/services/dataCache";
 import Modal from "@shared/components/Modal";
+import FileUpload from "@shared/components/FileUpload";
 
 const EditarCursoSincrono = () => {
   const { id } = useParams();
@@ -38,7 +39,6 @@ const EditarCursoSincrono = () => {
     setIsResultModalOpen(false);
     setOperationStatus(null);
     setOperationMessage("");
-    if (operationStatus === 0) navigate("/cursos");
   };
 
   const getResultModalTitle = () =>
@@ -63,6 +63,26 @@ const EditarCursoSincrono = () => {
       ]);
       const c = cursoRes.data[0] || cursoRes.data;
       setCurso(c);
+
+      const currentFormadorId =
+        c.formador ?? c.formadores?.[0]?.id ?? c.formadores?.[0]?.idutilizador;
+      const currentFormadorName = c.formadores?.[0]?.nome || "Formador atual";
+
+      const normalizedFormadores = (formadores || []).map((f) => ({
+        ...f,
+        id: String(f.id),
+      }));
+      const cfIdStr =
+        currentFormadorId !== undefined && currentFormadorId !== null
+          ? String(currentFormadorId)
+          : "";
+      const hasCurrent = cfIdStr
+        ? normalizedFormadores.some((f) => f.id === cfIdStr)
+        : true;
+      const finalFormadores = hasCurrent
+        ? normalizedFormadores
+        : [...normalizedFormadores, { id: cfIdStr, nome: currentFormadorName }];
+
       setFormData({
         nome: c.nome || "",
         planocurricular: c.planocurricular || "",
@@ -72,13 +92,13 @@ const EditarCursoSincrono = () => {
         fimdeinscricoes: c.fimdeinscricoes
           ? new Date(c.fimdeinscricoes).toISOString().slice(0, 16)
           : "",
-        maxinscricoes: c.maxinscricoes || "",
+        maxinscricoes: (c.maxinscricoes ?? c.maxincricoes ?? "").toString(),
         topicos: (c.topicos || []).map((t) => parseInt(t.idtopico)),
-        formador: c.formadores?.[0]?.id || "",
+        formador: cfIdStr,
       });
       setCurrentThumbnail(c.thumbnail || "");
       setAllTopicos(topicos);
-      setAllFormadores(formadores);
+      setAllFormadores(finalFormadores);
     } catch (err) {
       console.error("Erro a carregar dados:", err);
       setError("Falha ao carregar curso ou listas.");
@@ -106,12 +126,10 @@ const EditarCursoSincrono = () => {
     }));
   };
 
-  const handleThumbnailChange = (e) => {
-    const file = e.target.files?.[0] || null;
-    setThumbnailFile(file);
-    setCurrentThumbnail(
-      file ? URL.createObjectURL(file) : curso?.thumbnail || ""
-    );
+  const handleThumbnailSelect = (file) => {
+    const f = file || null;
+    setThumbnailFile(f);
+    setCurrentThumbnail(f ? URL.createObjectURL(f) : curso?.thumbnail || "");
   };
 
   const handleSubmit = async (e) => {
@@ -146,6 +164,8 @@ const EditarCursoSincrono = () => {
       const res = await api.put(`/curso/cursosincrono/${id}`, fd);
       setOperationStatus(0);
       setOperationMessage(res.data?.message || "Curso atualizado com sucesso!");
+
+      await fetchData();
     } catch (err) {
       console.error("Erro ao atualizar curso:", err);
       setOperationStatus(1);
@@ -216,9 +236,18 @@ const EditarCursoSincrono = () => {
 
   return (
     <div className="container mt-5">
-      <h1 className="text-primary-blue mb-4">
-        Editar Curso Síncrono: {curso.nome}
-      </h1>
+      <div className="d-flex align-items-center mb-4 gap-2">
+        <h1 className="text-primary-blue h4 mb-0">
+          Editar Curso Síncrono: {curso.nome}
+        </h1>
+        <button
+          type="button"
+          className="btn btn-outline-secondary btn-sm ms-auto"
+          onClick={() => navigate("/cursos")}
+        >
+          Voltar
+        </button>
+      </div>
 
       <form
         onSubmit={handleSubmit}
@@ -253,7 +282,7 @@ const EditarCursoSincrono = () => {
             >
               <option value="">— Selecionar —</option>
               {allFormadores.map((f) => (
-                <option key={f.id} value={f.id}>
+                <option key={String(f.id)} value={String(f.id)}>
                   {f.nome}
                 </option>
               ))}
@@ -356,31 +385,33 @@ const EditarCursoSincrono = () => {
           </div>
 
           <div className="col-12">
-            <label htmlFor="thumbnail" className="form-label">
-              Thumbnail:
-            </label>
-            <input
-              type="file"
-              id="thumbnail"
-              name="thumbnail"
-              className="form-control"
-              accept="image/*"
-              onChange={handleThumbnailChange}
-            />
-            {currentThumbnail && (
-              <div className="mt-2">
-                <img
-                  src={currentThumbnail}
-                  alt="Thumbnail atual"
-                  className="img-thumbnail"
-                  style={{ maxWidth: "150px" }}
-                />
-                <p className="text-muted mt-1">Thumbnail atual</p>
-              </div>
-            )}
+            <label className="form-label d-block">Thumbnail:</label>
+            <div className="d-flex align-items-start gap-3 flex-wrap">
+              <FileUpload
+                id="thumbnail-upload"
+                label={null}
+                onSelect={handleThumbnailSelect}
+                size="sm"
+              />
+              {currentThumbnail && (
+                <div className="text-center">
+                  <img
+                    src={currentThumbnail}
+                    alt="Thumbnail atual"
+                    className="rounded shadow-sm border"
+                    style={{
+                      maxWidth: "280px",
+                      maxHeight: "180px",
+                      objectFit: "cover",
+                    }}
+                  />
+                  <div className="text-muted small mt-2">Pré-visualização</div>
+                </div>
+              )}
+            </div>
           </div>
 
-          <div className="col-12 text-end">
+          <div className="col-12 d-flex justify-content-end gap-3">
             <button
               type="submit"
               className="btn btn-primary"
@@ -398,6 +429,23 @@ const EditarCursoSincrono = () => {
           </div>
         </div>
       </form>
+      {/* Modal de Resultado */}
+      <Modal
+        isOpen={isResultModalOpen}
+        onClose={closeResultModal}
+        title={getResultModalTitle()}
+      >
+        {getResultModalBody()}
+        <div className="d-flex justify-content-end mt-3">
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={closeResultModal}
+          >
+            OK
+          </button>
+        </div>
+      </Modal>
     </div>
   );
 };

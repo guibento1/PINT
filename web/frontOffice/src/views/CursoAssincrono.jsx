@@ -1,6 +1,7 @@
 import { useParams, useNavigate } from "react-router-dom";
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import api from "@shared/services/axios";
+import SubmissionCard from "@shared/components/SubmissionCard";
 import "@shared/styles/curso.css";
 import Modal from "@shared/components/Modal";
 import useUserRole from "@shared/hooks/useUserRole";
@@ -11,7 +12,6 @@ const CursoAssincrono = () => {
   const { isFormando } = useUserRole();
   const [curso, setCurso] = useState(null);
   const [inscrito, setInscrito] = useState(false);
-  // 403 ao tentar inscrever => esconder botão posteriormente
   const [enrollForbidden, setEnrollForbidden] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -113,6 +113,17 @@ const CursoAssincrono = () => {
       setOperationMessage(
         res.data.message || "Inscrição realizada com sucesso!"
       );
+      // fetch curso to obtain topics and redirect to forums (first topic) for immediate access
+      try {
+        const cursoRes = await api.get(`/curso/${id}`);
+        const topicos = cursoRes.data?.topicos || [];
+        if (topicos.length) {
+          navigate(`/forums?topico=${topicos[0].idtopico}`);
+        }
+      } catch (e) {
+        // non-fatal: ignore fetch/redirect errors
+        console.error('Erro ao obter tópicos após inscrição:', e);
+      }
     } catch (err) {
       console.error("Erro na inscrição:", err);
       setOperationStatus(1);
@@ -205,20 +216,41 @@ const CursoAssincrono = () => {
     });
   };
 
-  const getMaterialIcon = (tipo) => {
-    switch (tipo) {
-      case "1":
-        return <i className="ri-slideshow-line me-2"></i>;
-      case "2":
-        return <i className="ri-file-text-line me-2"></i>;
-      case "3":
-        return <i className="ri-external-link-line me-2"></i>;
-      case "4":
-        return <i className="ri-file-excel-line me-2"></i>;
-      default:
-        return <i className="ri-file-line me-2"></i>;
-    }
+  // Formatação para detalhes (com horas como nos síncronos)
+  const formatDataDetalhe = (dataStr) => {
+    if (!dataStr) return "";
+    const date = new Date(dataStr);
+    if (isNaN(date.getTime())) return "Data inválida";
+    return date.toLocaleString("pt-PT", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
   };
+
+  // Helpers para detalhes sempre visíveis
+  const getMaxInscricoes = useCallback(() => {
+    const c = curso || {};
+    const raw = c?.maxinscricoes ?? c?.maxInscricoes ?? c?.maxincricoes;
+    if (raw == null || raw === "") return null;
+    const n = typeof raw === "string" ? parseInt(raw, 10) : raw;
+    return Number.isFinite(n) ? n : null;
+  }, [curso]);
+
+  const inscritosList = useMemo(() => {
+    const d = curso || {};
+    return (
+      (Array.isArray(d.inscritos) && d.inscritos) ||
+      (Array.isArray(d.participantes) && d.participantes) ||
+      (Array.isArray(d.alunos) && d.alunos) ||
+      (Array.isArray(d.formandos) && d.formandos) ||
+      []
+    );
+  }, [curso]);
+
+  // Substituído por SubmissionCard
 
   if (loading) {
     return (
@@ -316,6 +348,52 @@ const CursoAssincrono = () => {
               )
             )}
 
+            {/* Detalhes do curso — sempre visíveis (para inscritos e não inscritos) */}
+            <div className="mt-2">
+              <p className="mb-2">
+                {(curso?.iniciodeinscricoes || curso?.fimdeinscricoes) && (
+                  <>
+                    <strong>Inscrições:</strong>{" "}
+                    {formatDataDetalhe(curso?.iniciodeinscricoes)} até{" "}
+                    {formatDataDetalhe(curso?.fimdeinscricoes)}
+                    <br />
+                  </>
+                )}
+                {(curso?.inicio || curso?.fim) && (
+                  <>
+                    <strong>Duração do Curso:</strong>{" "}
+                    {formatDataDetalhe(curso?.inicio)} até{" "}
+                    {formatDataDetalhe(curso?.fim)}
+                    <br />
+                  </>
+                )}
+                {curso?.nhoras != null && curso?.nhoras !== "" && (
+                  <>
+                    <strong>Nº de horas:</strong> {curso.nhoras}
+                    <br />
+                  </>
+                )}
+                {(() => {
+                  const max = getMaxInscricoes();
+                  if (max != null) {
+                    return (
+                      <>
+                        <strong>Máx. inscrições:</strong> {max}
+                        <br />
+                      </>
+                    );
+                  }
+                  return null;
+                })()}
+                {Array.isArray(inscritosList) && (
+                  <>
+                    <strong>Inscritos:</strong> {inscritosList.length}
+                    <br />
+                  </>
+                )}
+              </p>
+            </div>
+
             {!isFormando ? (
               <div className="alert alert-warning p-2 small mt-3">
                 Não tem papel de formando contacte os serviços administrativos
@@ -326,12 +404,6 @@ const CursoAssincrono = () => {
               <>
                 {!hasEnded && curso?.disponivel !== false ? (
                   <>
-                    <p className="mt-4">
-                      <strong>Inscrições:</strong>{" "}
-                      {formatData(curso?.iniciodeinscricoes)} até{" "}
-                      {formatData(curso?.fimdeinscricoes)}
-                      <br />
-                    </p>
                     <button
                       onClick={handleClickInscrever}
                       className="btn btn-sm btn-primary"
@@ -388,29 +460,15 @@ const CursoAssincrono = () => {
                     reativado.
                   </div>
                 )}
-                {curso?.planocurricular && (
-                  <p className="mb-0">
-                    <strong>Plano Curricular:</strong>
-                    <br />
-                    {curso?.planocurricular}
-                  </p>
-                )}
               </div>
             )}
           </div>
         </div>
 
-        {!inscrito && curso?.planocurricular && (
-          <div className="mt-5">
-            <h2 className="h4">Plano Curricular</h2>
-            <p>{curso?.planocurricular}</p>
-          </div>
-        )}
-
         <div className="mt-2 row g-4">
           {curso?.topicos?.length > 0 && (
-            <div className="col-12">
-              <h2 className="h4">Tópicos</h2>
+            <div className="col-12 m">
+              <h2 className="h4 mb-3">Tópicos:</h2>
               <div className="d-flex flex-wrap gap-2">
                 {curso.topicos
                   .slice(
@@ -446,9 +504,33 @@ const CursoAssincrono = () => {
           )}
         </div>
 
+        {/* Plano Curricular — agora imediatamente abaixo dos tópicos (visível para todos) */}
+        {curso?.planocurricular && (
+          <div className="row g-4 mt-1">
+            <div className="col-12">
+              <div
+                className="border rounded p-3 bg-light-subtle"
+                style={{
+                  maxWidth: "100%",
+                  overflowWrap: "break-word",
+                  wordBreak: "break-word",
+                }}
+              >
+                <h2 className="h5 mb-2">Plano Curricular</h2>
+                <p
+                  className="mb-0"
+                  style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}
+                >
+                  {curso.planocurricular}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {inscrito && !hasEnded && activeTab === "conteudos" && (
           <div className="mt-5">
-            <h2 className="h4">Lições e sessões passadas</h2>
+            <h2 className="h4 mb-3">Lições:</h2>
             {curso?.licoes?.length > 0 ? (
               <div className="list-group">
                 {curso.licoes.map((licao) => (
@@ -473,24 +555,40 @@ const CursoAssincrono = () => {
                     {expandedLessonId === licao.idlicao && (
                       <div className="mt-3">
                         <p>{licao.descricao}</p>
-                        {licao.materiais && licao.materiais.length > 0 ? (
+                        {Array.isArray(licao.materiais) &&
+                        licao.materiais.length > 0 ? (
                           <div>
                             <h6>Materiais :</h6>
-                            <ul className="list-unstyled">
-                              {licao.materiais.map((material) => (
-                                <li key={material.idmaterial} className="mb-1">
-                                  {getMaterialIcon(material.tipo)}
-                                  <a
-                                    href={material.referencia}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-decoration-none"
-                                  >
-                                    {material.titulo}
-                                  </a>
-                                </li>
-                              ))}
-                            </ul>
+                            <div className="mt-2 d-flex flex-column gap-2">
+                              {licao.materiais.map((material, idx) => {
+                                const url =
+                                  material?.referencia ||
+                                  material?.url ||
+                                  material?.link;
+                                const name =
+                                  material?.titulo ||
+                                  material?.nome ||
+                                  `Material ${idx + 1}`;
+                                const isPdf =
+                                  String(name).toLowerCase().endsWith(".pdf") ||
+                                  String(url || "")
+                                    .toLowerCase()
+                                    .endsWith(".pdf");
+                                return (
+                                  <SubmissionCard
+                                    key={
+                                      material?.idmaterial ||
+                                      material?.id ||
+                                      idx
+                                    }
+                                    filename={name}
+                                    type={isPdf ? "application/pdf" : undefined}
+                                    date={undefined}
+                                    url={url}
+                                  />
+                                );
+                              })}
+                            </div>
                           </div>
                         ) : (
                           <p>Nenhum material disponível para esta lição.</p>

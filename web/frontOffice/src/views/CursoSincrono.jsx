@@ -77,6 +77,79 @@ const CursoSincrono = () => {
     fetchCurso();
   }, [fetchCurso]);
 
+  // Resolve Máx. Inscrições from multiple possible keys/structures
+  const getMaxInscricoes = useCallback(() => {
+    const c = curso || {};
+    const nested = c?.cursosincrono || c?.cursoSincrono || {};
+    const raw =
+      c?.maxinscricoes ??
+      c?.maxInscricoes ??
+      c?.maxincricoes ??
+      nested?.maxinscricoes ??
+      nested?.maxincricoes ??
+      nested?.maxInscricoes;
+    if (raw == null || raw === "") return null;
+    const n = typeof raw === "string" ? parseInt(raw, 10) : raw;
+    return Number.isFinite(n) ? n : null;
+  }, [curso]);
+
+  // Normalize inscription window, course period and hours across possible keys/nesting
+  const inscricoesPeriod = useMemo(() => {
+    const c = curso || {};
+    const nested = c?.cursosincrono || c?.cursoSincrono || {};
+    const inicio =
+      c?.iniciodeinscricoes ??
+      c?.inicioDeInscricoes ??
+      nested?.iniciodeinscricoes ??
+      nested?.inicioDeInscricoes;
+    const fim =
+      c?.fimdeinscricoes ??
+      c?.fimDeInscricoes ??
+      nested?.fimdeinscricoes ??
+      nested?.fimDeInscricoes;
+    return { inicio, fim };
+  }, [curso]);
+  const cursoPeriod = useMemo(() => {
+    const c = curso || {};
+    const nested = c?.cursosincrono || c?.cursoSincrono || {};
+    const inicio = c?.inicio ?? nested?.inicio;
+    const fim = c?.fim ?? nested?.fim;
+    return { inicio, fim };
+  }, [curso]);
+  const numeroHoras = useMemo(() => {
+    const c = curso || {};
+    const nested = c?.cursosincrono || c?.cursoSincrono || {};
+    return (
+      c?.nhoras ??
+      c?.nHoras ??
+      c?.horas ??
+      nested?.nhoras ??
+      nested?.nHoras ??
+      nested?.horas ??
+      null
+    );
+  }, [curso]);
+
+  const topicosList = useMemo(() => {
+    const c = curso || {};
+    const nested = c?.cursosincrono || c?.cursoSincrono || {};
+    const t = c?.topicos ?? nested?.topicos ?? [];
+    return Array.isArray(t) ? t : [];
+  }, [curso]);
+
+  const planoCurricular = useMemo(() => {
+    const c = curso || {};
+    const nested = c?.cursosincrono || c?.cursoSincrono || {};
+    return c?.planocurricular ?? nested?.planocurricular ?? null;
+  }, [curso]);
+
+  const sessoesList = useMemo(() => {
+    const c = curso || {};
+    const nested = c?.cursosincrono || c?.cursoSincrono || {};
+    const s = c?.sessoes ?? nested?.sessoes ?? [];
+    return Array.isArray(s) ? s : [];
+  }, [curso]);
+
   // Inscrição
   const handleClickInscrever = async () => {
     setLoading(true);
@@ -551,8 +624,8 @@ const CursoSincrono = () => {
           <div className="col-md-8">
             <h1 className="h3">{curso?.nome}</h1>
             {(() => {
-              const ended = curso?.fimdeinscricoes
-                ? new Date(curso.fimdeinscricoes) <= new Date()
+              const ended = inscricoesPeriod?.fim
+                ? new Date(inscricoesPeriod.fim) <= new Date()
                 : false;
               if (ended) {
                 return (
@@ -574,6 +647,52 @@ const CursoSincrono = () => {
               }
               return null;
             })()}
+
+            {/* Always-visible course details (for inscritos and não inscritos) */}
+            <div className="mt-2">
+              <p className="mb-2">
+                {(inscricoesPeriod?.inicio || inscricoesPeriod?.fim) && (
+                  <>
+                    <strong>Inscrições:</strong>{" "}
+                    {formatData(inscricoesPeriod?.inicio)} até{" "}
+                    {formatData(inscricoesPeriod?.fim)}
+                    <br />
+                  </>
+                )}
+                {(cursoPeriod?.inicio || cursoPeriod?.fim) && (
+                  <>
+                    <strong>Duração do Curso:</strong>{" "}
+                    {formatData(cursoPeriod?.inicio)} até{" "}
+                    {formatData(cursoPeriod?.fim)}
+                    <br />
+                  </>
+                )}
+                {numeroHoras != null && numeroHoras !== "" && (
+                  <>
+                    <strong>Nº de horas:</strong> {numeroHoras}
+                    <br />
+                  </>
+                )}
+                {(() => {
+                  const max = getMaxInscricoes();
+                  if (max != null) {
+                    return (
+                      <>
+                        <strong>Máx. inscrições:</strong> {max}
+                        <br />
+                      </>
+                    );
+                  }
+                  return null;
+                })()}
+                {Array.isArray(inscritosList) && (
+                  <>
+                    <strong>Inscritos:</strong> {inscritosList.length}
+                    <br />
+                  </>
+                )}
+              </p>
+            </div>
 
             {isFormadorDoCurso ? (
               <div className="d-flex align-items-center my-3 flex-wrap gap-2">
@@ -612,18 +731,6 @@ const CursoSincrono = () => {
               </div>
             ) : !inscrito ? (
               <div className="mt-3">
-                <p className="mb-3">
-                  <strong>Inscrições:</strong>{" "}
-                  {formatData(curso?.iniciodeinscricoes)} até{" "}
-                  {formatData(curso?.fimdeinscricoes)}
-                  <br />
-                  {curso?.maxinscricoes && (
-                    <>
-                      <strong>Máx. inscrições:</strong> {curso?.maxinscricoes}
-                      <br />
-                    </>
-                  )}
-                </p>
                 <button
                   onClick={handleClickInscrever}
                   className="btn btn-sm btn-primary"
@@ -644,7 +751,7 @@ const CursoSincrono = () => {
                     }`}
                     onClick={() => setActiveTab("overview")}
                   >
-                    Sessões
+                    Sessões e Materiais
                   </button>
                   <button
                     type="button"
@@ -655,7 +762,7 @@ const CursoSincrono = () => {
                     }`}
                     onClick={() => setActiveTab("submissoes")}
                   >
-                    Submissões
+                    Avaliações Contínuas e Submissões
                   </button>
                   <button
                     type="button"
@@ -676,25 +783,11 @@ const CursoSincrono = () => {
                     {loading ? "A sair..." : "Sair do Curso"}
                   </button>
                 </div>
-                {curso?.planocurricular && (
-                  <p className="mb-0">
-                    <strong>Plano Curricular:</strong>
-                    <br />
-                    {curso?.planocurricular}
-                  </p>
-                )}
+                {/* Plano Curricular já apresentado acima para todos */}
               </div>
             )}
 
-            {isFormadorDoCurso &&
-              activeTab === "overview" &&
-              curso?.planocurricular && (
-                <p className="mt-3">
-                  <strong>Plano Curricular:</strong>
-                  <br />
-                  {curso.planocurricular}
-                </p>
-              )}
+            {/* Plano Curricular já apresentado acima para todos */}
 
             {/* gestão de agenda movida para /curso-sincrono/:id/agendar */}
           </div>
@@ -702,14 +795,14 @@ const CursoSincrono = () => {
 
         {/* Plano Curricular — Tópicos (sempre visível, como nos assíncronos) */}
         <div className="mt-2 row g-4">
-          {curso?.topicos?.length > 0 && (
+          {topicosList?.length > 0 && (
             <div className="col-12">
-              <h2 className="h4">Tópicos</h2>
-              <div className="d-flex flex-wrap gap-2">
-                {curso.topicos
+              <h2 className="h4 mb-3">Tópicos:</h2>
+              <div className="d-flex flex-wrap gap-2 mb-1">
+                {topicosList
                   .slice(
                     0,
-                    showAllTopicos ? curso.topicos.length : maxVisibleTopics
+                    showAllTopicos ? topicosList.length : maxVisibleTopics
                   )
                   .map((topico) => (
                     <div
@@ -720,7 +813,7 @@ const CursoSincrono = () => {
                     </div>
                   ))}
               </div>
-              {!showAllTopicos && curso.topicos.length > maxVisibleTopics && (
+              {!showAllTopicos && topicosList.length > maxVisibleTopics && (
                 <button
                   onClick={handleShowMoreTopicos}
                   className="btn btn-link mt-2"
@@ -728,7 +821,7 @@ const CursoSincrono = () => {
                   Mostrar mais
                 </button>
               )}
-              {showAllTopicos && curso.topicos.length > maxVisibleTopics && (
+              {showAllTopicos && topicosList.length > maxVisibleTopics && (
                 <button
                   onClick={() => setShowAllTopicos(false)}
                   className="btn btn-link mt-2"
@@ -740,33 +833,59 @@ const CursoSincrono = () => {
           )}
         </div>
 
+        {/* Plano Curricular — agora imediatamente abaixo dos tópicos (visível para todos) */}
+        {curso?.planocurricular && (
+          <div className="row g-4 mt-1">
+            <div className="col-12">
+              <div
+                className="border rounded p-3 bg-light-subtle"
+                style={{
+                  maxWidth: "100%",
+                  overflowWrap: "break-word",
+                  wordBreak: "break-word",
+                }}
+              >
+                <h2 className="h5 mb-2">Plano Curricular</h2>
+                <p
+                  className="mb-0"
+                  style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}
+                >
+                  {curso.planocurricular}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {(inscrito || isFormadorDoCurso) && (
           <div className="mt-5">
-            {activeTab === "overview" && curso?.sessoes?.length > 0 && (
+            {activeTab === "overview" && sessoesList?.length > 0 && (
               <>
-                <h2 className="h5">Sessões</h2>
+                <h2 className="h4 mb-3">Sessões e Materiais:</h2>
                 <ul className="list-group small">
-                  {curso.sessoes.map((s) => (
+                  {sessoesList.map((s) => (
                     <li key={s.idsessao} className="list-group-item">
                       <div className="d-flex justify-content-between align-items-start gap-3">
                         <div>
                           <strong>{s.titulo}</strong>
-                          <br />
-                          <span className="text-muted">
-                            {formatDataHora(s.datahora)} ({s.duracaohoras}h)
-                          </span>
-                          {s.linksessao && (
-                            <>
-                              <br />
+                          <div className="d-flex align-items-center flex-wrap gap-2 small mt-1">
+                            <span className="text-muted">
+                              {formatDataHora(s.datahora)} ({s.duracaohoras}h)
+                              {s.plataformavideoconferencia
+                                ? ` — ${s.plataformavideoconferencia}`
+                                : ""}
+                            </span>
+                            {s.linksessao && (
                               <a
                                 href={s.linksessao}
                                 target="_blank"
                                 rel="noreferrer"
+                                className="btn btn-sm btn-outline-primary ms-3"
                               >
-                                Link
+                                Link da Reunião
                               </a>
-                            </>
-                          )}
+                            )}
+                          </div>
                         </div>
                       </div>
 
@@ -782,10 +901,10 @@ const CursoSincrono = () => {
                         return (
                           <div className="mt-2">
                             <div className="d-flex align-items-center justify-content-between">
-                              <span className="fw-semibold">Materiais</span>
+                              <span className="fw-semibold">Materiais:</span>
                             </div>
                             {Array.isArray(mats) && mats.length > 0 ? (
-                              <ul className="mt-2 mb-0 ps-3">
+                              <div className="mt-2 d-flex flex-column gap-2">
                                 {mats.map((m, idx) => {
                                   const mid =
                                     m?.idmaterial || m?.id || m?.codigo || idx;
@@ -798,31 +917,38 @@ const CursoSincrono = () => {
                                   const murl =
                                     m?.url ||
                                     m?.link ||
+                                    m?.referencia ||
                                     m?.ficheiro ||
                                     m?.file ||
                                     m?.path;
+                                  const isPdf =
+                                    String(mname)
+                                      .toLowerCase()
+                                      .endsWith(".pdf") ||
+                                    String(murl || "")
+                                      .toLowerCase()
+                                      .endsWith(".pdf");
                                   return (
-                                    <li
+                                    <div
                                       key={mid}
                                       className="d-flex align-items-center justify-content-between gap-2"
                                     >
-                                      <div>
-                                        {murl ? (
-                                          <a
-                                            href={murl}
-                                            target="_blank"
-                                            rel="noreferrer"
-                                          >
-                                            {mname}
-                                          </a>
-                                        ) : (
-                                          <span>{mname}</span>
-                                        )}
+                                      <div className="flex-grow-1 mb-2">
+                                        <SubmissionCard
+                                          filename={mname}
+                                          type={
+                                            isPdf
+                                              ? "application/pdf"
+                                              : undefined
+                                          }
+                                          date={undefined}
+                                          url={murl}
+                                        />
                                       </div>
-                                    </li>
+                                    </div>
                                   );
                                 })}
-                              </ul>
+                              </div>
                             ) : (
                               <p className="text-muted mb-0 mt-1">
                                 Sem materiais.
@@ -944,89 +1070,98 @@ const CursoSincrono = () => {
                                   )}
                                 </div>
                               </div>
-                              <div className="small mt-1">
-                                <em>{status}</em>
-                              </div>
-                              {(effectiveSub?.submissao ||
-                                effectiveSub?.link ||
-                                effectiveSub?.url ||
-                                effectiveSub?.ficheiro) && (
-                                <div className="small mt-1">
-                                  <a
-                                    href={
-                                      effectiveSub.submissao ||
-                                      effectiveSub.link ||
-                                      effectiveSub.url ||
-                                      effectiveSub.ficheiro
-                                    }
-                                    target="_blank"
-                                    rel="noreferrer"
-                                  >
-                                    Ver a minha submissão
-                                  </a>
-                                </div>
-                              )}
+                              {(() => {
+                                if (status === "Submeter") return null;
+                                if (nota != null && nota !== "") {
+                                  const parsed =
+                                    typeof nota === "number"
+                                      ? nota
+                                      : Number(nota);
+                                  if (Number.isFinite(parsed)) {
+                                    const isApproved = parsed >= 9.45;
+                                    return (
+                                      <div
+                                        className={`alert ${
+                                          isApproved
+                                            ? "alert-success"
+                                            : "alert-danger"
+                                        } d-inline-flex justify-content-between align-items-center py-2 px-3 mt-2 mb-0`}
+                                      >
+                                        <span className="fw-semibold me-1">
+                                          Nota:
+                                        </span>
+                                        <span className="fw-semibold">
+                                          {String(parsed)}
+                                        </span>
+                                      </div>
+                                    );
+                                  }
+                                }
+                                return <div className="mt-1">{status}</div>;
+                              })()}
                             </div>
-                            <div className="d-flex flex-column gap-2 w-100">
-                              <FileUpload
-                                id={`file-${idav}`}
-                                label={null}
-                                accept="application/pdf"
-                                disabled={!isOpen || submittingId === idav}
-                                onSelect={async (file) => {
-                                  if (!file) return;
-                                  const isUpdateArg = !!(
-                                    effectiveSub || localSub?.submitted
-                                  );
-                                  await handleSubmitContinuo(
-                                    idav,
-                                    file,
-                                    isUpdateArg
-                                  );
-                                }}
-                                size="sm"
-                              />
-                              {(effectiveSub?.submissao ||
-                                effectiveSub?.link ||
-                                effectiveSub?.url ||
-                                effectiveSub?.ficheiro) && (
-                                <SubmissionCard
-                                  filename={undefined}
-                                  type="application/pdf"
-                                  date={
-                                    effectiveSub?.date ||
-                                    effectiveSub?.data ||
-                                    effectiveSub?.dataSubmissao ||
-                                    effectiveSub?.createdAt ||
-                                    undefined
-                                  }
-                                  url={
-                                    effectiveSub?.submissao ||
-                                    effectiveSub?.link ||
-                                    effectiveSub?.url ||
-                                    effectiveSub?.ficheiro
-                                  }
-                                  statusLabel={
-                                    (effectiveSub?.nota ??
-                                      effectiveSub?.classificacao ??
-                                      localSub?.nota) != null
-                                      ? `Nota: ${
-                                          effectiveSub?.nota ??
-                                          effectiveSub?.classificacao ??
-                                          localSub?.nota
-                                        }`
-                                      : effectiveSub?.submitted
-                                      ? "Por avaliar"
-                                      : undefined
-                                  }
+                            {!isFormadorDoCurso && (
+                              <div className="d-flex flex-column gap-2 w-100">
+                                <FileUpload
+                                  id={`file-${idav}`}
+                                  label={null}
+                                  accept="application/pdf"
+                                  disabled={!isOpen || submittingId === idav}
+                                  onSelect={async (file) => {
+                                    if (!file) return;
+                                    const isUpdateArg = !!(
+                                      effectiveSub || localSub?.submitted
+                                    );
+                                    await handleSubmitContinuo(
+                                      idav,
+                                      file,
+                                      isUpdateArg
+                                    );
+                                  }}
+                                  size="sm"
                                 />
-                              )}
-                              {submittingId === idav && (
-                                <span className="text-muted small">
-                                  A enviar...
-                                </span>
-                              )}
-                            </div>
+                                {(effectiveSub?.submissao ||
+                                  effectiveSub?.link ||
+                                  effectiveSub?.url ||
+                                  effectiveSub?.ficheiro) && (
+                                  <SubmissionCard
+                                    filename={undefined}
+                                    type="application/pdf"
+                                    date={
+                                      effectiveSub?.date ||
+                                      effectiveSub?.data ||
+                                      effectiveSub?.dataSubmissao ||
+                                      effectiveSub?.createdAt ||
+                                      undefined
+                                    }
+                                    url={
+                                      effectiveSub?.submissao ||
+                                      effectiveSub?.link ||
+                                      effectiveSub?.url ||
+                                      effectiveSub?.ficheiro
+                                    }
+                                    statusLabel={
+                                      (effectiveSub?.nota ??
+                                        effectiveSub?.classificacao ??
+                                        localSub?.nota) != null
+                                        ? `Nota: ${
+                                            effectiveSub?.nota ??
+                                            effectiveSub?.classificacao ??
+                                            localSub?.nota
+                                          }`
+                                        : effectiveSub?.submitted
+                                        ? "Por avaliar"
+                                        : undefined
+                                    }
+                                  />
+                                )}
+                                {submittingId === idav && (
+                                  <span className="text-muted small">
+                                    A enviar...
+                                  </span>
+                                )}
+                              </div>
+                            )}
                           </div>
                         </li>
                       );
