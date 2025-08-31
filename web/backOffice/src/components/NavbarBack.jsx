@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { NavLink, Link, useNavigate, useLocation } from "react-router-dom";
-import logoSoftinsa from "@shared/assets/images/softinsaLogo.svg";
 import logoSoftskills from "@shared/assets/images/thesoftskillsLogo.svg";
+import logoSoftinsa from "@shared/assets/images/softinsaLogo.svg";
 import Notifications from "@shared/assets/images/notification.svg?react";
 import Profile from "@shared/assets/images/profile.svg?react";
 
@@ -48,178 +48,194 @@ export default function NavbarBack() {
   };
 
   return (
-    <nav className="navbar navbar-expand-lg bg-white border-bottom">
-      <div
-        className="container-fluid d-flex align-items-center"
-        style={{ minHeight: "70px" }}
+    <>
+      <nav
+        className="navbar navbar-expand-lg bg-white border-bottom"
+        style={{
+          position: "fixed", // Torna a navbar fixa
+          top: 0, // Fixa no topo da página
+          width: "100%", // Garante que ocupe toda a largura
+          zIndex: 1050, // Garante que esteja acima de outros elementos
+          padding: "5px 0", // Espaço simétrico no topo e na base
+        }}
       >
         <div
-          className="d-flex align-items-center justify-content-start"
-          style={{ minWidth: "180px", paddingLeft: "30px" }}
+          className="container-fluid d-flex align-items-center"
+          style={{ minHeight: "60px" }}
         >
-          <Link to="/">
-            <img src={logoSoftinsa} alt="Softinsa" style={{ height: "20px" }} />
-          </Link>
-        </div>
-        <div
-          className="d-flex align-items-center justify-content-start"
-          style={{ flex: "1 1 0%" }}
-        >
-          <img
-            src={logoSoftskills}
-            alt="SoftSkills"
-            style={{ height: "64px" }}
-          />
-        </div>
-        <div
-          className="d-flex align-items-center justify-content-end"
-          style={{ minWidth: "260px", paddingRight: "24px" }}
-        >
-          <button
-            className="navbar-toggler ms-2"
-            type="button"
-            onClick={toggleMenu}
-          >
-            {menuAberto ? (
-              <i className="ri-close-line"></i>
-            ) : (
-              <i className="ri-menu-line"></i>
-            )}
-          </button>
+          {/* Lado esquerdo: Logo SoftSkills */}
           <div
-            className={`collapse navbar-collapse justify-content-end ${
-              menuAberto ? "show" : ""
-            }`}
-            id="navbarBackContent"
+            className="d-flex align-items-center justify-content-start"
+            style={{ minWidth: "180px", paddingLeft: "30px" }}
           >
-            {user ? (
-              <ul className="navbar-nav align-items-center gap-2 flex-nowrap">
-                <li className="nav-item">
-                  <NavLink
-                    to="/home"
-                    className={({ isActive }) =>
-                      `nav-link fw-semibold ${isActive ? "active" : ""}`
-                    }
-                    onClick={fecharMenu}
-                  >
-                    Home
-                  </NavLink>
-                </li>
-                <li className="nav-item text-nowrap">
-                  <NavLink
-                    to="/gerir-estrutura"
-                    className={({ isActive }) =>
-                      `nav-link fw-semibold ${isActive ? "active" : ""}`
-                    }
-                    onClick={fecharMenu}
-                  >
-                    Gerir estrutura
-                  </NavLink>
-                </li>
-                <li className="nav-item">
-                  <NavLink
-                    to="/cursos"
-                    className={({ isActive }) =>
-                      `nav-link fw-semibold ${isActive ? "active" : ""}`
-                    }
-                    onClick={fecharMenu}
-                  >
-                    Cursos
-                  </NavLink>
-                </li>
-                <li className="nav-item">
-                  <NavLink
-                    to="/utilizadores"
-                    className={({ isActive }) =>
-                      `nav-link fw-semibold ${isActive ? "active" : ""}`
-                    }
-                    onClick={fecharMenu}
-                  >
-                    Utilizadores
-                  </NavLink>
-                </li>
-                <li className="nav-item">
-                  <NavLink
-                    to="/gerir-notificacoes-e-denuncias"
-                    className={({ isActive }) =>
-                      `nav-link fw-semibold ${isActive ? "active" : ""}`
-                    }
-                    onClick={fecharMenu}
-                  >
-                    Notificações e Denuncias
-                  </NavLink>
-                </li>
-                <li className="nav-item">
-                  <NavLink
-                    to="/notificacoes"
-                    className={({ isActive }) =>
-                      `nav-link ${isActive ? "active" : ""}`
-                    }
-                    onClick={() => {
-                      setNotificacoesAtivas(false);
-                      sessionStorage.setItem(STORAGE_KEY, "0");
-                      fecharMenu();
-                    }}
-                  >
-                    <span
-                      className="position-relative d-inline-block"
-                      style={{ width: 24, height: 24 }}
+            <Link to="/">
+              <img
+                src={logoSoftskills}
+                alt="SoftSkills"
+                style={{ height: "48px" }}
+              />
+            </Link>
+          </div>
+
+          {/* Lado direito: Itens da navbar */}
+          <div
+            className="d-flex align-items-center justify-content-end"
+            style={{ minWidth: "260px", paddingRight: "24px" }}
+          >
+            <button
+              className="navbar-toggler ms-2"
+              type="button"
+              onClick={toggleMenu}
+            >
+              {menuAberto ? (
+                <i className="ri-close-line"></i>
+              ) : (
+                <i className="ri-menu-line"></i>
+              )}
+            </button>
+            <div
+              className={`collapse navbar-collapse justify-content-end ${
+                menuAberto ? "show" : ""
+              }`}
+              id="navbarBackContent"
+            >
+              {user ? (
+                <ul className="navbar-nav align-items-center gap-2 flex-nowrap">
+                  <li className="nav-item">
+                    <NavLink
+                      to="/home"
+                      className={({ isActive }) =>
+                        `nav-link fw-semibold ${isActive ? "active" : ""}`
+                      }
+                      onClick={fecharMenu}
                     >
-                      <Notifications
-                        style={{ width: 24, height: 24, display: "block" }}
-                      />
-                      {notificacoesAtivas && (
-                        <span
-                          className="position-absolute bg-danger rounded-circle"
-                          style={{
-                            top: -2,
-                            right: -2,
-                            width: 10,
-                            height: 10,
-                            border: "2px solid #fff",
-                          }}
-                          aria-label="Nova notificação"
-                        />
-                      )}
-                    </span>
-                  </NavLink>
-                </li>
-                <li className="nav-item d-flex align-items-center">
-                  <NavLink
-                    to="/profile"
-                    className={({ isActive }) =>
-                      `nav-link ${isActive ? "active" : ""}`
-                    }
-                    onClick={fecharMenu}
-                  >
-                    <Profile
-                      style={{
-                        width: 24,
-                        height: 24,
-                        marginRight: 4,
-                        verticalAlign: "text-bottom",
+                      Home
+                    </NavLink>
+                  </li>
+                  <li className="nav-item text-nowrap">
+                    <NavLink
+                      to="/gerir-estrutura"
+                      className={({ isActive }) =>
+                        `nav-link fw-semibold ${isActive ? "active" : ""}`
+                      }
+                      onClick={fecharMenu}
+                    >
+                      Gerir estrutura
+                    </NavLink>
+                  </li>
+                  <li className="nav-item">
+                    <NavLink
+                      to="/cursos"
+                      className={({ isActive }) =>
+                        `nav-link fw-semibold ${isActive ? "active" : ""}`
+                      }
+                      onClick={fecharMenu}
+                    >
+                      Cursos
+                    </NavLink>
+                  </li>
+                  <li className="nav-item">
+                    <NavLink
+                      to="/utilizadores"
+                      className={({ isActive }) =>
+                        `nav-link fw-semibold ${isActive ? "active" : ""}`
+                      }
+                      onClick={fecharMenu}
+                    >
+                      Utilizadores
+                    </NavLink>
+                  </li>
+                  <li className="nav-item">
+                    <NavLink
+                      to="/gerir-notificacoes-e-denuncias"
+                      className={({ isActive }) =>
+                        `nav-link fw-semibold ${isActive ? "active" : ""}`
+                      }
+                      onClick={fecharMenu}
+                    >
+                      Notificações e Denuncias
+                    </NavLink>
+                  </li>
+                  <li className="nav-item">
+                    <NavLink
+                      to="/notificacoes"
+                      className={({ isActive }) =>
+                        `nav-link ${isActive ? "active" : ""}`
+                      }
+                      onClick={() => {
+                        setNotificacoesAtivas(false);
+                        sessionStorage.setItem(STORAGE_KEY, "0");
+                        fecharMenu();
                       }}
-                    />{" "}
-                    {nomeUsuario}
-                  </NavLink>
-                </li>
-                <li className="nav-item">
-                  <button
-                    className="btn btn-custom-logout fw-semibold rounded-pill px-3"
-                    onClick={handleLogout}
-                  >
-                    Sair
-                  </button>
-                </li>
-              </ul>
-            ) : (
-              <span className="navbar-brand text-primary fw-bold">
-                ADMIN PANEL
-              </span>
-            )}
+                    >
+                      <span
+                        className="position-relative d-inline-block"
+                        style={{ width: 24, height: 24 }}
+                      >
+                        <Notifications
+                          style={{ width: 24, height: 24, display: "block" }}
+                        />
+                        {notificacoesAtivas && (
+                          <span
+                            className="position-absolute bg-danger rounded-circle"
+                            style={{
+                              top: -2,
+                              right: -2,
+                              width: 10,
+                              height: 10,
+                              border: "2px solid #fff",
+                            }}
+                            aria-label="Nova notificação"
+                          />
+                        )}
+                      </span>
+                    </NavLink>
+                  </li>
+                  <li className="nav-item d-flex align-items-center">
+                    <NavLink
+                      to="/profile"
+                      className={({ isActive }) =>
+                        `nav-link ${isActive ? "active" : ""}`
+                      }
+                      onClick={fecharMenu}
+                    >
+                      <Profile
+                        style={{
+                          width: 24,
+                          height: 24,
+                          marginRight: 4,
+                          verticalAlign: "text-bottom",
+                        }}
+                      />{" "}
+                      {nomeUsuario}
+                    </NavLink>
+                  </li>
+                  <li className="nav-item">
+                    <button
+                      className="btn btn-custom-logout fw-semibold rounded-pill px-3"
+                      onClick={handleLogout}
+                    >
+                      Sair
+                    </button>
+                  </li>
+                </ul>
+              ) : (
+                <span className="navbar-brand text-primary fw-bold">
+                  ADMIN PANEL
+                </span>
+              )}
+            </div>
           </div>
         </div>
-      </div>
-    </nav>
+      </nav>
+      <footer
+        className="bg-white text-center py-3"
+        style={{ borderTop: "1px solid #e5e5e5" }}
+      >
+        <div className="container">
+          <img src={logoSoftinsa} alt="Softinsa" style={{ height: "20px" }} />
+        </div>
+      </footer>
+    </>
   );
 }

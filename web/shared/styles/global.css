@@ -16,8 +16,8 @@ body {
 }
 
 @font-face {
-  font-family: 'Adam Display';
-  src: url('../assets/ADLaMDisplay-Regular.ttf') format('truetype'); 
+  font-family: "Adam Display";
+  src: url("../assets/ADLaMDisplay-Regular.ttf") format("truetype");
   font-weight: normal;
   font-style: normal;
 }
@@ -226,17 +226,6 @@ a {
   max-height: 40px; /* Ajustado ligeiramente para caber melhor */
   object-fit: contain;
   /* IMPORTANTE: TESTE REMOVENDO OU AJUSTANDO ESTE FILTRO SE O SEU LOGO JÁ FOR BRANCO OU TIVER O FUNDO AZUL */
-  /* filter: brightness(0) invert(1); */
-}
-
-/* Adicionar uma regra mais específica se precisar de inverter apenas um logo */
-.navbar-brand img.softinsa-logo {
-  /* Se o seu softinsaLogo.svg já é branco e só precisa de um fundo azul, pode não precisar de filtro */
-  /* Ou se ele é preto e precisa ser branco no fundo azul da marca, manter o filtro */
-}
-
-.navbar-brand img.softskills-logo {
-  /* Se o thesoftskillsLogo.svg é preto e precisa ser branco no fundo escuro, este filtro é útil */
   /* filter: brightness(0) invert(1); */
 }
 
@@ -770,4 +759,33 @@ img {
 .static-button {
   pointer-events: none;
   cursor: default;
+}
+
+/* ================================
+        Scrollbar hidden by default:
+================================== */
+aside::-webkit-scrollbar,
+main::-webkit-scrollbar {
+  width: 6px; /* Maintain a stable width */
+  background: transparent; /* Keep the background transparent */
+  opacity: 0; /* Hide scrollbar visually */
+}
+
+/* Show scrollbar on hover */
+aside:hover::-webkit-scrollbar,
+main:hover::-webkit-scrollbar {
+  opacity: 1; /* Make scrollbar visible */
+}
+
+/* Style the scrollbar thumb */
+aside::-webkit-scrollbar-thumb,
+main::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.5);
+  border-radius: 3px;
+}
+
+/* Style the scrollbar track */
+aside::-webkit-scrollbar-track,
+main::-webkit-scrollbar-track {
+  background: transparent;
 }

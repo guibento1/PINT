@@ -1,16 +1,16 @@
 //web\frontend\frontOffice\src\components\LayoutFront.jsx
-import { useLocation } from 'react-router-dom';
-import NavbarFront from './NavbarFront';
-import Footer from '../../../shared/components/Footer';
+import { useLocation } from "react-router-dom";
+import NavbarFront from "./NavbarFront";
+import Footer from "../../../shared/components/Footer";
 
 export default function LayoutFront({ children }) {
-
+  const location = useLocation();
 
   return (
     <div className="app-container">
       <NavbarFront />
-        <main>{children}</main>
-      <Footer />
+      <main>{children}</main>
+      {["/", "/home"].includes(location.pathname) && <Footer />}
     </div>
   );
 }

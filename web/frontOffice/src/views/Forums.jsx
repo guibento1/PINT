@@ -68,7 +68,7 @@ export default function Forums() {
 
     (async () => {
       try {
-        const res = await api.get("/denuncias/tipos");
+        const res = await api.get("/forum/denuncias/tipos");
         setReportTypes(res.data || []);
       } catch (e) {
         console.error("Erro ao carregar tipos de denuncia", e);
@@ -104,7 +104,7 @@ export default function Forums() {
         const res = await api.get(`/area/id/${selectedArea}/list`);
         setTopicos(res.data || []);
       } catch (e) {
-        console.error("Erro ao carregar topicos", e);
+        console.error("Erro ao carregar tópicos", e);
         setTopicos([]);
       }
     })();
@@ -162,6 +162,19 @@ export default function Forums() {
     }
   }
 
+  function toggleSubscribeTopic(topicId) {
+    setSubscribedTopics((prev) => {
+      const updated = { ...prev };
+      if (updated[topicId]) {
+        delete updated[topicId];
+      } else {
+        updated[topicId] = true;
+      }
+      sessionStorage.setItem("subscribedTopics", JSON.stringify(updated));
+      return updated;
+    });
+  }
+
   const sortedPosts = [...posts].sort((a, b) => {
     if (sortBy === "top") return (b.pontuacao || 0) - (a.pontuacao || 0);
     return new Date(b.criado) - new Date(a.criado);
@@ -172,30 +185,51 @@ export default function Forums() {
   };
 
   const handleNavigateToPost = (postId) => {
-    navigate(`/post/${postId}`);
+    navigate(`/forum/post/${postId}`);
   };
 
   const getVoteButtonClasses = (post) => {
     const { iteracao } = post;
-    const upvoteClass = iteracao === true ? 'btn-primary' : 'btn-light';
-    const downvoteClass = iteracao === false ? 'btn-danger' : 'btn-light';
-    const unvoteClass = iteracao !== null ? 'btn-outline-primary' : 'btn-outline-secondary';
-    
+    const upvoteClass = iteracao === true ? "btn-primary" : "btn-light";
+    const downvoteClass = iteracao === false ? "btn-danger" : "btn-light";
+    const unvoteClass =
+      iteracao !== null ? "btn-outline-primary" : "btn-outline-secondary";
+
     return { upvoteClass, downvoteClass, unvoteClass };
   };
 
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await api.get(`/topico/list`);
+        setSubscribedTopics((prev) => {
+          const updatedTopics = { ...prev };
+          res.data.forEach((topic) => {
+            if (updatedTopics[topic.idtopico]) {
+              updatedTopics[topic.idtopico] = topic;
+            }
+          });
+          return updatedTopics;
+        });
+      } catch (e) {
+        console.error("Erro ao carregar todos os tópicos", e);
+      }
+    })();
+  }, []);
+
   return (
     <div className="d-flex">
-      {/* Sidebar ajustada com linha de separação mais escura e comprida */}
+      {/* Sidebar esquerda com scroll independente */}
       <aside
-        className="bg-light"
+        className="bg-light border-end"
         style={{
-          position: "sticky",
+          position: "fixed", // Fixar a posição da sidebar
           top: "80px", // Altura da navbar
+          left: "0", // Fixar na lateral esquerda
           marginBottom: "0", // Remover margem para alcançar o footer
-          width: "280px",
-          maxHeight: "calc(100vh - 80px)", // Altura da viewport menos a navbar
-          overflowY: "auto",
+          width: "320px", // Aumentar a largura da sidebar
+          height: "calc(100vh - 80px)", // Altura fixa para a sidebar
+          overflowY: "overlay", // Evitar que a barra de rolagem empurre o conteúdo
           zIndex: 1000,
           borderRight: "2px solid #333", // Linha de separação mais escura
         }}
@@ -239,11 +273,7 @@ export default function Forums() {
           <div>
             <div className="form-label">Tópicos</div>
             <div className="list-group mb-3">
-              {topicos.length === 0 ? (
-                <div className="text-muted small">
-                  Escolha uma área para ver tópicos
-                </div>
-              ) : (
+              {selectedArea && topicos.length > 0 ? (
                 topicos
                   .filter((t) =>
                     String(t.designacao)
@@ -264,6 +294,10 @@ export default function Forums() {
                       {t.designacao}
                     </button>
                   ))
+              ) : (
+                <div className="text-muted small">
+                  Escolha uma área para ver tópicos
+                </div>
               )}
             </div>
           </div>
@@ -285,16 +319,14 @@ export default function Forums() {
                 <div className="text-muted small">Ainda não segue tópicos</div>
               ) : (
                 Object.keys(subscribedTopics || {}).map((id) => {
-                  const t = topicos.find(
-                    (x) => String(x.idtopico) === String(id)
-                  );
+                  const t = subscribedTopics[id];
                   return (
                     <div
                       key={id}
                       className="d-flex align-items-center justify-content-between list-group-item"
                     >
-                      <div className="text-truncate" style={{ maxWidth: 160 }}>
-                        {t ? t.designacao : `Tópico #${id}`}
+                      <div style={{ maxWidth: "100%" }}>
+                        {t?.designacao || `Tópico não encontrado`}
                       </div>
                       <div>
                         <button
@@ -313,10 +345,15 @@ export default function Forums() {
         </div>
       </aside>
 
-      {/* Conteúdo principal */}
+      {/* Conteúdo principal com scroll exclusivo */}
       <main
         className="flex-grow-1"
-        style={{ marginLeft: "280px", padding: "1rem" }}
+        style={{
+          margin: "0 520px", // Ajustar margens para evitar sobreposição
+          padding: "1rem",
+          height: "calc(100vh - 80px)", // Altura fixa para o conteúdo principal
+          overflowY: "auto", // Evitar que a barra de rolagem empurre o conteúdo
+        }}
       >
         <div className="container-fluid py-3 bg-light">
           {/* Conteúdo existente */}
@@ -346,8 +383,8 @@ export default function Forums() {
                   onClick={() => toggleSubscribeTopic(selectedTopico)}
                 >
                   {subscribedTopics[selectedTopico]
-                    ? "Inscrito"
-                    : "Seguir tópico"}
+                    ? "Estás inscrito ao tópico"
+                    : "Seguir este tópico"}
                 </button>
               )}
 
@@ -386,37 +423,39 @@ export default function Forums() {
 
             {!loading &&
               sortedPosts.map((p) => {
-                const { upvoteClass, downvoteClass, unvoteClass } = getVoteButtonClasses(p);
+                const { upvoteClass, downvoteClass, unvoteClass } =
+                  getVoteButtonClasses(p);
                 return (
-                  <div
-                    className="card mb-3 p-3 shadow-sm"
-                    key={p.idpost}
-                  >
+                  <div className="card mb-3 p-3 shadow-sm" key={p.idpost}>
                     <div className="d-flex align-items-center">
                       <div className="me-3 text-center d-flex flex-column align-items-center">
-                        <button 
-                          className={`btn btn-sm ${upvoteClass} p-0 mb-1`} 
-                          onClick={() => handleVotePost(p.idpost, 'upvote')}
+                        <button
+                          className={`btn btn-sm ${upvoteClass} p-0 mb-1`}
+                          onClick={() => handleVotePost(p.idpost, "upvote")}
                         >
                           <i className="ri-arrow-up-line"></i>
                         </button>
                         <h4 className="mb-0">{p.pontuacao ?? 0}</h4>
-                        <button 
-                          className={`btn btn-sm ${downvoteClass} p-0 mt-1`} 
-                          onClick={() => handleVotePost(p.idpost, 'downvote')}
+                        <button
+                          className={`btn btn-sm ${downvoteClass} p-0 mt-1`}
+                          onClick={() => handleVotePost(p.idpost, "downvote")}
                         >
                           <i className="ri-arrow-down-line"></i>
                         </button>
                         {p.iteracao !== null && (
                           <button
                             className={`btn btn-sm ${unvoteClass} mt-2`}
-                            onClick={() => handleVotePost(p.idpost, 'unvote')}
+                            onClick={() => handleVotePost(p.idpost, "unvote")}
                           >
                             Desvotar
                           </button>
                         )}
                       </div>
-                      <div className="flex-grow-1" onClick={() => handleNavigateToPost(p.idpost)} style={{ cursor: 'pointer' }}>
+                      <div
+                        className="flex-grow-1"
+                        onClick={() => handleNavigateToPost(p.idpost)}
+                        style={{ cursor: "pointer" }}
+                      >
                         <h5 className="mb-1">{p.titulo}</h5>
                         <p className="text-muted mb-1 small">
                           {getPostPreview(p.conteudo)}
@@ -436,6 +475,27 @@ export default function Forums() {
           </div>
         </div>
       </main>
+
+      {/* Sidebar direita com scroll independente */}
+      <aside
+        className="bg-light border-start"
+        style={{
+          position: "fixed", // Fixar a posição da sidebar
+          top: "80px", // Altura da navbar
+          right: "0", // Fixar na lateral direita
+          marginBottom: "0", // Remover margem para alcançar o footer
+          width: "320px",
+          height: "calc(100vh - 80px)", // Altura fixa para os posts recentes
+          overflowY: "auto", // Adiciona scroll exclusivo aos posts recentes
+          zIndex: 1000,
+          borderLeft: "2px solid #333", // Linha de separação mais escura
+        }}
+      >
+        <div className="p-3">
+          <h6>Posts Recentes</h6>
+          {/* Adicione aqui o conteúdo dos posts recentes */}
+        </div>
+      </aside>
     </div>
   );
 }
