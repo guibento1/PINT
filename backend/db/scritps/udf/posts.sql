@@ -1,14 +1,23 @@
 CREATE OR REPLACE FUNCTION ajustar_pontuacao_post()
 RETURNS TRIGGER AS $$
 BEGIN
-    IF NEW.positiva = TRUE THEN
-        UPDATE Post
-        SET pontuacao = pontuacao + 1
-        WHERE idPost = NEW.post;
-    ELSIF NEW.positiva = FALSE THEN
-        UPDATE Post
-        SET pontuacao = pontuacao - 1
-        WHERE idPost = NEW.post;
+    IF TG_OP = 'INSERT' THEN
+        IF NEW.positiva = TRUE THEN
+            UPDATE Post SET pontuacao = pontuacao + 1 WHERE idPost = NEW.post;
+        ELSE -- NEW.positiva = FALSE
+            UPDATE Post SET pontuacao = pontuacao - 1 WHERE idPost = NEW.post;
+        END IF;
+    
+    ELSIF TG_OP = 'UPDATE' THEN
+        IF OLD.positiva = NEW.positiva THEN
+            RETURN NEW;
+        END IF;
+
+        IF OLD.positiva = FALSE AND NEW.positiva = TRUE THEN
+            UPDATE Post SET pontuacao = pontuacao + 2 WHERE idPost = NEW.post;
+        ELSIF OLD.positiva = TRUE AND NEW.positiva = FALSE THEN
+            UPDATE Post SET pontuacao = pontuacao - 2 WHERE idPost = NEW.post;
+        END IF;
     END IF;
     
     RETURN NEW;

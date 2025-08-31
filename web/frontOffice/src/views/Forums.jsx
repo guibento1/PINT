@@ -25,21 +25,12 @@ export default function Forums() {
   const [error, setError] = useState(null);
 
   const navigate = useNavigate();
-  const [commentContentByPost, setCommentContentByPost] = useState({});
-
   const [reportTypes, setReportTypes] = useState([]);
   const [showReportFor, setShowReportFor] = useState(null);
   const [reportTipo, setReportTipo] = useState("");
   const [reportDescricao, setReportDescricao] = useState("");
 
-  const [sortBy, setSortBy] = useState("recent");
-  const [subscribedTopics, setSubscribedTopics] = useState(() => {
-    try {
-      return JSON.parse(sessionStorage.getItem("subscribedTopics") || "{}");
-    } catch {
-      return {};
-    }
-  });
+  const [sortBy, setSortBy] = useState("recente");
 
   function timeAgo(iso) {
     if (!iso) return "";
@@ -54,16 +45,6 @@ export default function Forums() {
     const days = Math.floor(h / 24);
     if (days < 7) return `${days}d`;
     return d.toLocaleDateString();
-  }
-
-  function toggleSubscribeTopic(idtopico) {
-    const copy = { ...(subscribedTopics || {}) };
-    if (copy[idtopico]) delete copy[idtopico];
-    else copy[idtopico] = true;
-    setSubscribedTopics(copy);
-    try {
-      sessionStorage.setItem("subscribedTopics", JSON.stringify(copy));
-    } catch {}
   }
 
   useEffect(() => {
@@ -121,18 +102,24 @@ export default function Forums() {
   }, [selectedArea]);
 
   useEffect(() => {
-    if (!selectedTopico) {
-      setPosts([]);
-      return;
-    }
-    fetchPosts(selectedTopico);
-  }, [selectedTopico]);
+    fetchPosts();
+  }, [selectedTopico, sortBy]);
 
-  async function fetchPosts(idTopico) {
+  async function fetchPosts() {
     setLoading(true);
     setError(null);
+    let url = "/forum/posts";
+
+    if (selectedTopico) {
+      url = `/forum/posts/topico/${selectedTopico}`;
+    }
+
     try {
-      const res = await api.get(`/posts/topico/${idTopico}`);
+      const res = await api.get(url, {
+        params: {
+          order: sortBy,
+        },
+      });
       setPosts(res.data || []);
     } catch (e) {
       console.error("Erro ao carregar posts", e);
@@ -150,53 +137,19 @@ export default function Forums() {
     navigate(`/criar-post?topico=${selectedTopico}`);
   }
 
-  async function handleCreateComment(postId) {
-    const conteudo = (commentContentByPost[postId] || "").trim();
-    if (!conteudo) return;
+  async function handleVotePost(postId, voteType) {
     try {
-      await api.post(`/post/${postId}/comment`, { conteudo });
-      setCommentContentByPost((s) => ({ ...s, [postId]: "" }));
-      if (selectedTopico) await fetchPosts(selectedTopico);
-    } catch (err) {
-      console.error("Erro ao comentar", err);
-      setError("Erro ao enviar comentário.");
-    }
-  }
-
-  async function handleVotePost(postId, positive) {
-    try {
-      if (positive) await api.post(`/post/${postId}/upvote`);
-      else await api.post(`/post/${postId}/downvote`);
-      if (selectedTopico) await fetchPosts(selectedTopico);
+      if (voteType === "upvote") {
+        await api.post(`/forum/post/${postId}/upvote`);
+      } else if (voteType === "downvote") {
+        await api.post(`/forum/post/${postId}/downvote`);
+      } else if (voteType === "unvote") {
+        await api.delete(`/forum/post/${postId}/unvote`);
+      }
+      fetchPosts();
     } catch (err) {
       console.error("Erro ao votar", err);
       setError("Erro ao registrar voto.");
-    }
-  }
-
-  async function handleUnvotePost(postId) {
-    try {
-      await api.delete(`/post/${postId}/unvote`);
-      if (selectedTopico) await fetchPosts(selectedTopico);
-    } catch (err) {
-      console.error("Erro ao remover voto", err);
-      setError("Erro ao remover voto.");
-    }
-  }
-
-  async function handleReportPost(postId) {
-    if (!reportTipo) return setError("Escolha um tipo de denúncia.");
-    try {
-      await api.post(`/post/${postId}/reportar`, {
-        tipo: reportTipo,
-        descricao: reportDescricao,
-      });
-      setShowReportFor(null);
-      setReportTipo("");
-      setReportDescricao("");
-    } catch (err) {
-      console.error("Erro ao reportar", err);
-      setError("Erro ao enviar denúncia.");
     }
   }
 
@@ -204,6 +157,23 @@ export default function Forums() {
     if (sortBy === "top") return (b.pontuacao || 0) - (a.pontuacao || 0);
     return new Date(b.criado) - new Date(a.criado);
   });
+
+  const getPostPreview = (content) => {
+    return content.length > 150 ? content.substring(0, 150) + "..." : content;
+  };
+
+  const handleNavigateToPost = (postId) => {
+    navigate(`/post/${postId}`);
+  };
+
+  const getVoteButtonClasses = (post) => {
+    const { iteracao } = post;
+    const upvoteClass = iteracao === true ? 'btn-primary' : 'btn-light';
+    const downvoteClass = iteracao === false ? 'btn-danger' : 'btn-light';
+    const unvoteClass = iteracao !== null ? 'btn-outline-primary' : 'btn-outline-secondary';
+    
+    return { upvoteClass, downvoteClass, unvoteClass };
+  };
 
   return (
     <div className="container-fluid py-3 bg-light">
@@ -246,8 +216,17 @@ export default function Forums() {
             <div>
               <label className="form-label">Tópicos</label>
               <div className="list-group">
+                <button
+                  type="button"
+                  className={`list-group-item list-group-item-action ${
+                    !selectedTopico ? "active" : ""
+                  }`}
+                  onClick={() => setSelectedTopico("")}
+                >
+                  Todos os posts
+                </button>
                 {topicos.length === 0 && (
-                  <div className="text-muted small">
+                  <div className="text-muted small p-2">
                     Escolha uma área para ver tópicos
                   </div>
                 )}
@@ -281,28 +260,13 @@ export default function Forums() {
                 onChange={(e) => setSortBy(e.target.value)}
                 className="form-select form-select-sm"
               >
-                <option value="recent">Mais recentes</option>
+                <option value="recente">Mais recentes</option>
                 <option value="top">Mais votados</option>
               </select>
             </div>
 
-            {/* Botões à direita */}
+            {/* Botão de criar post à direita */}
             <div className="d-flex gap-2 align-items-center">
-              {selectedTopico && (
-                <button
-                  className={`btn btn-sm ${
-                    subscribedTopics[selectedTopico]
-                      ? "btn-outline-secondary"
-                      : "btn-outline-primary"
-                  }`}
-                  onClick={() => toggleSubscribeTopic(selectedTopico)}
-                >
-                  {subscribedTopics[selectedTopico]
-                    ? "Inscrito"
-                    : "Seguir tópico"}
-                </button>
-              )}
-
               <button
                 className="btn btn-primary btn-sm"
                 onClick={handleCreatePostClick}
@@ -318,7 +282,7 @@ export default function Forums() {
               Tópico:{" "}
               {topicos.find(
                 (t) => String(t.idtopico) === String(selectedTopico)
-              )?.designacao || "Nenhum selecionado"}
+              )?.designacao || "Todos os posts"}
             </h5>
 
             {error && <div className="alert alert-danger">{error}</div>}
@@ -326,95 +290,64 @@ export default function Forums() {
             {loading && (
               <div className="text-center">
                 <div className="spinner-border text-primary" role="status">
-                  <span className="visualmente-hidden">A carregar...</span>
+                  <span className="visually-hidden">A carregar...</span>
                 </div>
               </div>
             )}
 
             {!loading && sortedPosts.length === 0 && (
-              <div className="text-muted">Sem posts neste tópico.</div>
+              <div className="text-muted">Sem posts para mostrar.</div>
             )}
 
             {!loading &&
-              sortedPosts.map((p) => (
-                <div
-                  className="post-card d-flex border rounded mb-3 p-2 bg-white shadow-sm"
-                  key={p.idpost}
-                >
-                  <div className="d-flex flex-column align-items-center me-3">
-                    <button
-                      className="btn btn-sm btn-light"
-                      onClick={() => handleVotePost(p.idpost, true)}
-                    >
-                      ⬆️
-                    </button>
-                    <div className="fw-semibold">{p.pontuacao ?? 0}</div>
-                    <button
-                      className="btn btn-sm btn-light"
-                      onClick={() => handleVotePost(p.idpost, false)}
-                    >
-                      ⬇️
-                    </button>
-                    <button
-                      className="btn btn-sm btn-outline-secondary mt-1"
-                      onClick={() => handleUnvotePost(p.idpost)}
-                    >
-                      Desvotar
-                    </button>
-                  </div>
-                  <div className="flex-grow-1">
-                    <h6 className="mb-1">{p.titulo}</h6>
-                    <div className="small text-muted mb-2">
-                      Por{" "}
-                      {typeof p.utilizador === "string"
-                        ? p.utilizador
-                        : p.utilizador?.nome || "Anônimo"}{" "}
-                      • {timeAgo(p.criado)}
-                    </div>
-                    <p className="mb-2">{p.conteudo}</p>
-                    {Array.isArray(p.links) && p.links.length > 0 && (
-                      <ul className="mb-2">
-                        {p.links.map((ln, i) => (
-                          <li key={i}>
-                            <a href={ln} target="_blank" rel="noreferrer">
-                              {ln}
-                            </a>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                    <div className="d-flex gap-3 small text-muted mb-2">
-                      <span>💬 {p.comentarios?.length || 0} comentários</span>
-                      <button
-                        className="btn btn-link p-0 small"
-                        onClick={() => setShowReportFor(p.idpost)}
-                      >
-                        🚩 Denunciar
-                      </button>
-                    </div>
-                    <div className="mt-1">
-                      <textarea
-                        className="form-control form-control-sm"
-                        rows={2}
-                        placeholder="Escreva um comentário..."
-                        value={commentContentByPost[p.idpost] || ""}
-                        onChange={(e) =>
-                          setCommentContentByPost((s) => ({
-                            ...s,
-                            [p.idpost]: e.target.value,
-                          }))
-                        }
-                      />
-                      <button
-                        className="btn btn-sm btn-primary mt-2"
-                        onClick={() => handleCreateComment(p.idpost)}
-                      >
-                        Responder
-                      </button>
+              sortedPosts.map((p) => {
+                const { upvoteClass, downvoteClass, unvoteClass } = getVoteButtonClasses(p);
+                return (
+                  <div
+                    className="card mb-3 p-3 shadow-sm"
+                    key={p.idpost}
+                  >
+                    <div className="d-flex align-items-center">
+                      <div className="me-3 text-center d-flex flex-column align-items-center">
+                        <button 
+                          className={`btn btn-sm ${upvoteClass} p-0 mb-1`} 
+                          onClick={() => handleVotePost(p.idpost, 'upvote')}
+                        >
+                          <i className="ri-arrow-up-line"></i>
+                        </button>
+                        <h4 className="mb-0">{p.pontuacao ?? 0}</h4>
+                        <button 
+                          className={`btn btn-sm ${downvoteClass} p-0 mt-1`} 
+                          onClick={() => handleVotePost(p.idpost, 'downvote')}
+                        >
+                          <i className="ri-arrow-down-line"></i>
+                        </button>
+                        {p.iteracao !== null && (
+                          <button
+                            className={`btn btn-sm ${unvoteClass} mt-2`}
+                            onClick={() => handleVotePost(p.idpost, 'unvote')}
+                          >
+                            Desvotar
+                          </button>
+                        )}
+                      </div>
+                      <div className="flex-grow-1" onClick={() => handleNavigateToPost(p.idpost)} style={{ cursor: 'pointer' }}>
+                        <h5 className="mb-1">{p.titulo}</h5>
+                        <p className="text-muted mb-1 small">
+                          {getPostPreview(p.conteudo)}
+                        </p>
+                        <div className="small d-flex gap-3 text-muted">
+                          <span>💬 {p.ncomentarios ?? 0} comentários</span>
+                          <span>
+                            Por {p.utilizador?.nome || "Anônimo"} •{" "}
+                            {timeAgo(p.criado)}
+                          </span>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
           </div>
         </main>
 
@@ -430,7 +363,12 @@ export default function Forums() {
             <h6 className="mb-3">Posts Recentes</h6>
             <ul className="list-group list-group-flush">
               {sortedPosts.slice(0, 5).map((p) => (
-                <li key={p.idpost} className="list-group-item">
+                <li
+                  key={p.idpost}
+                  className="list-group-item"
+                  onClick={() => handleNavigateToPost(p.idpost)}
+                  style={{ cursor: "pointer" }}
+                >
                   <div className="fw-semibold text-truncate">{p.titulo}</div>
                   <small className="text-muted">{timeAgo(p.criado)}</small>
                 </li>
@@ -439,55 +377,6 @@ export default function Forums() {
           </div>
         </aside>
       </div>
-
-      {showReportFor && (
-        <div
-          className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center"
-          style={{ background: "rgba(0,0,0,0.4)", zIndex: 1050 }}
-        >
-          <div className="card p-3" style={{ width: 520 }}>
-            <h5>Denunciar post</h5>
-            <div className="mb-2">
-              <label className="form-label">Tipo de denúncia</label>
-              <select
-                className="form-select"
-                value={reportTipo}
-                onChange={(e) => setReportTipo(e.target.value)}
-              >
-                <option value="">Escolha um tipo</option>
-                {reportTypes.map((t) => (
-                  <option key={t.idtipodenuncia} value={t.idtipodenuncia}>
-                    {t.designacao || t.tipo || t.nome}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="mb-2">
-              <label className="form-label">Descrição (opcional)</label>
-              <textarea
-                className="form-control"
-                rows={3}
-                value={reportDescricao}
-                onChange={(e) => setReportDescricao(e.target.value)}
-              />
-            </div>
-            <div className="d-flex gap-2 justify-content-end">
-              <button
-                className="btn btn-secondary"
-                onClick={() => setShowReportFor(null)}
-              >
-                Cancelar
-              </button>
-              <button
-                className="btn btn-danger"
-                onClick={() => handleReportPost(showReportFor)}
-              >
-                Enviar denúncia
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

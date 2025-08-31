@@ -31,7 +31,7 @@ async function getUserInfo(user) {
 }
 
 
-async function formatStuff(stuff,utilizador) {
+async function formatStuff(stuff,utilizador, iteracaoModel) {
 
   return await Promise.all(
     stuff.map(async (stuffObject) => {
@@ -47,11 +47,35 @@ async function formatStuff(stuff,utilizador) {
         stuffObject.dataValues.utilizador = {id : utilizadorObject.idutilizador, nome: utilizadorObject.nome };  
       }
 
+      const queryOptions = { where : {utilizador} };
+
+      if(stuffObject.idpost != undefined){
+
+        queryOptions.where.post = stuffObject.idpost;
+
+      } else {
+
+
+        queryOptions.where.comentario = stuffObject.idcomentario;
+
+
+      }
+
+      
+
+
+      let iteracao  = await iteracaoModel.findOne(queryOptions);
+      iteracao = !iteracao ? null : iteracao.positiva ? true : false; 
+
+      stuffObject.dataValues.iteracao = iteracao;
+
       return stuffObject;
     })
   );
 
 }
+
+
 
 
 const controllers = {};
@@ -184,6 +208,11 @@ controllers.getPost = async (req, res) => {
 
       post.dataValues.utilizador = await getUserInfo(req.user);
 
+      let iteracao  = await models.iteracaopost.findOne({where : {post:id,utilizador}});
+      iteracao = !iteracao ? null : iteracao.positiva ? true : false; 
+
+      post.dataValues.iteracao = iteracao;
+
       return res.status(200).json(post);
         
   } catch (error) {
@@ -230,7 +259,7 @@ controllers.getPosts = async (req, res, topico = null) => {
 
       let posts = await models.post.findAll(queryOptions);
       if(posts.length > 0){
-        posts = await formatStuff(posts,utilizador);
+        posts = await formatStuff(posts,utilizador,models.iteracaopost);
       }
 
       return res.status(200).json(posts);
@@ -480,7 +509,7 @@ controllers.getRespostasPost = async (req, res) => {
       let comentarios = await models.comentario.findAll(queryOptions);
 
       if(comentarios.length > 0){
-        comentarios = await formatStuff(comentarios,utilizador);
+        comentarios = await formatStuff(comentarios,utilizador,models.iteracaocomentario);
       }
 
       return res.status(200).json(comentarios);
@@ -535,7 +564,7 @@ controllers.getRespostasComentario = async (req, res) => {
       let comentarios = await models.comentario.findAll(queryOptions);
 
       if(comentarios.length > 0){
-        comentarios = await formatStuff(comentarios,utilizador);
+        comentarios = await formatStuff(comentarios,utilizador,models.iteracaocomentario);
       }
 
       return res.status(200).json(comentarios);
