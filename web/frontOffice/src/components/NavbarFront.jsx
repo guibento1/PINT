@@ -44,7 +44,13 @@ export default function NavbarFront() {
   }
 
   return (
-    <nav className="navbar navbar-expand-lg bg-white border-bottom">
+    <nav
+      className="navbar navbar-expand-lg navbar-light bg-white shadow-sm"
+      style={{
+        zIndex: 1050, // Ensure the navbar is above other elements
+        borderBottom: "1px solid #e5e5e5", // Optional: Add a subtle border for separation
+      }}
+    >
       <div
         className="container-fluid d-flex align-items-center"
         style={{ minHeight: "70px" }}

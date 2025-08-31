@@ -30,7 +30,16 @@ export default function Forums() {
   const [reportTipo, setReportTipo] = useState("");
   const [reportDescricao, setReportDescricao] = useState("");
 
-  const [sortBy, setSortBy] = useState("recente");
+  const [sortBy, setSortBy] = useState("recent");
+  const [subscribedTopics, setSubscribedTopics] = useState(() => {
+    try {
+      return JSON.parse(sessionStorage.getItem("subscribedTopics") || "{}");
+    } catch {
+      return {};
+    }
+  });
+  const [topicSearch, setTopicSearch] = useState("");
+  const [sidebarMinimized, setSidebarMinimized] = useState(false);
 
   function timeAgo(iso) {
     if (!iso) return "";
@@ -176,101 +185,177 @@ export default function Forums() {
   };
 
   return (
-    <div className="container-fluid py-3 bg-light">
-      <div className="d-flex justify-content-center" style={{ gap: "1rem" }}>
-        {/* Sidebar esquerda */}
-        <aside style={{ width: "250px" }}>
-          <div className="card p-3 shadow-sm">
-            <h6 className="mb-3">Explorar Estrutura</h6>
-            <div className="mb-3">
-              <label className="form-label">Categoria</label>
-              <select
-                className="form-select"
-                value={selectedCategoria}
-                onChange={(e) => setSelectedCategoria(e.target.value)}
-              >
-                <option value="">Todas as Categorias</option>
-                {categorias.map((c) => (
-                  <option key={c.idcategoria} value={c.idcategoria}>
-                    {c.designacao}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="mb-3">
-              <label className="form-label">Área</label>
-              <select
-                className="form-select"
-                value={selectedArea}
-                onChange={(e) => setSelectedArea(e.target.value)}
-                disabled={!areas.length}
-              >
-                <option value="">Todas as Áreas</option>
-                {areas.map((a) => (
-                  <option key={a.idarea} value={a.idarea}>
-                    {a.designacao}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="form-label">Tópicos</label>
-              <div className="list-group">
-                <button
-                  type="button"
-                  className={`list-group-item list-group-item-action ${
-                    !selectedTopico ? "active" : ""
-                  }`}
-                  onClick={() => setSelectedTopico("")}
-                >
-                  Todos os posts
-                </button>
-                {topicos.length === 0 && (
-                  <div className="text-muted small p-2">
-                    Escolha uma área para ver tópicos
-                  </div>
-                )}
-                {topicos.map((t) => (
-                  <button
-                    type="button"
-                    key={t.idtopico}
-                    className={`list-group-item list-group-item-action ${
-                      String(selectedTopico) === String(t.idtopico)
-                        ? "active"
-                        : ""
-                    }`}
-                    onClick={() => setSelectedTopico(t.idtopico)}
-                  >
-                    {t.designacao}
-                  </button>
-                ))}
-              </div>
+    <div className="d-flex">
+      {/* Sidebar ajustada com linha de separação mais escura e comprida */}
+      <aside
+        className="bg-light"
+        style={{
+          position: "sticky",
+          top: "80px", // Altura da navbar
+          marginBottom: "0", // Remover margem para alcançar o footer
+          width: "280px",
+          maxHeight: "calc(100vh - 80px)", // Altura da viewport menos a navbar
+          overflowY: "auto",
+          zIndex: 1000,
+          borderRight: "2px solid #333", // Linha de separação mais escura
+        }}
+      >
+        <div className="p-3">
+          <h6>Explorar Estrutura</h6>
+
+          <div className="mb-3">
+            <label className="form-label">Categoria</label>
+            <select
+              className="form-select"
+              value={selectedCategoria}
+              onChange={(e) => setSelectedCategoria(e.target.value)}
+            >
+              <option value="">Todas as Categorias</option>
+              {categorias.map((c) => (
+                <option key={c.idcategoria} value={c.idcategoria}>
+                  {c.designacao}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="mb-3">
+            <label className="form-label">Área</label>
+            <select
+              className="form-select"
+              value={selectedArea}
+              onChange={(e) => setSelectedArea(e.target.value)}
+              disabled={!areas.length}
+            >
+              <option value="">Todas as Áreas</option>
+              {areas.map((a) => (
+                <option key={a.idarea} value={a.idarea}>
+                  {a.designacao}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <div className="form-label">Tópicos</div>
+            <div className="list-group mb-3">
+              {topicos.length === 0 ? (
+                <div className="text-muted small">
+                  Escolha uma área para ver tópicos
+                </div>
+              ) : (
+                topicos
+                  .filter((t) =>
+                    String(t.designacao)
+                      .toLowerCase()
+                      .includes(topicSearch.toLowerCase())
+                  )
+                  .map((t) => (
+                    <button
+                      type="button"
+                      key={t.idtopico}
+                      className={`list-group-item list-group-item-action ${
+                        String(selectedTopico) === String(t.idtopico)
+                          ? "active"
+                          : ""
+                      }`}
+                      onClick={() => setSelectedTopico(t.idtopico)}
+                    >
+                      {t.designacao}
+                    </button>
+                  ))
+              )}
             </div>
           </div>
-        </aside>
 
-        {/* Feed central */}
-        <main style={{ flex: 1, maxWidth: "700px" }}>
-          <div className="card p-3 mb-3 shadow-sm d-flex justify-content-between align-items-center">
-            {/* Ordenar à esquerda */}
-            <div className="d-flex gap-2 align-items-center">
-              <label className="form-label small mb-0">Ordenar por:</label>
+          <div className="mb-3">
+            <label className="form-label">Pesquisar tópicos</label>
+            <input
+              className="form-control form-control-sm"
+              placeholder="Pesquisar..."
+              value={topicSearch}
+              onChange={(e) => setTopicSearch(e.target.value)}
+            />
+          </div>
+
+          <div className="mt-3">
+            <h6 className="mb-2">Tópicos Seguidos</h6>
+            <div className="list-group">
+              {Object.keys(subscribedTopics || {}).length === 0 ? (
+                <div className="text-muted small">Ainda não segue tópicos</div>
+              ) : (
+                Object.keys(subscribedTopics || {}).map((id) => {
+                  const t = topicos.find(
+                    (x) => String(x.idtopico) === String(id)
+                  );
+                  return (
+                    <div
+                      key={id}
+                      className="d-flex align-items-center justify-content-between list-group-item"
+                    >
+                      <div className="text-truncate" style={{ maxWidth: 160 }}>
+                        {t ? t.designacao : `Tópico #${id}`}
+                      </div>
+                      <div>
+                        <button
+                          className="btn btn-sm btn-link"
+                          onClick={() => toggleSubscribeTopic(id)}
+                        >
+                          Deixar de seguir
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      {/* Conteúdo principal */}
+      <main
+        className="flex-grow-1"
+        style={{ marginLeft: "280px", padding: "1rem" }}
+      >
+        <div className="container-fluid py-3 bg-light">
+          {/* Conteúdo existente */}
+          <div className="card p-3 mb-3 shadow-sm d-flex">
+            <div
+              className="d-flex align-items-center"
+              style={{ width: "100%" }}
+            >
+              <label className="form-label small mb-1 me-2">Ordenar por:</label>
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
                 className="form-select form-select-sm"
+                style={{ width: 180, marginRight: "auto" }}
               >
                 <option value="recente">Mais recentes</option>
                 <option value="top">Mais votados</option>
               </select>
-            </div>
 
-            {/* Botão de criar post à direita */}
-            <div className="d-flex gap-2 align-items-center">
+              {selectedTopico && (
+                <button
+                  className={`btn btn-sm ${
+                    subscribedTopics[selectedTopico]
+                      ? "btn-outline-secondary"
+                      : "btn-outline-primary"
+                  }`}
+                  onClick={() => toggleSubscribeTopic(selectedTopico)}
+                >
+                  {subscribedTopics[selectedTopico]
+                    ? "Inscrito"
+                    : "Seguir tópico"}
+                </button>
+              )}
+
               <button
-                className="btn btn-primary btn-sm"
+                className="btn btn-primary btn-sm ms-2"
                 onClick={handleCreatePostClick}
               >
+                <i className="ri-add-line me-1"></i>
                 Criar Post
               </button>
             </div>
@@ -349,34 +434,8 @@ export default function Forums() {
                 );
               })}
           </div>
-        </main>
-
-        {/* Sidebar direita - posts recentes */}
-        <aside
-          style={{
-            width: "300px",
-            maxHeight: "calc(100vh - 100px)",
-            overflowY: "auto",
-          }}
-        >
-          <div className="card p-3 shadow-sm">
-            <h6 className="mb-3">Posts Recentes</h6>
-            <ul className="list-group list-group-flush">
-              {sortedPosts.slice(0, 5).map((p) => (
-                <li
-                  key={p.idpost}
-                  className="list-group-item"
-                  onClick={() => handleNavigateToPost(p.idpost)}
-                  style={{ cursor: "pointer" }}
-                >
-                  <div className="fw-semibold text-truncate">{p.titulo}</div>
-                  <small className="text-muted">{timeAgo(p.criado)}</small>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </aside>
-      </div>
+        </div>
+      </main>
     </div>
   );
 }
