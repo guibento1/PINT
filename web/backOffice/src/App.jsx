@@ -17,6 +17,7 @@ import Profile from "@shared/views/Profile.jsx";
 import NaoAutorizado from "./views/NaoAutorizado";
 import Home from "./views/Home";
 import GerirEstrutura from "./views/GerirEstrutura";
+import GerirNotificacoesDenuncias from "./views/GerirNotificacoesDenuncias.jsx";
 import Cursos from "./views/Cursos";
 import DetalhesCurso from "./views/DetalhesCurso";
 import Utilizadores from "./views/Utilizadores";
@@ -125,6 +126,14 @@ function App() {
             element={
               <ProtectedRoute allowedRoles={["admin"]}>
                 <GerirEstrutura />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/gerir-notificacoes-e-denuncias"
+            element={
+              <ProtectedRoute allowedRoles={["admin"]}>
+                <GerirNotificacoesDenuncias />
               </ProtectedRoute>
             }
           />
