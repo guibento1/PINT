@@ -33,6 +33,7 @@ var _tipodenuncia = require("./tipodenuncia");
 var _tipomaterial = require("./tipomaterial");
 var _topico = require("./topico");
 var _topicoarea = require("./topicoarea");
+var _topicossubscritosutilizadores = require("./topicossubscritosutilizadores");
 var _utilizadordispositivos = require("./utilizadordispositivos");
 var _utilizadores = require("./utilizadores");
 
@@ -71,6 +72,7 @@ function initModels(sequelize) {
   var tipomaterial = _tipomaterial(sequelize, DataTypes);
   var topico = _topico(sequelize, DataTypes);
   var topicoarea = _topicoarea(sequelize, DataTypes);
+  var topicossubscritosutilizadores = _topicossubscritosutilizadores(sequelize, DataTypes);
   var utilizadordispositivos = _utilizadordispositivos(sequelize, DataTypes);
   var utilizadores = _utilizadores(sequelize, DataTypes);
 
@@ -92,8 +94,10 @@ function initModels(sequelize) {
   post.belongsToMany(utilizadores, { as: 'utilizador_utilizadores_iteracaoposts', through: iteracaopost, foreignKey: "post", otherKey: "utilizador" });
   topico.belongsToMany(area, { as: 'area_areas', through: topicoarea, foreignKey: "topico", otherKey: "area" });
   topico.belongsToMany(curso, { as: 'curso_cursos', through: cursotopico, foreignKey: "topico", otherKey: "curso" });
+  topico.belongsToMany(utilizadores, { as: 'utilizador_utilizadores_topicossubscritosutilizadores', through: topicossubscritosutilizadores, foreignKey: "topico", otherKey: "utilizador" });
   utilizadores.belongsToMany(comentario, { as: 'comentario_comentarios', through: iteracaocomentario, foreignKey: "utilizador", otherKey: "comentario" });
   utilizadores.belongsToMany(post, { as: 'post_posts', through: iteracaopost, foreignKey: "utilizador", otherKey: "post" });
+  utilizadores.belongsToMany(topico, { as: 'topico_topico_topicossubscritosutilizadores', through: topicossubscritosutilizadores, foreignKey: "utilizador", otherKey: "topico" });
   topicoarea.belongsTo(area, { as: "area_area", foreignKey: "area"});
   area.hasMany(topicoarea, { as: "topicoareas", foreignKey: "area"});
   submissao.belongsTo(avaliacaocontinua, { as: "avaliacaocontinua_avaliacaocontinua", foreignKey: "avaliacaocontinua"});
@@ -166,6 +170,8 @@ function initModels(sequelize) {
   topico.hasMany(post, { as: "posts", foreignKey: "topico"});
   topicoarea.belongsTo(topico, { as: "topico_topico", foreignKey: "topico"});
   topico.hasMany(topicoarea, { as: "topicoareas", foreignKey: "topico"});
+  topicossubscritosutilizadores.belongsTo(topico, { as: "topico_topico", foreignKey: "topico"});
+  topico.hasMany(topicossubscritosutilizadores, { as: "topicossubscritosutilizadores", foreignKey: "topico"});
   admin.belongsTo(utilizadores, { as: "utilizador_utilizadore", foreignKey: "utilizador"});
   utilizadores.hasMany(admin, { as: "admins", foreignKey: "utilizador"});
   canaisutilizadores.belongsTo(utilizadores, { as: "utilizador_utilizadore", foreignKey: "utilizador"});
@@ -188,6 +194,8 @@ function initModels(sequelize) {
   utilizadores.hasMany(material, { as: "materials", foreignKey: "criador"});
   post.belongsTo(utilizadores, { as: "utilizador_utilizadore", foreignKey: "utilizador"});
   utilizadores.hasMany(post, { as: "posts", foreignKey: "utilizador"});
+  topicossubscritosutilizadores.belongsTo(utilizadores, { as: "utilizador_utilizadore", foreignKey: "utilizador"});
+  utilizadores.hasMany(topicossubscritosutilizadores, { as: "topicossubscritosutilizadores", foreignKey: "utilizador"});
   utilizadordispositivos.belongsTo(utilizadores, { as: "utilizador_utilizadore", foreignKey: "utilizador"});
   utilizadores.hasMany(utilizadordispositivos, { as: "utilizadordispositivos", foreignKey: "utilizador"});
 
@@ -226,6 +234,7 @@ function initModels(sequelize) {
     tipomaterial,
     topico,
     topicoarea,
+    topicossubscritosutilizadores,
     utilizadordispositivos,
     utilizadores,
   };

@@ -312,4 +312,93 @@ controllers.update = async (req, res) => {
 };
 
 
+controllers.subscribe = async (req, res) => {
+
+    const { id } = req.params;
+    const utilizador = req.user.idutilizador;
+
+    try {
+
+        await models.topicossubscritosutilizadores.upsert({utilizador, topico: id });
+        return res.status(200).json({sucess:true, message:"Utilizador inscrito com sucesso"});
+        
+    } catch (error) {
+
+
+        logger.error(`Erro interno do servidor ao inscrever tópico. Detalhes: ${error.message}`, {
+            stack: error.stack
+        });
+        return res.status(500).json({
+            error: 'Ocorreu um erro interno ao inscrever o tópico.'
+        });
+        
+    }
+
+};
+
+
+controllers.unsubscribe = async (req, res) => {
+
+    const { id } = req.params;
+    const utilizador = req.user.idutilizador;
+
+    try {
+
+        const entrada = await models.topicossubscritosutilizadores.findOne({where : {utilizador, topico: id }});
+
+        if(entrada) entrada.destroy();
+
+        return res.status(200).json({sucess:true, message:"Utilizador desinscrito com sucesso"});
+        
+    } catch (error) {
+
+
+        logger.error(`Erro interno do servidor ao inscrever tópico. Detalhes: ${error.message}`, {
+            stack: error.stack
+        });
+        return res.status(500).json({
+            error: 'Ocorreu um erro interno ao desinscrever o tópico.'
+        });
+        
+    }
+
+};
+
+
+controllers.getSubscriptions = async (req, res) => {
+
+    const { id } = req.params;
+    const utilizador = req.user.idutilizador;
+
+    try {
+
+        let resultados = await models.topicossubscritosutilizadores.findAll({
+            where : {utilizador},
+
+            include: [{
+                model: models.topico,
+                as: 'topico_topico', 
+                attributes: ['idtopico', 'designacao'],
+            }],
+
+        });
+
+        resultados = resultados.map((resultado) => resultado.topico_topico);
+        return res.status(200).json(resultados);
+        
+    } catch (error) {
+
+
+        logger.error(`Erro interno do servidor ao obter topicos subscritos. Detalhes: ${error.message}`, {
+            stack: error.stack
+        });
+        return res.status(500).json({
+            error: 'Ocorreu um erro interno ao obter topicos subscritos.'
+        });
+        
+    }
+
+};
+
+
 module.exports = controllers;
