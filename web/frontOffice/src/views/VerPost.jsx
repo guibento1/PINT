@@ -7,6 +7,7 @@ import Modal from "@shared/components/Modal";
 import {
   fetchPostCommentsTreeCached,
   invalidatePostCommentsCache,
+  updatePostCommentsCache,
 } from "@shared/services/dataCache";
 import "@shared/styles/global.css";
 
@@ -28,6 +29,8 @@ export default function VerPost() {
   const [connectors, setConnectors] = useState([]); // svg paths entre avatares
   const [layoutTick, setLayoutTick] = useState(0); // gatilho de recomputar conectores
   const [votingComments, setVotingComments] = useState({}); // { [commentId]: boolean }
+  // Avatar do utilizador atual para decorar comentários/respostas imediatamente
+  const [myAvatar, setMyAvatar] = useState(null);
 
   // Denúncias
   const [tiposDenuncia, setTiposDenuncia] = useState([]); // GET /forum/denuncias/tipos
@@ -44,6 +47,41 @@ export default function VerPost() {
   const [confirmTitle, setConfirmTitle] = useState("");
   const [confirmMessage, setConfirmMessage] = useState("");
   const [confirmAction, setConfirmAction] = useState(null);
+  // Info do utilizador autenticado (para decoração otimista), com fallback ao localStorage
+  const getStoredUser = () => {
+    try {
+      const fromSession = sessionStorage.getItem("user");
+      const fromLocal = localStorage.getItem("user");
+      return JSON.parse(fromSession || fromLocal || "null");
+    } catch {
+      return null;
+    }
+  };
+  const currentUser = getStoredUser();
+
+  // Carrega a foto do utilizador autenticado se não estiver presente no storage
+  useEffect(() => {
+    const loadMyAvatar = async () => {
+      try {
+        const myId =
+          currentUser?.id ??
+          currentUser?.idutilizador ??
+          currentUser?.utilizador;
+        if (!myId) return;
+        if (currentUser?.foto) {
+          setMyAvatar(currentUser.foto);
+          return;
+        }
+        const res = await api.get(`/utilizador/id/${myId}`);
+        const foto = res?.data?.foto || null;
+        setMyAvatar(foto);
+      } catch (e) {
+        // silencioso: sem avatar
+      }
+    };
+    loadMyAvatar();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Função estável para abrir o modal de confirmação (para actions existentes)
   const openConfirmModal = (title, message, action) => {
@@ -124,37 +162,29 @@ export default function VerPost() {
   // utilidades
   const getUserName = (utilizador) => {
     if (!utilizador) return "Anónimo";
-    if (typeof utilizador === "string") return utilizador;
     if (typeof utilizador === "object" && utilizador.nome)
       return utilizador.nome;
+    if (typeof utilizador === "string") return utilizador;
     return "Anónimo";
   };
 
-  // Robust owner check: match by numeric id when available; accept backend 'Eu' sentinel
+  // Owner check: apenas por id quando disponível
   const isOwner = (utilizador) => {
     try {
-      const u = JSON.parse(sessionStorage.getItem("user") || "null");
-      const myId = u?.id ?? u?.idutilizador ?? u?.utilizador;
-      if (!myId) return utilizador === "Eu"; // fallback to sentinel
-
-      // If backend returned the sentinel
-      if (utilizador === "Eu") return true;
-
-      // If backend returned an object
+      const myId =
+        currentUser?.id ?? currentUser?.idutilizador ?? currentUser?.utilizador;
+      if (!myId) return false;
       if (utilizador && typeof utilizador === "object") {
         const ownerId =
           utilizador.id ?? utilizador.idutilizador ?? utilizador.utilizador;
         return ownerId && String(ownerId) === String(myId);
       }
-
-      // If backend returned a primitive id
       if (typeof utilizador === "number" || typeof utilizador === "string") {
         return String(utilizador) === String(myId);
       }
-
       return false;
     } catch {
-      return utilizador === "Eu";
+      return false;
     }
   };
 
@@ -383,7 +413,8 @@ export default function VerPost() {
     try {
       setLoading(true);
       const res = await api.get(`/forum/post/${id}`);
-      setPost(res.data?.post || res.data?.data || res.data || null);
+      const raw = res.data?.post || res.data?.data || res.data || null;
+      setPost(raw);
     } catch (e) {
       console.error("Erro ao carregar post", e);
       setError("Não foi possível carregar o post.");
@@ -495,9 +526,46 @@ export default function VerPost() {
   const handleCommentSubmit = async () => {
     if (!newComment.trim()) return;
     try {
-      await api.post(`/forum/post/${id}/comment`, { conteudo: newComment });
-      invalidatePostCommentsCache(id);
-      await loadCommentsTree();
+      const res = await api.post(`/forum/post/${id}/comment`, {
+        conteudo: newComment,
+      });
+      // Inserção otimista do comentário de topo com dados do utilizador atual
+      const created = res?.data?.data || res?.data || null;
+      if (created) {
+        const u = created?.utilizador;
+        const isUserObject =
+          u && typeof u === "object" && (u.nome || u.foto || u.id);
+        const isUserPrimitive = typeof u === "number" || typeof u === "string";
+        const shouldDecorate = !isUserObject && currentUser;
+        const decorated = shouldDecorate
+          ? {
+              ...created,
+              criado: created?.criado || new Date().toISOString(),
+              utilizador:
+                isUserPrimitive || !u
+                  ? {
+                      id:
+                        currentUser.id ??
+                        currentUser.idutilizador ??
+                        currentUser.utilizador ??
+                        u,
+                      nome: currentUser.nome ?? currentUser.name ?? "",
+                      foto: myAvatar ?? currentUser.foto ?? null,
+                    }
+                  : created.utilizador,
+              children: created?.children || [],
+              iteracao: created?.iteracao ?? null,
+              pontuacao: created?.pontuacao ?? 0,
+            }
+          : created;
+        setComments((prev) => {
+          const next = [...prev, decorated];
+          try {
+            updatePostCommentsCache(id, next);
+          } catch {}
+          return next;
+        });
+      }
       setNewComment("");
       setShowCommentBox(false);
     } catch (e) {
@@ -694,16 +762,44 @@ export default function VerPost() {
                 return c;
               })
             : list;
-        setComments((prev) =>
-          updateCommentById(prev, commentId, (c) => ({
+        // Decoração otimista: se backend ainda não devolve utilizador enriquecido, usar o atual
+        let createdDecorated = created;
+        const u = created?.utilizador;
+        const isUserObject =
+          u && typeof u === "object" && (u.nome || u.foto || u.id);
+        const isUserPrimitive = typeof u === "number" || typeof u === "string";
+        if (!isUserObject && isUserPrimitive && currentUser) {
+          createdDecorated = {
+            ...created,
+            criado: created?.criado || new Date().toISOString(),
+            utilizador: {
+              id:
+                currentUser.id ??
+                currentUser.idutilizador ??
+                currentUser.utilizador ??
+                u,
+              nome: currentUser.nome ?? currentUser.name ?? "",
+              foto: myAvatar ?? currentUser.foto ?? null,
+            },
+          };
+        }
+        setComments((prev) => {
+          const next = updateCommentById(prev, commentId, (c) => ({
             ...c,
-            children: [...(c.children || []), created],
-          }))
-        );
+            children: [...(c.children || []), createdDecorated],
+          }));
+          // Atualiza cache em memória para persistir ao navegar
+          try {
+            updatePostCommentsCache(id, next);
+          } catch {}
+          return next;
+        });
         setTimeout(() => setLayoutTick((t) => t + 1), 0);
       } else {
-        invalidatePostCommentsCache(id);
-        await loadCommentsTree();
+        // Cenário raro: sem objeto created – força refetch suave depois
+        try {
+          invalidatePostCommentsCache(id);
+        } catch {}
       }
       setReplyText((prev) => ({ ...prev, [commentId]: "" }));
       setReplyOpen((prev) => ({ ...prev, [commentId]: false }));
@@ -782,14 +878,43 @@ export default function VerPost() {
                     if (el) avatarRefs.current[cid] = el;
                   }}
                 >
-                  <div className="avatar-sm d-flex align-items-center justify-content-center bg-secondary text-white rounded-circle">
-                    {authorName.charAt(0).toUpperCase()}
-                  </div>
+                  {(() => {
+                    const me = isOwner(comment.utilizador);
+                    const avatarUrl =
+                      comment?.utilizador?.foto ?? (me ? myAvatar : null);
+                    if (avatarUrl) {
+                      return (
+                        <div className="avatar-sm rounded-circle overflow-hidden">
+                          <img
+                            src={avatarUrl}
+                            alt={authorName}
+                            style={{
+                              width: "100%",
+                              height: "100%",
+                              objectFit: "cover",
+                            }}
+                          />
+                        </div>
+                      );
+                    }
+                    return (
+                      <div className="avatar-sm d-flex align-items-center justify-content-center bg-secondary text-white rounded-circle">
+                        {authorName.charAt(0).toUpperCase()}
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
               <div className="comment-main">
                 <div className="comment-meta">
-                  <span className="comment-author">{authorName}</span>
+                  {(() => {
+                    const me = isOwner(comment.utilizador);
+                    return (
+                      <span className="comment-author">
+                        {me ? <strong>{authorName}</strong> : authorName}
+                      </span>
+                    );
+                  })()}
                   <span className="text-muted">
                     • {timeAgo(comment.criado)}
                   </span>
@@ -1070,12 +1195,42 @@ export default function VerPost() {
                 </div>
                 <div className="post-main flex-grow-1">
                   <div className="d-flex align-items-center gap-2 text-muted small mb-2">
-                    <div className="avatar-sm d-flex align-items-center justify-content-center bg-secondary text-white rounded-circle">
-                      {getUserName(post?.utilizador).charAt(0).toUpperCase()}
-                    </div>
-                    <span className="comment-author">
-                      {getUserName(post?.utilizador)}
-                    </span>
+                    {(() => {
+                      const owner = isOwner(post?.utilizador);
+                      const avatarUrl =
+                        post?.utilizador?.foto ?? (owner ? myAvatar : null);
+                      if (avatarUrl) {
+                        return (
+                          <div className="avatar-sm rounded-circle overflow-hidden">
+                            <img
+                              src={avatarUrl}
+                              alt={getUserName(post?.utilizador)}
+                              style={{
+                                width: "100%",
+                                height: "100%",
+                                objectFit: "cover",
+                              }}
+                            />
+                          </div>
+                        );
+                      }
+                      return (
+                        <div className="avatar-sm d-flex align-items-center justify-content-center bg-secondary text-white rounded-circle">
+                          {getUserName(post?.utilizador)
+                            .charAt(0)
+                            .toUpperCase()}
+                        </div>
+                      );
+                    })()}
+                    {(() => {
+                      const me = isOwner(post?.utilizador);
+                      const name = getUserName(post?.utilizador);
+                      return (
+                        <span className="comment-author">
+                          {me ? <strong>{name}</strong> : name}
+                        </span>
+                      );
+                    })()}
                     <span>• {timeAgo(post?.criado || post?.createdAt)}</span>
                   </div>
                   <div className="mb-2 d-flex align-items-center">

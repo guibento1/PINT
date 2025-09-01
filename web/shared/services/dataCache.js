@@ -74,3 +74,8 @@ export function invalidatePostCommentsCache(postId) {
   const key = String(postId);
   if (cache.commentsByPost[key]) delete cache.commentsByPost[key];
 }
+
+export function updatePostCommentsCache(postId, commentsTree) {
+  const key = String(postId);
+  cache.commentsByPost[key] = { data: commentsTree, ts: Date.now() };
+}

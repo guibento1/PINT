@@ -447,11 +447,27 @@ export default function Forums() {
                         <div className="text-muted small mb-2">
                           <span>
                             Postado por{" "}
-                            <strong>
-                              {currentUser?.id === p.utilizador?.id
-                                ? "Eu"
-                                : p.utilizador?.nome || "Anônimo"}
-                            </strong>{" "}
+                            {(() => {
+                              const myId = String(
+                                currentUser?.id ??
+                                  currentUser?.idutilizador ??
+                                  currentUser?.utilizador ??
+                                  ""
+                              );
+                              const ownerId = String(
+                                p.utilizador?.id ??
+                                  p.utilizador?.idutilizador ??
+                                  p.utilizador?.utilizador ??
+                                  ""
+                              );
+                              const name = p.utilizador?.nome || "Anônimo";
+                              const me = myId && ownerId && myId === ownerId;
+                              return (
+                                <span className="comment-author">
+                                  {me ? <strong>{name}</strong> : name}
+                                </span>
+                              );
+                            })()}{" "}
                             • {timeAgo(p.criado)}
                           </span>
                         </div>
