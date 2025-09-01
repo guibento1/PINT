@@ -71,7 +71,10 @@ export default function VerPost() {
   const handleSubmitDenuncia = async () => {
     if (!denunciaTarget) return;
     if (!denunciaTipo) {
-      setDenunciaStatus({ type: "error", message: "Selecione um tipo de denúncia." });
+      setDenunciaStatus({
+        type: "error",
+        message: "Selecione um tipo de denúncia.",
+      });
       return;
     }
     const payload = {
@@ -84,14 +87,20 @@ export default function VerPost() {
           ? `/forum/post/${denunciaTarget.id}/reportar`
           : `/forum/comment/${denunciaTarget.id}/reportar`;
       await api.post(endpoint, payload);
-      setDenunciaStatus({ type: "success", message: "Denúncia enviada com sucesso." });
+      setDenunciaStatus({
+        type: "success",
+        message: "Denúncia enviada com sucesso.",
+      });
       // opcional: fechar o modal após breves instantes
       setTimeout(() => {
         closeDenunciaModal();
       }, 800);
     } catch (e) {
       console.error("Erro ao enviar denúncia", e);
-      setDenunciaStatus({ type: "error", message: "Erro ao enviar a denúncia." });
+      setDenunciaStatus({
+        type: "error",
+        message: "Erro ao enviar a denúncia.",
+      });
     }
   };
 
@@ -99,37 +108,108 @@ export default function VerPost() {
   const getUserName = (utilizador) => {
     if (!utilizador) return "Anónimo";
     if (typeof utilizador === "string") return utilizador;
-    if (typeof utilizador === "object" && utilizador.nome) return utilizador.nome;
+    if (typeof utilizador === "object" && utilizador.nome)
+      return utilizador.nome;
     return "Anónimo";
   };
 
   const isOwner = (utilizador) =>
-    utilizador === "Eu" || (utilizador?.nome === "Eu");
+    utilizador === "Eu" || utilizador?.nome === "Eu";
 
   // Icons (mantidos do estilo existente)
   const UpIcon = ({ filled, size = 22, color = "#28a745" }) =>
     filled ? (
-      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ color }}>
-        <path fillRule="evenodd" clipRule="evenodd" d="M7.25007 2.38782C8.54878 2.0992 10.1243 2 12 2C13.8757 2 15.4512 2.0992 16.7499 2.38782C18.06 2.67897 19.1488 3.176 19.9864 4.01358C20.824 4.85116 21.321 5.94002 21.6122 7.25007C21.9008 8.54878 22 10.1243 22 12C22 13.8757 21.9008 15.4512 21.6122 16.7499C21.321 18.06 20.824 19.1488 19.9864 19.9864C19.1488 20.824 18.06 21.321 16.7499 21.6122C15.4512 21.9008 13.8757 22 12 22C10.1243 22 8.54878 21.9008 7.25007 21.6122C5.94002 21.321 4.85116 20.824 4.01358 19.9864C3.176 19.1488 2.67897 18.06 2.38782 16.7499C2.0992 15.4512 2 13.8757 2 12C2 10.1243 2.0992 8.54878 2.38782 7.25007C2.67897 5.94002 3.176 4.85116 4.01358 4.01358C4.85116 3.176 5.94002 2.67897 7.25007 2.38782ZM11 16C11 16.5523 11.4477 17 12 17C12.5523 17 13 16.5523 13 16L13 10.4142L14.2929 11.7071C14.6834 12.0976 15.3166 12.0976 15.7071 11.7071C16.0976 11.3166 16.0976 10.6834 15.7071 10.2929L12.7941 7.37993C12.7791 7.36486 12.7637 7.35031 12.748 7.33627C12.5648 7.12998 12.2976 7 12 7C11.7024 7 11.4352 7.12998 11.252 7.33627C11.2363 7.3503 11.2209 7.36486 11.2059 7.37993L8.29289 10.2929C7.90237 10.6834 7.90237 11.3166 8.29289 11.7071C8.68342 12.0976 9.31658 12.0976 9.70711 11.7071L11 10.4142L11 16Z" fill="currentColor" />
+      <svg
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        style={{ color }}
+      >
+        <path
+          fillRule="evenodd"
+          clipRule="evenodd"
+          d="M7.25007 2.38782C8.54878 2.0992 10.1243 2 12 2C13.8757 2 15.4512 2.0992 16.7499 2.38782C18.06 2.67897 19.1488 3.176 19.9864 4.01358C20.824 4.85116 21.321 5.94002 21.6122 7.25007C21.9008 8.54878 22 10.1243 22 12C22 13.8757 21.9008 15.4512 21.6122 16.7499C21.321 18.06 20.824 19.1488 19.9864 19.9864C19.1488 20.824 18.06 21.321 16.7499 21.6122C15.4512 21.9008 13.8757 22 12 22C10.1243 22 8.54878 21.9008 7.25007 21.6122C5.94002 21.321 4.85116 20.824 4.01358 19.9864C3.176 19.1488 2.67897 18.06 2.38782 16.7499C2.0992 15.4512 2 13.8757 2 12C2 10.1243 2.0992 8.54878 2.38782 7.25007C2.67897 5.94002 3.176 4.85116 4.01358 4.01358C4.85116 3.176 5.94002 2.67897 7.25007 2.38782ZM11 16C11 16.5523 11.4477 17 12 17C12.5523 17 13 16.5523 13 16L13 10.4142L14.2929 11.7071C14.6834 12.0976 15.3166 12.0976 15.7071 11.7071C16.0976 11.3166 16.0976 10.6834 15.7071 10.2929L12.7941 7.37993C12.7791 7.36486 12.7637 7.35031 12.748 7.33627C12.5648 7.12998 12.2976 7 12 7C11.7024 7 11.4352 7.12998 11.252 7.33627C11.2363 7.3503 11.2209 7.36486 11.2059 7.37993L8.29289 10.2929C7.90237 10.6834 7.90237 11.3166 8.29289 11.7071C8.68342 12.0976 9.31658 12.0976 9.70711 11.7071L11 10.4142L11 16Z"
+          fill="currentColor"
+        />
       </svg>
     ) : (
-      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ color }}>
-        <path d="M3 12C3 4.5885 4.5885 3 12 3C19.4115 3 21 4.5885 21 12C21 19.4115 19.4115 21 12 21C4.5885 21 3 19.4115 3 12Z" stroke="currentColor" strokeWidth="2" />
-        <path d="M12 8L12 16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-        <path d="M15 11L12.087 8.08704V8.08704C12.039 8.03897 11.961 8.03897 11.913 8.08704V8.08704L9 11" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <svg
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        style={{ color }}
+      >
+        <path
+          d="M3 12C3 4.5885 4.5885 3 12 3C19.4115 3 21 4.5885 21 12C21 19.4115 19.4115 21 12 21C4.5885 21 3 19.4115 3 12Z"
+          stroke="currentColor"
+          strokeWidth="2"
+        />
+        <path
+          d="M12 8L12 16"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M15 11L12.087 8.08704V8.08704C12.039 8.03897 11.961 8.03897 11.913 8.08704V8.08704L9 11"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
       </svg>
     );
 
   const DownIcon = ({ filled, size = 22, color = "#dc3545" }) =>
     filled ? (
-      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ color }}>
-        <path fillRule="evenodd" clipRule="evenodd" d="M7.25007 2.38782C8.54878 2.0992 10.1243 2 12 2C13.8757 2 15.4512 2.0992 16.7499 2.38782C18.06 2.67897 19.1488 3.176 19.9864 4.01358C20.824 4.85116 21.321 5.94002 21.6122 7.25007C21.9008 8.54878 22 10.1243 22 12C22 13.8757 21.9008 15.4512 21.6122 16.7499C21.321 18.06 20.824 19.1488 19.9864 19.9864C19.1488 20.824 18.06 21.321 16.7499 21.6122C15.4512 21.9008 13.8757 22 12 22C10.1243 22 8.54878 21.9008 7.25007 21.6122C5.94002 21.321 4.85116 20.824 4.01358 19.9864C3.176 19.1488 2.67897 18.06 2.38782 16.7499C2.0992 15.4512 2 13.8757 2 12C2 10.1243 2.0992 8.54878 2.38782 7.25007C2.67897 5.94002 3.176 4.85116 4.01358 4.01358C4.85116 3.176 5.94002 2.67897 7.25007 2.38782ZM13 8C13 7.44772 12.5523 7 12 7C11.4477 7 11 7.44772 11 8L11 13.5858L9.70711 12.2929C9.31658 11.9024 8.68342 11.9024 8.29289 12.2929C7.90237 12.6834 7.90237 13.3166 8.29289 13.7071L11.2059 16.6201C11.2209 16.6351 11.2363 16.6497 11.252 16.6637C11.4352 16.87 11.7024 17 12 17C12.2976 17 12.5648 16.87 12.748 16.6637C12.7637 16.6497 12.7791 16.6351 12.7941 16.6201L15.7071 13.7071C16.0976 13.3166 16.0976 12.6834 15.7071 12.2929C15.3166 11.9024 14.6834 11.9024 14.2929 12.2929L13 13.5858L13 8Z" fill="currentColor"/>
+      <svg
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        style={{ color }}
+      >
+        <path
+          fillRule="evenodd"
+          clipRule="evenodd"
+          d="M7.25007 2.38782C8.54878 2.0992 10.1243 2 12 2C13.8757 2 15.4512 2.0992 16.7499 2.38782C18.06 2.67897 19.1488 3.176 19.9864 4.01358C20.824 4.85116 21.321 5.94002 21.6122 7.25007C21.9008 8.54878 22 10.1243 22 12C22 13.8757 21.9008 15.4512 21.6122 16.7499C21.321 18.06 20.824 19.1488 19.9864 19.9864C19.1488 20.824 18.06 21.321 16.7499 21.6122C15.4512 21.9008 13.8757 22 12 22C10.1243 22 8.54878 21.9008 7.25007 21.6122C5.94002 21.321 4.85116 20.824 4.01358 19.9864C3.176 19.1488 2.67897 18.06 2.38782 16.7499C2.0992 15.4512 2 13.8757 2 12C2 10.1243 2.0992 8.54878 2.38782 7.25007C2.67897 5.94002 3.176 4.85116 4.01358 4.01358C4.85116 3.176 5.94002 2.67897 7.25007 2.38782ZM13 8C13 7.44772 12.5523 7 12 7C11.4477 7 11 7.44772 11 8L11 13.5858L9.70711 12.2929C9.31658 11.9024 8.68342 11.9024 8.29289 12.2929C7.90237 12.6834 7.90237 13.3166 8.29289 13.7071L11.2059 16.6201C11.2209 16.6351 11.2363 16.6497 11.252 16.6637C11.4352 16.87 11.7024 17 12 17C12.2976 17 12.5648 16.87 12.748 16.6637C12.7637 16.6497 12.7791 16.6351 12.7941 16.6201L15.7071 13.7071C16.0976 13.3166 16.0976 12.6834 15.7071 12.2929C15.3166 11.9024 14.6834 11.9024 14.2929 12.2929L13 13.5858L13 8Z"
+          fill="currentColor"
+        />
       </svg>
     ) : (
-      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ color }}>
-        <path d="M3 12C3 4.5885 4.5885 3 12 3C19.4115 3 21 4.5885 21 12C21 19.4115 19.4115 21 12 21C4.5885 21 3 19.4115 3 12Z" stroke="currentColor" strokeWidth="2" />
-        <path d="M12 16L12 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-        <path d="M9 13L11.913 15.913V15.913C11.961 15.961 12.039 15.961 12.087 15.913V15.913L15 13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <svg
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        style={{ color }}
+      >
+        <path
+          d="M3 12C3 4.5885 4.5885 3 12 3C19.4115 3 21 4.5885 21 12C21 19.4115 19.4115 21 12 21C4.5885 21 3 19.4115 3 12Z"
+          stroke="currentColor"
+          strokeWidth="2"
+        />
+        <path
+          d="M12 16L12 8"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M9 13L11.913 15.913V15.913C11.961 15.961 12.039 15.961 12.087 15.913V15.913L15 13"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
       </svg>
     );
 
@@ -186,7 +266,9 @@ export default function VerPost() {
       const commentId = comment.idcomentario || comment.id;
       const res = await api.get(`/forum/comment/${commentId}/replies`);
       const childrenData = res.data?.data || res.data || [];
-      const children = await Promise.all(childrenData.map(fetchRepliesRecursively));
+      const children = await Promise.all(
+        childrenData.map(fetchRepliesRecursively)
+      );
       return { ...comment, children };
     } catch (e) {
       return { ...comment, children: [] };
@@ -196,7 +278,8 @@ export default function VerPost() {
   async function loadCommentsTree() {
     try {
       const res = await api.get(`/forum/post/${id}/comment`);
-      const rootComments = res.data?.comments || res.data?.data || res.data || [];
+      const rootComments =
+        res.data?.comments || res.data?.data || res.data || [];
       const tree = await Promise.all(rootComments.map(fetchRepliesRecursively));
       setComments(tree);
     } catch (e) {
@@ -578,7 +661,9 @@ export default function VerPost() {
               <div className="comment-main">
                 <div className="comment-meta">
                   <span className="comment-author">{authorName}</span>
-                  <span className="text-muted">• {timeAgo(comment.criado)}</span>
+                  <span className="text-muted">
+                    • {timeAgo(comment.criado)}
+                  </span>
                   <div className="ms-auto" />
                 </div>
                 <div className="comment-body">{content}</div>
@@ -590,7 +675,11 @@ export default function VerPost() {
                     disabled={!!votingComments[cid]}
                     aria-label="Upvote"
                   >
-                    <UpIcon filled={userVote === true} size={25} color="#28a745" />
+                    <UpIcon
+                      filled={userVote === true}
+                      size={25}
+                      color="#28a745"
+                    />
                   </button>
                   <span className="vote-score">{score}</span>
                   <button
@@ -600,7 +689,11 @@ export default function VerPost() {
                     disabled={!!votingComments[cid]}
                     aria-label="Downvote"
                   >
-                    <DownIcon filled={userVote === false} size={25} color="#dc3545" />
+                    <DownIcon
+                      filled={userVote === false}
+                      size={25}
+                      color="#dc3545"
+                    />
                   </button>
                   <button
                     className="icon-btn"
@@ -667,7 +760,11 @@ export default function VerPost() {
   return (
     <div className="container mt-4">
       {/* Modal de denúncia (usado para post e comentários) */}
-      <Modal isOpen={denunciaOpen} onClose={closeDenunciaModal} title="Denunciar Conteúdo">
+      <Modal
+        isOpen={denunciaOpen}
+        onClose={closeDenunciaModal}
+        title="Denunciar Conteúdo"
+      >
         <div className="mb-2">
           <label className="form-label small">Tipo de denúncia</label>
           <select
@@ -696,7 +793,9 @@ export default function VerPost() {
         {denunciaStatus && (
           <div
             className={`alert ${
-              denunciaStatus.type === "success" ? "alert-success" : "alert-danger"
+              denunciaStatus.type === "success"
+                ? "alert-success"
+                : "alert-danger"
             } mt-2`}
             role="alert"
           >
@@ -704,7 +803,10 @@ export default function VerPost() {
           </div>
         )}
         <div className="d-flex justify-content-end gap-2 mt-2">
-          <button className="btn btn-outline-secondary btn-sm" onClick={closeDenunciaModal}>
+          <button
+            className="btn btn-outline-secondary btn-sm"
+            onClick={closeDenunciaModal}
+          >
             Cancelar
           </button>
           <button
@@ -718,7 +820,11 @@ export default function VerPost() {
       </Modal>
 
       {/* Modal de confirmação existente (para deleções, se houver) */}
-      <Modal isOpen={confirmOpen} onClose={closeConfirmModal} title={confirmTitle}>
+      <Modal
+        isOpen={confirmOpen}
+        onClose={closeConfirmModal}
+        title={confirmTitle}
+      >
         <p className="mb-0">{confirmMessage || "Operação?"}</p>
       </Modal>
 
@@ -758,7 +864,9 @@ export default function VerPost() {
                   <button
                     onClick={() => handleVotePost("up")}
                     disabled={votingPost}
-                    className={`vote-btn up ${post.iteracao === true ? "active" : ""}`}
+                    className={`vote-btn up ${
+                      post.iteracao === true ? "active" : ""
+                    }`}
                     aria-label="Upvote"
                   >
                     <UpIcon
@@ -771,7 +879,9 @@ export default function VerPost() {
                   <button
                     onClick={() => handleVotePost("down")}
                     disabled={votingPost}
-                    className={`vote-btn down ${post.iteracao === false ? "active" : ""}`}
+                    className={`vote-btn down ${
+                      post.iteracao === false ? "active" : ""
+                    }`}
                     aria-label="Downvote"
                   >
                     <DownIcon
@@ -782,12 +892,14 @@ export default function VerPost() {
                   </button>
                 </div>
                 <div className="post-main flex-grow-1">
-                  <div className="text-muted small mb-2">
-                    <span>
-                      Postado por{" "}
-                      <strong>{getUserName(post.utilizador)}</strong> •{" "}
-                      {timeAgo(post.criado || post.createdAt)}
+                  <div className="d-flex align-items-center gap-2 text-muted small mb-2">
+                    <div className="avatar-sm d-flex align-items-center justify-content-center bg-secondary text-white rounded-circle">
+                      {getUserName(post?.utilizador).charAt(0).toUpperCase()}
+                    </div>
+                    <span className="comment-author">
+                      {getUserName(post?.utilizador)}
                     </span>
+                    <span>• {timeAgo(post?.criado || post?.createdAt)}</span>
                   </div>
                   <div className="mb-2 d-flex align-items-center">
                     <h3 className="mb-0">{post.titulo || post.title}</h3>
@@ -812,7 +924,7 @@ export default function VerPost() {
                     </button>
                   )}
 
-                  <div className="mb-2">
+                  <div className="comment-actions">
                     <button
                       className="btn btn-link"
                       onClick={() => setShowCommentBox((s) => !s)}
@@ -830,7 +942,10 @@ export default function VerPost() {
                         onChange={(e) => setNewComment(e.target.value)}
                         placeholder="Escreva o seu comentário..."
                       />
-                      <button className="btn btn-primary" onClick={handleCommentSubmit}>
+                      <button
+                        className="btn btn-primary"
+                        onClick={handleCommentSubmit}
+                      >
                         Publicar Comentário
                       </button>
                     </div>
@@ -841,7 +956,10 @@ export default function VerPost() {
               <div className="card-rounded comment-section">
                 <h5 className="mb-3">Comentários</h5>
                 {comments.length > 0 ? (
-                  <div className="comment-thread position-relative" ref={threadRef}>
+                  <div
+                    className="comment-thread position-relative"
+                    ref={threadRef}
+                  >
                     {connectors.map((c) => (
                       <svg
                         key={c.key}
@@ -855,7 +973,14 @@ export default function VerPost() {
                           color: "#cfd3d8",
                         }}
                       >
-                        <path d={c.d} fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" />
+                        <path
+                          d={c.d}
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth={3}
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
                       </svg>
                     ))}
                     {renderComments(comments)}

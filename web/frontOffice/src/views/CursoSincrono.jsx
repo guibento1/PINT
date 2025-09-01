@@ -17,7 +17,7 @@ const CursoSincrono = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const user = JSON.parse(sessionStorage.getItem("user") || "{}");
-  const { isFormador } = useUserRole();
+  const { isFormador, isFormando } = useUserRole();
 
   const [curso, setCurso] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -31,10 +31,10 @@ const CursoSincrono = () => {
 
   const [activeTab, setActiveTab] = useState("overview");
   const [submittingId, setSubmittingId] = useState(null);
-  const [studentUploads, setStudentUploads] = useState({}); // { [idavaliacao]: { submitted?, url?, ficheiro?, nota?, date? } }
+  const [studentUploads, setStudentUploads] = useState({});
   const [avaliacoesRemote, setAvaliacoesRemote] = useState(null);
   const [showAllTopicos, setShowAllTopicos] = useState(false);
-  // Materiais de sessão são geridos em /Criar/Agendar; aqui apenas leitura
+
   const maxVisibleTopics = 5;
 
   const openResultModal = () => setIsResultModalOpen(true);
@@ -651,6 +651,20 @@ const CursoSincrono = () => {
             {/* Always-visible course details (for inscritos and não inscritos) */}
             <div className="mt-2">
               <p className="mb-2">
+                {/* Tipo de curso e Estado */}
+                <strong>Tipo de curso:</strong>{" "}
+                {curso?.sincrono === false ? "Assíncrono" : "Síncrono"}
+                <br />
+                {curso?.disponivel !== null &&
+                  curso?.disponivel !== undefined && (
+                    <>
+                      <strong>Estado:</strong>{" "}
+                      {curso.disponivel
+                        ? "Disponível"
+                        : "Indisponível/Arquivado"}
+                      <br />
+                    </>
+                  )}
                 {(inscricoesPeriod?.inicio || inscricoesPeriod?.fim) && (
                   <>
                     <strong>Inscrições:</strong>{" "}
@@ -728,6 +742,12 @@ const CursoSincrono = () => {
                 >
                   Editar Curso
                 </button>
+              </div>
+            ) : !isFormando ? (
+              <div className="alert alert-warning p-2 small mt-3">
+                Não tem papel de formando contacte os serviços administrativos
+                para o receber e proceder á inscrição ou aceder aos recursos
+                caso alguma vez tivesse o papel e estivesse incrito.
               </div>
             ) : !inscrito ? (
               <div className="mt-3">
