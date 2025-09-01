@@ -31,48 +31,41 @@ async function getUserInfo(user) {
 }
 
 
-async function formatStuff(stuff,utilizador, iteracaoModel) {
-
+async function formatStuff(stuff, utilizador, iteracaoModel) {
   return await Promise.all(
     stuff.map(async (stuffObject) => {
-
-      if(stuffObject.utilizador == utilizador) {
-        stuffObject.dataValues.utilizador = "eu"; 
+      if (stuffObject.utilizador === utilizador) {
+        stuffObject.dataValues.utilizador = { id: utilizador, nome: "Eu" };
       } else {
+        const utilizadorObject = await models.utilizadores.findByPk(
+          stuffObject.utilizador,
+          {
+            attributes: ["idutilizador", "nome"],
+          }
+        );
 
-        const utilizadorObject = await models.utilizadores.findByPk(stuffObject.utilizador,{
-          attributes: ["nome"]
-        });
-
-        stuffObject.dataValues.utilizador = {id : utilizadorObject.idutilizador, nome: utilizadorObject.nome };  
+        stuffObject.dataValues.utilizador = {
+          id: utilizadorObject.idutilizador,
+          nome: utilizadorObject.nome,
+        };
       }
 
-      const queryOptions = { where : {utilizador} };
+      const queryOptions = { where: { utilizador } };
 
-      if(stuffObject.idpost != undefined){
-
+      if (stuffObject.idpost != undefined) {
         queryOptions.where.post = stuffObject.idpost;
-
       } else {
-
-
         queryOptions.where.comentario = stuffObject.idcomentario;
-
-
       }
 
-      
-
-
-      let iteracao  = await iteracaoModel.findOne(queryOptions);
-      iteracao = !iteracao ? null : iteracao.positiva ? true : false; 
+      let iteracao = await iteracaoModel.findOne(queryOptions);
+      iteracao = !iteracao ? null : iteracao.positiva ? true : false;
 
       stuffObject.dataValues.iteracao = iteracao;
 
       return stuffObject;
     })
   );
-
 }
 
 

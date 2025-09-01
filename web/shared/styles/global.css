@@ -789,3 +789,221 @@ aside::-webkit-scrollbar-track,
 main::-webkit-scrollbar-track {
   background: transparent;
 }
+
+/* ================================
+   🧵 ESTILOS PARA THREADS (REDDIT STYLE)
+================================== */
+
+/* Layout do Post Principal */
+.post-container {
+  display: flex;
+  gap: 10px;
+}
+
+/* Contêiner para um comentário e todas as suas respostas */
+.comment-container {
+  position: relative;
+}
+
+/* Um único comentário */
+.comment-item {
+  display: flex;
+  position: relative;
+}
+
+/* Wrapper para a linha conectora, para posicionamento */
+.comment-connector-wrapper {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 18px; /* Metade da largura da coluna de voto (36px / 2) - 1px para a largura da linha */
+  width: 2px;
+  z-index: 1;
+}
+
+/* A linha vertical cinza */
+.comment-connector {
+  width: 100%;
+  height: 100%;
+  background-color: var(--border-light);
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.comment-connector:hover {
+  background-color: var(--softinsa-blue);
+}
+
+/* Conteúdo do comentário (votos + texto) */
+.comment-content {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+  padding-top: 1rem; /* Espaço para o comentário */
+}
+
+/* Coluna dedicada para avatar (permite desenhar conectores mais limpos) */
+.avatar-col {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  min-width: 36px;
+}
+
+.avatar-wrapper {
+  position: relative;
+  width: 28px;
+  height: 28px;
+}
+
+/* Conteúdo principal (meta, corpo, ações) */
+.comment-main {
+  flex-grow: 1;
+}
+
+/* Bloco para as respostas (filhos) de um comentário */
+.comment-children {
+  padding-left: 36px; /* Mais indentação para as respostas para abrir espaço à linha em L */
+  position: relative;
+  z-index: 2; /* Garante que os filhos fiquem por cima da linha do pai */
+}
+
+/* Coluna de votação (setas e pontuação) */
+.vote-column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 60px;
+  z-index: 2; /* Fica por cima da linha conectora */
+  padding-top: 4px;
+}
+
+.vote-btn {
+  width: 48px;
+  height: 48px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: #878a8c;
+  font-size: 1.2rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.vote-btn:hover {
+  background-color: var(--background-light);
+}
+
+.vote-btn.up.active {
+  color: #28a745; /* Verde para upvote ativo */
+}
+
+.vote-btn.down.active {
+  color: #dc3545; /* Vermelho para downvote ativo */
+}
+
+.vote-score {
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--text-dark);
+}
+
+/* Bigger score for the main post vote column to match larger icons */
+.post-container .vote-column .vote-score {
+  font-size: 1.2rem;
+}
+
+/* Avatar do autor */
+.avatar-sm {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+/* Meta-informação do comentário (autor, tempo) */
+.comment-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+  font-size: 0.85rem;
+}
+
+.comment-author {
+  font-weight: 500;
+}
+
+/* Corpo do comentário */
+.comment-body {
+  padding: 2px 0;
+  line-height: 1.5;
+}
+
+/* Links de ações (Responder, Partilhar) */
+.comment-actions .btn.btn-link {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-decoration: none !important;
+  padding: 0.2rem 0.4rem;
+  margin-left: -0.4rem; /* Alinhamento visual */
+}
+
+.comment-actions .btn.btn-link:hover {
+  background-color: var(--background-light);
+}
+
+/* Caixa para responder */
+.reply-box {
+  margin-top: 0.5rem;
+}
+
+/* ======= Avatar & Connectors (Reddit-like) ======= */
+.comment-thread {
+  position: relative;
+}
+
+.connector-svg {
+  position: absolute;
+  overflow: visible;
+  pointer-events: none;
+  z-index: 1; /* abaixo do conteúdo e acima do fundo */
+}
+
+.connector-svg path {
+  fill: none;
+  stroke: var(--border-light);
+  stroke-width: 2px;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.connector-svg:hover path {
+  stroke: var(--softinsa-blue);
+}
+
+/* Ações: up, down, reply, report */
+.comment-actions-row .icon-btn {
+  background: transparent;
+  border: none;
+  color: #878a8c;
+  font-size: 1rem;
+  line-height: 1;
+  padding: 4px 6px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+.comment-actions-row .icon-btn:hover {
+  background-color: var(--background-light);
+  color: var(--text-dark);
+}
+.comment-actions-row .icon-btn.active {
+  color: var(--softinsa-blue);
+}
