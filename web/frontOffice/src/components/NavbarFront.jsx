@@ -4,8 +4,8 @@ import { useNavigate, useLocation } from "react-router-dom";
 import logoSoftskills from "../../../shared/assets/images/thesoftskillsLogo.svg";
 import logoSoftinsa from "../../../shared/assets/images/thesoftskillsLogo.svg";
 import useUserRole from "../../../shared/hooks/useUserRole";
-import Notifications from "@shared/assets/images/notification.svg?react";
-import Profile from "@shared/assets/images/profile.svg?react";
+import NotificationsIcon from "@shared/assets/images/notification.svg";
+import ProfileIcon from "@shared/assets/images/profile.svg";
 
 export default function NavbarFront() {
   const location = useLocation();
@@ -152,7 +152,9 @@ export default function NavbarFront() {
                             className="position-relative d-inline-block"
                             style={{ width: 24, height: 24 }}
                           >
-                            <Notifications
+                            <img
+                              src={NotificationsIcon}
+                              alt="Notificações"
                               style={{
                                 width: 24,
                                 height: 24,
@@ -184,12 +186,11 @@ export default function NavbarFront() {
                         }
                         onClick={fecharMenu}
                       >
-                        <Profile
-                          style={{
-                            width: "24px",
-                            height: "24px",
-                          }}
-                        />{" "}
+                        <img
+                          src={ProfileIcon}
+                          alt="Perfil"
+                          style={{ width: "24px", height: "24px" }}
+                        />
                         {nomeUsuario}
                       </NavLink>
                     </li>

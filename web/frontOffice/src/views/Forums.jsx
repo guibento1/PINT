@@ -330,10 +330,25 @@ export default function Forums() {
                       </div>
                       <div>
                         <button
-                          className="btn btn-sm btn-link"
+                          className="btn btn-sm btn-link p-0 d-flex align-items-center justify-content-center"
                           onClick={() => toggleSubscribeTopic(id)}
+                          title="Deixar de seguir"
+                          style={{
+                            width: "24px",
+                            height: "24px",
+                            textDecoration: "none", // Remove underline
+                            transition: "transform 0.2s ease", // Add transition effect
+                          }}
+                          onMouseEnter={(e) =>
+                            (e.currentTarget.style.transform = "scale(1.2)")
+                          }
+                          onMouseLeave={(e) =>
+                            (e.currentTarget.style.transform = "scale(1)")
+                          }
                         >
-                          Deixar de seguir
+                          <span aria-hidden="true" style={{ fontSize: "18px" }}>
+                            ❌
+                          </span>
                         </button>
                       </div>
                     </div>
@@ -397,7 +412,6 @@ export default function Forums() {
               </button>
             </div>
           </div>
-
           {/* Lista de posts */}
           <div className="card p-3 shadow-sm">
             <h5 className="mb-3">
@@ -460,10 +474,26 @@ export default function Forums() {
                         <p className="text-muted mb-1 small">
                           {getPostPreview(p.conteudo)}
                         </p>
-                        <div className="small d-flex gap-3 text-muted">
-                          <span>💬 {p.ncomentarios ?? 0} comentários</span>
+                        <div
+                          className="small d-flex gap-3 text-muted"
+                          style={{ alignItems: "center", lineHeight: "1.5" }}
+                        >
+                          <span
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "4px",
+                              fontSize: "1.2rem",
+                            }}
+                          >
+                            <span role="img" aria-label="comments">
+                              💬
+                            </span>
+                            {p.ncomentarios ?? 0} comentários
+                          </span>
                           <span>
-                            Por {p.utilizador?.nome || "Anônimo"} •{" "}
+                            Por{" "}
+                            <strong>{p.utilizador?.nome || "Anônimo"}</strong> •{" "}
                             {timeAgo(p.criado)}
                           </span>
                         </div>
