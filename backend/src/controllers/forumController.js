@@ -7,27 +7,11 @@ var models = initModels(db);
 
 async function getUserInfo(user) {
 
-    var roles = [];
-
-    const admin =
-      user.roles.find((roleEntry) => roleEntry.role === "admin")?.id || 0;
-
-    const formando =
-      user.roles.find((roleEntry) => roleEntry.role === "formando")?.id || 0;
-
-    const formador =
-      user.roles.find((roleEntry) => roleEntry.role === "formador")?.id || 0;
-
-
-    const utilizadorObject = await models.utilizadores.findByPk(user.idutilizador,{
+    const utilizadorObject = await models.utilizadores.findByPk(user,{
         attributes: ["nome"]
     });
 
-    if (admin) roles.push("admin");
-    if (formando) roles.push("formando");
-    if (formador) roles.push("formador");
-
-    return {id : user.idutilizador, nome: utilizadorObject.nome };
+    return {id : user, nome: utilizadorObject.nome };
 }
 
 
@@ -199,7 +183,11 @@ controllers.getPost = async (req, res) => {
 
       const post = await models.post.findByPk(id);
 
-      post.dataValues.utilizador = await getUserInfo(req.user);
+      if(post.utilizador == utilizador){
+        post.dataValues.utilizador = "Eu"
+      }
+
+      post.dataValues.utilizador = await getUserInfo(post.utilizador);
 
       let iteracao  = await models.iteracaopost.findOne({where : {post:id,utilizador}});
       iteracao = !iteracao ? null : iteracao.positiva ? true : false; 
@@ -228,6 +216,7 @@ controllers.getPosts = async (req, res, topico = null) => {
   const { id } = req.params;
   const utilizador = req.user.idutilizador;
   const orderBy = req.query.order;
+  const search = req.query.search;
 
   logger.debug(
     `Recebida requisição para obter post. Query: ${JSON.stringify(
@@ -245,6 +234,16 @@ controllers.getPosts = async (req, res, topico = null) => {
       } else {
         queryOptions.order = [['pontuacao', 'DESC']];
       }
+
+      if(search != undefined && search != ""){
+
+        queryOptions.where.titulo = {
+          [Sequelize.Op.iLike]: `%${search}%`,
+        };
+
+      }
+
+
 
       if(topico != null){
         queryOptions.where = { topico : topico } ;
@@ -392,6 +391,8 @@ controllers.respondPost = async (req, res) => {
         comentarioObject.destroy();
         throw new Error("Comentário não inserido na tabela respostaPost");
       }
+
+      comentarioObject.dataValues.utilizador = "Eu";
 
       return res.status(200).json(comentarioObject);
         
@@ -616,6 +617,9 @@ controllers.respondComent = async (req, res) => {
         comentarioObject.destroy();
         throw new Error("Comentário não inserido na tabela respostaPost");
       }
+
+    
+      comentarioObject.dataValues.utilizador = "Eu";
 
       return res.status(200).json(comentarioObject);
         

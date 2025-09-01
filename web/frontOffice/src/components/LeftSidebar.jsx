@@ -12,8 +12,6 @@ const LeftSidebar = ({
   setSelectedTopico,
   topicSearch,
   setTopicSearch,
-  toggleSubscribeTopic,
-  subscribedTopics,
 }) => {
   return (
     <aside
@@ -128,51 +126,6 @@ const LeftSidebar = ({
             value={topicSearch}
             onChange={(e) => setTopicSearch(e.target.value)}
           />
-        </div>
-        <div className="mt-3">
-          <h6 className="mb-2">Tópicos Seguidos</h6>
-          <div className="list-group">
-            {Object.keys(subscribedTopics || {}).length === 0 ? (
-              <div className="text-muted small">Ainda não segue tópicos</div>
-            ) : (
-              Object.keys(subscribedTopics || {}).map((id) => {
-                const t = subscribedTopics[id];
-                return (
-                  <div
-                    key={id}
-                    className="d-flex align-items-center justify-content-between list-group-item"
-                  >
-                    <div style={{ maxWidth: "100%" }}>
-                      {t?.designacao || `Tópico não encontrado`}
-                    </div>
-                    <div>
-                      <button
-                        className="btn btn-sm btn-link p-0 d-flex align-items-center justify-content-center"
-                        onClick={() => toggleSubscribeTopic(id)}
-                        title="Deixar de seguir"
-                        style={{
-                          width: "24px",
-                          height: "24px",
-                          textDecoration: "none",
-                          transition: "transform 0.2s ease",
-                        }}
-                        onMouseEnter={(e) =>
-                          (e.currentTarget.style.transform = "scale(1.2)")
-                        }
-                        onMouseLeave={(e) =>
-                          (e.currentTarget.style.transform = "scale(1)")
-                        }
-                      >
-                        <span aria-hidden="true" style={{ fontSize: "18px" }}>
-                          ❌
-                        </span>
-                      </button>
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
         </div>
       </div>
     </aside>

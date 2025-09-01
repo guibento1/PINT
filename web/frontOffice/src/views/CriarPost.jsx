@@ -132,7 +132,6 @@ export default function CriarPost({ onCancel }) {
         toggleSubscribeTopic={() => {}}
         subscribedTopics={subscribedTopics}
       />
-      <RightSidebar />
     </div>
   );
 }

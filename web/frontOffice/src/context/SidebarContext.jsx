@@ -10,7 +10,6 @@ const SidebarProvider = ({ children }) => {
   const [selectedArea, setSelectedArea] = useState("");
   const [selectedTopico, setSelectedTopico] = useState("");
   const [topicSearch, setTopicSearch] = useState("");
-  const [subscribedTopics, setSubscribedTopics] = useState({});
 
   return (
     <SidebarContext.Provider
@@ -29,8 +28,6 @@ const SidebarProvider = ({ children }) => {
         setSelectedTopico,
         topicSearch,
         setTopicSearch,
-        subscribedTopics,
-        setSubscribedTopics,
       }}
     >
       {children}
