@@ -31,31 +31,9 @@ async function getUserInfo(user) {
 async function formatStuff(stuff, utilizador, iteracaoModel) {
   return await Promise.all(
     stuff.map(async (stuffObject) => {
-      if (stuffObject.utilizador === utilizador) {
-        stuffObject.dataValues.utilizador = { id: utilizador, nome: "Eu" };
-      } else {
-        const utilizadorObject = await models.utilizadores.findByPk(
-          stuffObject.utilizador,
-          {
-            attributes: ["idutilizador", "nome", "foto"],
-          }
-        );
-
-        let foto = null;
-
-        if (utilizadorObject.dataValues.foto) {
-          foto = await generateSASUrl(
-            utilizadorObject.dataValues.foto,
-            "userprofiles"
-          );
-        }
-
-        stuffObject.dataValues.utilizador = {
-          id: utilizadorObject.idutilizador,
-          nome: utilizadorObject.nome,
-          foto,
-        };
-      }
+      stuffObject.dataValues.utilizador = await getUserInfo(
+        stuffObject.utilizador
+      );
 
       const queryOptions = { where: { utilizador } };
 
@@ -202,10 +180,6 @@ controllers.getPost = async (req, res) => {
 
     if (post.anexo) {
       post.dataValues.anexo = await generateSASUrl(post.anexo, "anexosposts");
-    }
-
-    if (post.utilizador == utilizador) {
-      post.dataValues.utilizador = "Eu";
     }
 
     let iteracao = await models.iteracaopost.findOne({
@@ -365,7 +339,8 @@ controllers.respondPost = async (req, res) => {
       throw new Error("Comentário não inserido na tabela respostaPost");
     }
 
-    comentarioObject.dataValues.utilizador = "Eu";
+    // Popular com dados reais do autor do comentário
+    comentarioObject.dataValues.utilizador = await getUserInfo(utilizador);
 
     return res.status(200).json(comentarioObject);
   } catch (error) {
@@ -571,8 +546,6 @@ controllers.respondComent = async (req, res) => {
       comentarioObject.destroy();
       throw new Error("Comentário não inserido na tabela respostaPost");
     }
-
-    comentarioObject.dataValues.utilizador = "Eu";
 
     return res.status(200).json(comentarioObject);
   } catch (error) {
