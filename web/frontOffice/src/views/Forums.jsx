@@ -2,6 +2,7 @@ import React, { useEffect, useState, useContext } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import api from "@shared/services/axios";
 import LeftSidebar from "../components/LeftSidebar";
+import SubmissionFilePreview from "@shared/components/SubmissionFilePreview";
 import { SidebarContext } from "../context/SidebarContext";
 
 export default function Forums() {
@@ -21,6 +22,8 @@ export default function Forums() {
     setSelectedTopico,
     topicSearch,
     setTopicSearch,
+    subscribedTopics,
+    toggleSubscribeTopic,
   } = useContext(SidebarContext);
 
   const [posts, setPosts] = useState([]);
@@ -35,6 +38,10 @@ export default function Forums() {
   const [reportDescricao, setReportDescricao] = useState("");
 
   const [sortBy, setSortBy] = useState("recent");
+  const isFollowed =
+    selectedTopico &&
+    Array.isArray(subscribedTopics) &&
+    subscribedTopics.some((t) => String(t.idtopico) === String(selectedTopico));
 
   // Vote icons shared with VerPost (colors via currentColor)
   const UpIcon = ({ filled, size = 22, color = "#28a745" }) =>
@@ -328,6 +335,8 @@ export default function Forums() {
           setSelectedTopico={setSelectedTopico}
           topicSearch={topicSearch}
           setTopicSearch={setTopicSearch}
+          subscribedTopics={subscribedTopics}
+          toggleSubscribeTopic={toggleSubscribeTopic}
         />
       </div>
 
@@ -353,6 +362,24 @@ export default function Forums() {
                 <option value="recent">Mais recentes</option>
                 <option value="top">Mais votados</option>
               </select>
+              <button
+                className={`btn btn-sm ms-2 ${
+                  isFollowed ? "btn-outline-danger" : "btn-outline-primary"
+                }`}
+                onClick={() =>
+                  selectedTopico && toggleSubscribeTopic(selectedTopico)
+                }
+                disabled={!selectedTopico}
+                title={
+                  !selectedTopico
+                    ? "Selecione um tópico para seguir"
+                    : isFollowed
+                    ? "Deixar de seguir este tópico"
+                    : "Seguir este tópico"
+                }
+              >
+                {isFollowed ? "Deixar de seguir" : "Seguir tópico"}
+              </button>
               <button
                 className="btn btn-primary btn-sm ms-2"
                 onClick={handleCreatePostClick}
@@ -480,9 +507,24 @@ export default function Forums() {
                         >
                           {getPostPreview(p.conteudo)}
                         </p>
+                        {p.anexo && (
+                          <div
+                            className="mt-3"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <SubmissionFilePreview
+                              url={p.anexo}
+                              date={p.criado}
+                            />
+                          </div>
+                        )}
                         <div
                           className="small d-flex gap-3 text-muted"
-                          style={{ alignItems: "center", lineHeight: "1.5" }}
+                          style={{
+                            alignItems: "center",
+                            lineHeight: "1.5",
+                            marginTop: p.anexo ? "12px" : 0,
+                          }}
                         >
                           <span
                             style={{

@@ -716,6 +716,17 @@ h6 {
    🔔 Notificações: ícone branco quando ativo
    Força fill/stroke a branco mesmo que o SVG tenha cores hardcoded
 ================================== */
+/* Estado idle: cor do sino (vazio e com ponto) = var(--text-dark).
+   Não mexe no círculo do ponto (normalmente um <circle> preenchido a vermelho). */
+.navbar-nav .nav-link .noti-icon path,
+.navbar-nav .nav-link .noti-icon rect,
+.navbar-nav .nav-link .noti-icon line,
+.navbar-nav .nav-link .noti-icon polyline,
+.navbar-nav .nav-link .noti-icon polygon {
+  stroke: var(--text-dark) !important;
+  transition: stroke 0.15s ease;
+}
+
 .navbar-nav .nav-link.active .notificacoes-active,
 .navbar-nav .nav-link.active .notificacoes-active *,
 .navbar-nav .nav-link.active .notificacoes-active svg,
@@ -730,13 +741,86 @@ h6 {
   color: #fff !important;
 }
 
+/* Hover: tornar o ícone branco cheio como o resto da navbar */
+.navbar-nav .nav-link:hover .notificacoes-active,
+.navbar-nav .nav-link:hover .notificacoes-active *,
+.navbar-nav .nav-link:hover .notificacoes-active svg,
+.navbar-nav .nav-link:hover .notificacoes-active path,
+.navbar-nav .nav-link:hover .notificacoes-active rect,
+.navbar-nav .nav-link:hover .notificacoes-active circle,
+.navbar-nav .nav-link:hover .notificacoes-active polygon,
+.navbar-nav .nav-link:hover .notificacoes-active line,
+.navbar-nav .nav-link:hover .notificacoes-active polyline {
+  fill: #fff !important;
+  stroke: #fff !important;
+  color: #fff !important;
+  transition: fill 0.15s ease, stroke 0.15s ease, color 0.15s ease;
+}
+
+/* NOVO: aplicar a mesma regra ao wrapper .noti-icon para hover/active mesmo quando não há .notificacoes-active */
+.navbar-nav .nav-link:hover .noti-icon,
+.navbar-nav .nav-link:hover .noti-icon *,
+.navbar-nav .nav-link:hover .noti-icon svg,
+.navbar-nav .nav-link:hover .noti-icon path,
+.navbar-nav .nav-link:hover .noti-icon rect,
+.navbar-nav .nav-link:hover .noti-icon circle,
+.navbar-nav .nav-link:hover .noti-icon polygon,
+.navbar-nav .nav-link:hover .noti-icon line,
+.navbar-nav .nav-link:hover .noti-icon polyline {
+  fill: #fff !important;
+  stroke: #fff !important;
+  color: #fff !important;
+  transition: fill 0.15s ease, stroke 0.15s ease, color 0.15s ease;
+}
+
+.navbar-nav .nav-link.active .noti-icon,
+.navbar-nav .nav-link.active .noti-icon *,
+.navbar-nav .nav-link.active .noti-icon svg,
+.navbar-nav .nav-link.active .noti-icon path,
+.navbar-nav .nav-link.active .noti-icon rect,
+.navbar-nav .nav-link.active .noti-icon circle,
+.navbar-nav .nav-link.active .noti-icon polygon,
+.navbar-nav .nav-link.active .noti-icon line,
+.navbar-nav .nav-link.active .noti-icon polyline {
+  fill: #fff !important;
+  stroke: #fff !important;
+  color: #fff !important;
+}
+
+/* Escala o wrapper para que o sino e o ponto cresçam juntos */
+.navbar-nav .nav-link .noti-icon {
+  display: inline-block;
+  transform-origin: center center;
+  transition: transform 0.2s ease;
+}
+.navbar-nav .nav-link:hover .noti-icon,
+.navbar-nav .nav-link.active .noti-icon {
+  transform: scale(1.05);
+}
+
+/* Ponto vermelho para não lidas: mantém-se vermelho em idle, hover e active */
+.navbar-nav .nav-link .noti-icon.has-unread circle {
+  fill: #dc3545 !important; /* vermelho bootstrap-like */
+  stroke: #dc3545 !important;
+}
+.navbar-nav .nav-link:hover .noti-icon.has-unread circle,
+.navbar-nav .nav-link.active .noti-icon.has-unread circle {
+  fill: #dc3545 !important;
+  stroke: #dc3545 !important;
+}
+
 /* Evita pixelização de SVGs e imagens em diferentes browsers */
 svg,
 img {
   /* Para SVGs, deixe o browser gerir o anti‑aliasing nativo */
-  shape-rendering: auto;
+  shape-rendering: optimizeQuality;
   /* Para <img> (inclui SVG como imagem), use o default */
   image-rendering: auto !important;
+}
+
+/* Evita serrilhado em strokes finos dentro de SVGs */
+svg * {
+  vector-effect: non-scaling-stroke;
 }
 
 /* Remove transform que pode causar blur e ajusta a borda */

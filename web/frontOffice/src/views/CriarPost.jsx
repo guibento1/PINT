@@ -3,10 +3,12 @@ import { useNavigate } from "react-router-dom";
 import api from "@shared/services/axios";
 import LeftSidebar from "../components/LeftSidebar";
 import { SidebarContext } from "../context/SidebarContext";
+import FileUpload from "@shared/components/FileUpload";
 
 export default function CriarPost({ onCancel }) {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
+  const [file, setFile] = useState(null);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
 
@@ -23,6 +25,7 @@ export default function CriarPost({ onCancel }) {
     topicSearch,
     setTopicSearch,
     subscribedTopics,
+    toggleSubscribeTopic,
   } = useContext(SidebarContext);
 
   const navigate = useNavigate();
@@ -79,11 +82,25 @@ export default function CriarPost({ onCancel }) {
         return;
       }
 
-      await api.post(`/forum/post/topico/${idTopico}`, {
-        titulo: title.trim(),
-        conteudo: content.trim(),
-      });
-      navigate("/forums"); // Redirect back to forums after successful post creation
+      // Always send FormData so backend validators see expected fields; append anexo only if present
+      const fd = new FormData();
+      const tituloVal = title.trim();
+      const conteudoVal = content.trim();
+      fd.append("titulo", tituloVal);
+      fd.append("conteudo", conteudoVal);
+      fd.append(
+        "info",
+        JSON.stringify({ titulo: tituloVal, conteudo: conteudoVal })
+      );
+      if (file) fd.append("anexo", file);
+      const res = await api.post(`/forum/post/topico/${idTopico}`, fd);
+      const created = res?.data?.data || res?.data || {};
+      const newId = created.idpost || created.id;
+      if (newId) {
+        navigate(`/forum/post/${newId}`);
+      } else {
+        navigate("/forums");
+      }
     } catch (err) {
       console.error("Erro ao criar post", err);
       const msg =
@@ -112,7 +129,7 @@ export default function CriarPost({ onCancel }) {
           setSelectedTopico={setSelectedTopico}
           topicSearch={topicSearch}
           setTopicSearch={setTopicSearch}
-          toggleSubscribeTopic={() => {}}
+          toggleSubscribeTopic={toggleSubscribeTopic}
           subscribedTopics={subscribedTopics}
           readOnly
         />
@@ -167,6 +184,17 @@ export default function CriarPost({ onCancel }) {
                 onChange={(e) => setContent(e.target.value)}
                 required
               ></textarea>
+            </div>
+
+            <div className="mb-3">
+              <FileUpload
+                id="post-anexo"
+                label="Anexo (opcional)"
+                accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,image/*"
+                onSelect={setFile}
+                hint="Pode arrastar e largar um ficheiro aqui."
+                size="sm"
+              />
             </div>
             <div className="d-flex justify-content-between">
               <button

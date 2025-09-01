@@ -79,3 +79,28 @@ export function updatePostCommentsCache(postId, commentsTree) {
   const key = String(postId);
   cache.commentsByPost[key] = { data: commentsTree, ts: Date.now() };
 }
+
+// Progressive loading utilities
+// 1) Fetch only top-level comments (no children) fast
+export async function fetchPostRootCommentsCached(postId) {
+  const key = String(postId);
+  const entry = cache.commentsByPost[key];
+  if (entry && entry.data && isFresh(entry.ts)) {
+    // If we already have a full tree, reuse it; otherwise return current cached snapshot
+    return entry.data;
+  }
+  const res = await api.get(`/forum/post/${postId}/comment`);
+  const root = res.data?.comments || res.data?.data || res.data || [];
+  // Ensure children arrays exist to avoid undefined checks downstream
+  const rootWithPlaceholders = root.map((c) => ({
+    ...c,
+    children: c.children || [],
+  }));
+  cache.commentsByPost[key] = { data: rootWithPlaceholders, ts: Date.now() };
+  return rootWithPlaceholders;
+}
+
+// 2) Given a comment object, fetch its full subtree recursively
+export async function fetchCommentWithReplies(comment) {
+  return fetchRepliesRecursively(comment);
+}

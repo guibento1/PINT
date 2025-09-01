@@ -8,8 +8,11 @@ import {
   fetchPostCommentsTreeCached,
   invalidatePostCommentsCache,
   updatePostCommentsCache,
+  fetchPostRootCommentsCached,
+  fetchCommentWithReplies,
 } from "@shared/services/dataCache";
 import "@shared/styles/global.css";
+import SubmissionFilePreview from "@shared/components/SubmissionFilePreview";
 
 export default function VerPost() {
   const { id } = useParams();
@@ -387,6 +390,7 @@ export default function VerPost() {
     topicSearch,
     setTopicSearch,
     subscribedTopics,
+    toggleSubscribeTopic,
   } = useContext(SidebarContext);
 
   function timeAgo(iso) {
@@ -426,12 +430,53 @@ export default function VerPost() {
   async function loadCommentsTree() {
     setCommentsLoading(true);
     try {
-      const tree = await fetchPostCommentsTreeCached(id);
-      setComments(tree);
+      // 1) Fetch top-level comments quickly
+      const root = await fetchPostRootCommentsCached(id);
+      setComments(root);
+      setCommentsLoading(false); // show roots immediately
+
+      // 2) In background, hydrate replies per root with small concurrency
+      const concurrency = 4;
+      const queue = [...root];
+      const nextStateMap = new Map();
+
+      const runWorker = async () => {
+        while (queue.length) {
+          const c = queue.shift();
+          if (!c) break;
+          try {
+            const hydrated = await fetchCommentWithReplies(c);
+            nextStateMap.set(c.idcomentario || c.id, hydrated);
+            // apply incrementally
+            setComments((prev) => {
+              const replaceById = (list) =>
+                Array.isArray(list)
+                  ? list.map((item) => {
+                      const cid = item.idcomentario || item.id;
+                      const replacement = nextStateMap.get(cid);
+                      if (replacement) return replacement;
+                      // Keep existing children until they're hydrated
+                      return item;
+                    })
+                  : list;
+              const next = replaceById(prev);
+              try {
+                updatePostCommentsCache(id, next);
+              } catch {}
+              return next;
+            });
+          } catch {
+            // ignore hydrate errors per comment
+          }
+        }
+      };
+
+      await Promise.all(
+        Array.from({ length: Math.min(concurrency, queue.length) }, runWorker)
+      );
     } catch (e) {
       console.error("Erro ao carregar comentários", e);
       setError((prev) => prev || "Não foi possível carregar os comentários.");
-    } finally {
       setCommentsLoading(false);
     }
   }
@@ -1128,7 +1173,7 @@ export default function VerPost() {
           setSelectedTopico={setSelectedTopico}
           topicSearch={topicSearch}
           setTopicSearch={setTopicSearch}
-          toggleSubscribeTopic={() => {}}
+          toggleSubscribeTopic={toggleSubscribeTopic}
           subscribedTopics={subscribedTopics}
           readOnly
         />
@@ -1257,6 +1302,14 @@ export default function VerPost() {
                   <p className="mb-3 post-body">
                     {post.conteudo || post.content}
                   </p>
+                  {post.anexo && (
+                    <div className="mt-3 mb-3">
+                      <SubmissionFilePreview
+                        url={post.anexo}
+                        date={post.criado || post.createdAt}
+                      />
+                    </div>
+                  )}
 
                   <div className="comment-actions">
                     <button
