@@ -116,7 +116,7 @@ controllers.createPost = async (req, res) => {
 
       );
 
-      post.dataValues.utilizador = await getUserInfo(req.user);
+      post.dataValues.utilizador = await getUserInfo(utilizador);
 
       return res.status(200).json(post);
         

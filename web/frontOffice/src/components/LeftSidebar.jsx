@@ -12,6 +12,7 @@ const LeftSidebar = ({
   setSelectedTopico,
   topicSearch,
   setTopicSearch,
+  readOnly = false,
 }) => {
   return (
     <aside
@@ -33,7 +34,9 @@ const LeftSidebar = ({
           <h6>Explorar Estrutura</h6>
           <button
             className="btn btn-sm btn-outline-secondary"
+            disabled={readOnly}
             onClick={() => {
+              if (readOnly) return;
               setSelectedCategoria("");
               setSelectedArea("");
               setSelectedTopico("");
@@ -47,7 +50,8 @@ const LeftSidebar = ({
           <select
             className="form-select"
             value={selectedCategoria}
-            onChange={(e) => setSelectedCategoria(e.target.value)}
+            onChange={(e) => !readOnly && setSelectedCategoria(e.target.value)}
+            disabled={readOnly}
           >
             <option value="">Todas as Categorias</option>
             {categorias.map((c) => (
@@ -62,8 +66,8 @@ const LeftSidebar = ({
           <select
             className="form-select"
             value={selectedArea}
-            onChange={(e) => setSelectedArea(e.target.value)}
-            disabled={!areas.length}
+            onChange={(e) => !readOnly && setSelectedArea(e.target.value)}
+            disabled={!areas.length || readOnly}
           >
             <option value="">Todas as Áreas</option>
             {areas.map((a) => (
@@ -92,7 +96,11 @@ const LeftSidebar = ({
                         ? "active"
                         : ""
                     }`}
-                    onClick={() => setSelectedTopico(t.idtopico)}
+                    onClick={() => {
+                      if (readOnly) return;
+                      setSelectedTopico(t.idtopico);
+                    }}
+                    disabled={readOnly}
                     style={{
                       marginBottom: "8px",
                       padding: "10px 15px",
@@ -106,6 +114,9 @@ const LeftSidebar = ({
                         String(selectedTopico) === String(t.idtopico)
                           ? "var(--text-light)"
                           : "var(--text-dark)",
+                      cursor: readOnly ? "not-allowed" : "pointer",
+                      pointerEvents: readOnly ? "none" : "auto",
+                      opacity: readOnly ? 0.7 : 1,
                     }}
                   >
                     {t.designacao}
@@ -124,7 +135,8 @@ const LeftSidebar = ({
             className="form-control form-control-sm"
             placeholder="Pesquisar..."
             value={topicSearch}
-            onChange={(e) => setTopicSearch(e.target.value)}
+            onChange={(e) => !readOnly && setTopicSearch(e.target.value)}
+            disabled={readOnly}
           />
         </div>
       </div>

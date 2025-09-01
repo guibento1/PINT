@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext, useRef } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import api from "@shared/services/axios";
 import LeftSidebar from "../components/LeftSidebar";
 import { SidebarContext } from "../context/SidebarContext";
@@ -12,6 +12,7 @@ import "@shared/styles/global.css";
 
 export default function VerPost() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [post, setPost] = useState(null);
   const [comments, setComments] = useState([]);
   const [commentsLoading, setCommentsLoading] = useState(true);
@@ -129,8 +130,33 @@ export default function VerPost() {
     return "Anónimo";
   };
 
-  const isOwner = (utilizador) =>
-    utilizador === "Eu" || utilizador?.nome === "Eu";
+  // Robust owner check: match by numeric id when available; accept backend 'Eu' sentinel
+  const isOwner = (utilizador) => {
+    try {
+      const u = JSON.parse(sessionStorage.getItem("user") || "null");
+      const myId = u?.id ?? u?.idutilizador ?? u?.utilizador;
+      if (!myId) return utilizador === "Eu"; // fallback to sentinel
+
+      // If backend returned the sentinel
+      if (utilizador === "Eu") return true;
+
+      // If backend returned an object
+      if (utilizador && typeof utilizador === "object") {
+        const ownerId =
+          utilizador.id ?? utilizador.idutilizador ?? utilizador.utilizador;
+        return ownerId && String(ownerId) === String(myId);
+      }
+
+      // If backend returned a primitive id
+      if (typeof utilizador === "number" || typeof utilizador === "string") {
+        return String(utilizador) === String(myId);
+      }
+
+      return false;
+    } catch {
+      return utilizador === "Eu";
+    }
+  };
 
   // Icons (mantidos do estilo existente)
   const UpIcon = ({ filled, size = 22, color = "#28a745" }) =>
@@ -707,8 +733,7 @@ export default function VerPost() {
       async () => {
         try {
           await api.delete(`/forum/post/${post.idpost || post.id}`);
-          alert("Post eliminado com sucesso.");
-          window.location.href = "/forum";
+          window.location.href = "/forums";
         } catch (e) {
           console.error("Erro ao eliminar post", e);
           setError("Não foi possível eliminar o post.");
@@ -939,7 +964,29 @@ export default function VerPost() {
         onClose={closeConfirmModal}
         title={confirmTitle}
       >
-        <p className="mb-0">{confirmMessage || "Operação?"}</p>
+        <p className="mb-2">{confirmMessage || "Operação?"}</p>
+        <div className="d-flex justify-content-end gap-2 mt-2">
+          <button
+            className="btn btn-outline-secondary btn-sm"
+            onClick={closeConfirmModal}
+          >
+            Não
+          </button>
+          <button
+            className="btn btn-danger btn-sm"
+            onClick={async () => {
+              try {
+                if (typeof confirmAction === "function") {
+                  await confirmAction();
+                }
+              } finally {
+                closeConfirmModal();
+              }
+            }}
+          >
+            Sim
+          </button>
+        </div>
       </Modal>
 
       {/* Sidebar esquerda fixa na largura dentro do flex */}
@@ -958,6 +1005,7 @@ export default function VerPost() {
           setTopicSearch={setTopicSearch}
           toggleSubscribeTopic={() => {}}
           subscribedTopics={subscribedTopics}
+          readOnly
         />
       </div>
 
@@ -970,6 +1018,15 @@ export default function VerPost() {
           className="container-fluid"
           style={{ maxWidth: "960px", margin: "0 auto" }}
         >
+          <div className="d-flex justify-content-between align-items-center mb-4">
+            <button
+              type="button"
+              className="btn btn-outline-secondary btn-sm"
+              onClick={() => navigate("/forums")}
+            >
+              Voltar
+            </button>
+          </div>
           {error && <div className="alert alert-danger">{error}</div>}
           {loading ? (
             <div className="text-center card-rounded">
@@ -1046,15 +1103,6 @@ export default function VerPost() {
                     {post.conteudo || post.content}
                   </p>
 
-                  {isPostOwner && (
-                    <button
-                      className="btn btn-danger btn-sm mb-3"
-                      onClick={confirmDeletePost}
-                    >
-                      Eliminar Post
-                    </button>
-                  )}
-
                   <div className="comment-actions">
                     <button
                       className="btn btn-link"
@@ -1065,6 +1113,14 @@ export default function VerPost() {
                     >
                       {showCommentBox ? "Cancelar" : "Comentar"}
                     </button>
+                    {isPostOwner && (
+                      <button
+                        className="btn btn-danger btn-sm ms-2"
+                        onClick={confirmDeletePost}
+                      >
+                        Eliminar Post
+                      </button>
+                    )}
                   </div>
 
                   {showCommentBox && (
