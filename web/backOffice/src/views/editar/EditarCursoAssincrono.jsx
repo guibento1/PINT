@@ -661,7 +661,18 @@ const EditarCursoAssincrono = () => {
                       onClick={() => handleDeleteLessonClick(licao)}
                       title="Eliminar Lição"
                     >
-                      <i className="ri-delete-bin-line"></i>
+                      <svg
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                      >
+                        <path
+                          d="M5.755,20.283,4,8H20L18.245,20.283A2,2,0,0,1,16.265,22H7.735A2,2,0,0,1,5.755,20.283ZM21,4H16V3a1,1,0,0,0-1-1H9A1,1,0,0,0,8,3V4H3A1,1,0,0,0,3,6H21a1,1,0,0,0,0-2Z"
+                          fill="currentColor"
+                        />
+                      </svg>
                     </button>
                   </div>
                 </div>
@@ -713,7 +724,18 @@ const EditarCursoAssincrono = () => {
                                 }
                                 title="Eliminar Material"
                               >
-                                <i className="ri-delete-bin-line"></i>
+                                <svg
+                                  width="16"
+                                  height="16"
+                                  viewBox="0 0 24 24"
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  fill="none"
+                                >
+                                  <path
+                                    d="M5.755,20.283,4,8H20L18.245,20.283A2,2,0,0,1,16.265,22H7.735A2,2,0,0,1,5.755,20.283ZM21,4H16V3a1,1,0,0,0-1-1H9A1,1,0,0,0,8,3V4H3A1,1,0,0,0,3,6H21a1,1,0,0,0,0-2Z"
+                                    fill="currentColor"
+                                  />
+                                </svg>
                               </button>
                             </div>
                           </div>

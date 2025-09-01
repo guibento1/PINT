@@ -454,10 +454,7 @@ footer {
 
 .modal-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
+  inset: 0; /* top:0; right:0; bottom:0; left:0; */
   background-color: rgba(0, 0, 0, 0.6);
   z-index: 1050;
   display: flex;
@@ -943,6 +940,9 @@ main::-webkit-scrollbar-track {
 .comment-body {
   padding: 2px 0;
   line-height: 1.5;
+  /* Evitar que palavras muito longas quebrem o layout */
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 /* Links de ações (Responder, Partilhar) */
@@ -962,6 +962,24 @@ main::-webkit-scrollbar-track {
 /* Caixa para responder */
 .reply-box {
   margin-top: 0.5rem;
+}
+
+/* Tornar a caixa de resposta mais larga dentro de comentários (compensa avatar + gap) */
+.comment-item .reply-box {
+  /* avatar-col min-width: 36px + gap de 10px */
+  margin-left: -46px;
+  width: calc(100% + 46px);
+}
+
+.reply-box textarea {
+  width: 100%;
+}
+
+/* Corpo do post: envolver texto longo e preservar quebras */
+.post-body {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  white-space: pre-wrap;
 }
 
 /* ======= Avatar & Connectors (Reddit-like) ======= */

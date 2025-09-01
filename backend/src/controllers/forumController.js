@@ -206,11 +206,11 @@ controllers.getPost = async (req, res) => {
 
       const post = await models.post.findByPk(id);
 
+      post.dataValues.utilizador = await getUserInfo(post.utilizador);
+
       if(post.utilizador == utilizador){
         post.dataValues.utilizador = "Eu"
       }
-
-      post.dataValues.utilizador = await getUserInfo(post.utilizador);
 
       let iteracao  = await models.iteracaopost.findOne({where : {post:id,utilizador}});
       iteracao = !iteracao ? null : iteracao.positiva ? true : false; 

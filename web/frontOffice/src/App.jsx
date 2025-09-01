@@ -37,7 +37,7 @@ function App() {
             <Route
               path="/home"
               element={
-                <ProtectedRoute allowedRoles={["formando", "formador"]}>
+                <ProtectedRoute allowedRoles={["formando", "formador", "admin"]}>
                   <Home />
                 </ProtectedRoute>
               }
@@ -45,7 +45,7 @@ function App() {
             <Route
               path="/cursos"
               element={
-                <ProtectedRoute allowedRoles={["formando", "formador"]}>
+                <ProtectedRoute allowedRoles={["formando", "formador", "admin"]}>
                   <Cursos />
                 </ProtectedRoute>
               }
@@ -53,7 +53,7 @@ function App() {
             <Route
               path="/curso/:id"
               element={
-                <ProtectedRoute allowedRoles={["formando", "formador"]}>
+                <ProtectedRoute allowedRoles={["formando", "formador", "admin"]}>
                   <CursoAssincrono />
                 </ProtectedRoute>
               }
@@ -61,7 +61,7 @@ function App() {
             <Route
               path="/curso-sincrono/:id"
               element={
-                <ProtectedRoute allowedRoles={["formando", "formador"]}>
+                <ProtectedRoute allowedRoles={["formando", "formador", "admin"]}>
                   <CursoSincrono />
                 </ProtectedRoute>
               }
@@ -93,7 +93,7 @@ function App() {
             <Route
               path="/profile"
               element={
-                <ProtectedRoute allowedRoles={["formando", "formador"]}>
+                <ProtectedRoute allowedRoles={["formando", "formador", "admin"]}>
                   <Profile />
                 </ProtectedRoute>
               }
@@ -103,7 +103,7 @@ function App() {
             <Route
               path="/notificacoes"
               element={
-                <ProtectedRoute allowedRoles={["formando", "formador"]}>
+                <ProtectedRoute allowedRoles={["formando", "formador", "admin"]}>
                   <NotificationsPage />
                 </ProtectedRoute>
               }
@@ -111,7 +111,7 @@ function App() {
             <Route
               path="/forums"
               element={
-                <ProtectedRoute allowedRoles={["formando", "formador"]}>
+                <ProtectedRoute allowedRoles={["formando", "formador", "admin"]}>
                   <Forums />
                 </ProtectedRoute>
               }
@@ -119,12 +119,16 @@ function App() {
             <Route
               path="/criar-post"
               element={
-                <ProtectedRoute allowedRoles={["formando", "formador"]}>
+                <ProtectedRoute allowedRoles={["formando", "formador", "admin"]}>
                   <CriarPost />
                 </ProtectedRoute>
               }
             />
-            <Route path="/forum/post/:id" element={<VerPost />} />
+            <Route path="/forum/post/:id" element={
+              <ProtectedRoute allowedRoles={["formando", "formador", "admin"]}>
+                <VerPost />
+              </ProtectedRoute>
+            } />
           </Routes>
         </LayoutFront>
       </SidebarProvider>

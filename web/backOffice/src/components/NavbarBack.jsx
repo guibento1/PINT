@@ -153,7 +153,7 @@ export default function NavbarBack() {
                       }
                       onClick={fecharMenu}
                     >
-                      Notificações e Denuncias
+                      Notificações e Denúncias
                     </NavLink>
                   </li>
                   <li className="nav-item">

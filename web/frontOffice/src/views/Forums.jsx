@@ -291,32 +291,29 @@ export default function Forums() {
 
   return (
     <div className="d-flex">
-      {/* Sidebar esquerda com scroll independente */}
-      <LeftSidebar
-        categorias={categorias}
-        areas={areas}
-        topicos={topicos}
-        selectedCategoria={selectedCategoria}
-        setSelectedCategoria={setSelectedCategoria}
-        selectedArea={selectedArea}
-        setSelectedArea={setSelectedArea}
-        selectedTopico={selectedTopico}
-        setSelectedTopico={setSelectedTopico}
-        topicSearch={topicSearch}
-        setTopicSearch={setTopicSearch}
-      />
+      {/* Sidebar esquerda fixa na largura do layout flex */}
+      <div style={{ flex: "0 0 320px" }}>
+        <LeftSidebar
+          categorias={categorias}
+          areas={areas}
+          topicos={topicos}
+          selectedCategoria={selectedCategoria}
+          setSelectedCategoria={setSelectedCategoria}
+          selectedArea={selectedArea}
+          setSelectedArea={setSelectedArea}
+          selectedTopico={selectedTopico}
+          setSelectedTopico={setSelectedTopico}
+          topicSearch={topicSearch}
+          setTopicSearch={setTopicSearch}
+        />
+      </div>
 
-      {/* Conteúdo principal com scroll exclusivo */}
-      <main
-        className="flex-grow-1"
-        style={{
-          margin: "0 520px",
-          padding: "1rem",
-          height: "calc(100vh - 80px)",
-          overflowY: "auto",
-        }}
-      >
-        <div className="container-fluid py-3 bg-light">
+      {/* Conteúdo principal centrado no espaço à direita da sidebar */}
+      <main className="flex-grow-1" style={{ padding: "1rem", minWidth: 0 }}>
+        <div
+          className="container-fluid py-3 bg-light"
+          style={{ maxWidth: "960px", margin: "0 auto" }}
+        >
           {/* Filtros e ações */}
           <div className="card p-3 mb-3 shadow-sm d-flex">
             <div

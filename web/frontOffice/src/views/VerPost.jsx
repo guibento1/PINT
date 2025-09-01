@@ -4,12 +4,17 @@ import api from "@shared/services/axios";
 import LeftSidebar from "../components/LeftSidebar";
 import { SidebarContext } from "../context/SidebarContext";
 import Modal from "@shared/components/Modal";
+import {
+  fetchPostCommentsTreeCached,
+  invalidatePostCommentsCache,
+} from "@shared/services/dataCache";
 import "@shared/styles/global.css";
 
 export default function VerPost() {
   const { id } = useParams();
   const [post, setPost] = useState(null);
   const [comments, setComments] = useState([]);
+  const [commentsLoading, setCommentsLoading] = useState(true);
   const [newComment, setNewComment] = useState("");
   const [showCommentBox, setShowCommentBox] = useState(false);
   const [error, setError] = useState(null);
@@ -54,6 +59,10 @@ export default function VerPost() {
 
   // Abre o modal de denúncia
   const openDenunciaModal = (targetKind, targetId) => {
+    // qualquer ação alternativa fecha caixas de resposta
+    setReplyOpen({});
+    setReplyText({});
+    setLayoutTick((t) => t + 1);
     setDenunciaTarget({ kind: targetKind, id: targetId });
     setDenunciaOpen(true);
     setDenunciaTipo("");
@@ -65,6 +74,13 @@ export default function VerPost() {
   const closeDenunciaModal = () => {
     setDenunciaOpen(false);
     setDenunciaTarget(null);
+  };
+
+  // Helper: fechar todas as caixas de resposta
+  const closeAllReplies = () => {
+    setReplyOpen({});
+    setReplyText({});
+    setLayoutTick((t) => t + 1);
   };
 
   // Envia a denúncia com o payload esperado
@@ -213,6 +229,95 @@ export default function VerPost() {
       </svg>
     );
 
+  // New icons for reply and report using provided SVG paths
+  const ReplyIcon = ({ filled, size = 22, color = "#6c757d" }) =>
+    filled ? (
+      // reply-cheio.svg (viewBox 0 0 32 32)
+      <svg
+        width={size}
+        height={size}
+        viewBox="0 0 32 32"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        style={{ color }}
+      >
+        <path
+          d="M177,270 L163,270 C162.448,270 162,269.553 162,269 C162,268.448 162.448,268 163,268 L177,268 C177.552,268 178,268.448 178,269 C178,269.553 177.552,270 177,270 L177,270 Z M175,276 L165,276 C164.448,276 164,275.553 164,275 C164,274.447 164.448,274 165,274 L175,274 C175.552,274 176,274.447 176,275 C176,275.553 175.552,276 175,276 L175,276 Z M170,257 C161.164,257 154,263.269 154,271 C154,275.419 156.345,279.354 160,281.919 L160,289 L167.009,284.747 C167.979,284.907 168.977,285 170,285 C178.836,285 186,278.732 186,271 C186,263.269 178.836,257 170,257 L170,257 Z"
+          fill="currentColor"
+          transform="translate(-154 -257)"
+        />
+      </svg>
+    ) : (
+      // reply-vazio.svg (viewBox 0 0 32 32)
+      <svg
+        width={size}
+        height={size}
+        viewBox="0 0 32 32"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        style={{ color }}
+      >
+        <path
+          d="M168,281 C166.832,281 165.704,280.864 164.62,280.633 L159.912,283.463 L159.975,278.824 C156.366,276.654 154,273.066 154,269 C154,262.373 160.268,257 168,257 C175.732,257 182,262.373 182,269 C182,275.628 175.732,281 168,281 L168,281 Z M168,255 C159.164,255 152,261.269 152,269 C152,273.419 154.345,277.354 158,279.919 L158,287 L165.009,282.747 C165.979,282.907 166.977,283 168,283 C176.836,283 184,276.732 184,269 C184,261.269 176.836,255 168,255 L168,255 Z M175,266 L161,266 C160.448,266 160,266.448 160,267 C160,267.553 160.448,268 161,268 L175,268 C175.552,268 176,267.553 176,267 C176,266.448 175.552,266 175,266 L175,266 Z M173,272 L163,272 C162.448,272 162,272.447 162,273 C162,273.553 162.448,274 163,274 L173,274 C173.552,274 174,273.553 174,273 C174,272.447 173.552,272 173,272 L173,272 Z"
+          fill="currentColor"
+          transform="translate(-152 -255)"
+        />
+      </svg>
+    );
+
+  const ReportIcon = ({ filled, size = 22, color = "#6c757d" }) =>
+    filled ? (
+      // report-cheio.svg (viewBox 0 0 24 24)
+      <svg
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        style={{ color }}
+      >
+        <path
+          d="M16.3027 15.3365H6.68V20.1818C6.68 20.6337 6.30392 21 5.84 21C5.37608 21 5 20.6337 5 20.1818V3.81818C5 3.36631 5.37608 3 5.84 3H16.3027C17.4037 3 18.2506 3.65926 18.6739 4.48207C19.0965 5.30334 19.1414 6.35681 18.6123 7.28021L18.1096 8.15756C17.757 8.77312 17.757 9.56335 18.1096 10.1789L18.6123 11.0563C19.1414 11.9797 19.0965 13.0331 18.6739 13.8544C18.2506 14.6772 17.4037 15.3365 16.3027 15.3365Z"
+          fill="currentColor"
+        />
+      </svg>
+    ) : (
+      // report-vazio.svg (viewBox 0 0 24 24)
+      <svg
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        style={{ color }}
+      >
+        <path
+          d="M6 14.4623H16.1909C17.6066 14.4623 18.472 12.7739 17.7261 11.4671L17.2365 10.6092C16.7547 9.76504 16.7547 8.69728 17.2365 7.85309L17.7261 6.99524C18.472 5.68842 17.6066 4 16.1909 4L6 4L6 14.4623ZM6 14.4623L6 20"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    );
+
+  // Delete (trash) icon filled, using shared delete-cheio.svg path; color follows currentColor
+  const DeleteIcon = ({ size = 18, color = "#ffffff" }) => (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      xmlns="http://www.w3.org/2000/svg"
+      fill="none"
+      style={{ color }}
+    >
+      <path
+        d="M5.755,20.283,4,8H20L18.245,20.283A2,2,0,0,1,16.265,22H7.735A2,2,0,0,1,5.755,20.283ZM21,4H16V3a1,1,0,0,0-1-1H9A1,1,0,0,0,8,3V4H3A1,1,0,0,0,3,6H21a1,1,0,0,0,0-2Z"
+        fill="currentColor"
+      />
+    </svg>
+  );
+
   const {
     categorias,
     areas,
@@ -261,35 +366,23 @@ export default function VerPost() {
     }
   }
 
-  async function fetchRepliesRecursively(comment) {
-    try {
-      const commentId = comment.idcomentario || comment.id;
-      const res = await api.get(`/forum/comment/${commentId}/replies`);
-      const childrenData = res.data?.data || res.data || [];
-      const children = await Promise.all(
-        childrenData.map(fetchRepliesRecursively)
-      );
-      return { ...comment, children };
-    } catch (e) {
-      return { ...comment, children: [] };
-    }
-  }
-
   async function loadCommentsTree() {
+    setCommentsLoading(true);
     try {
-      const res = await api.get(`/forum/post/${id}/comment`);
-      const rootComments =
-        res.data?.comments || res.data?.data || res.data || [];
-      const tree = await Promise.all(rootComments.map(fetchRepliesRecursively));
+      const tree = await fetchPostCommentsTreeCached(id);
       setComments(tree);
     } catch (e) {
       console.error("Erro ao carregar comentários", e);
       setError((prev) => prev || "Não foi possível carregar os comentários.");
+    } finally {
+      setCommentsLoading(false);
     }
   }
 
   useEffect(() => {
     loadPost();
+    // Adiar carregamento de comentários até a página realmente necessitar (primeira visita ao VerPost)
+    // Aqui carregamos assim que a página monta, mas via cache e com indicador visual.
     loadCommentsTree();
   }, [id]);
 
@@ -377,6 +470,7 @@ export default function VerPost() {
     if (!newComment.trim()) return;
     try {
       await api.post(`/forum/post/${id}/comment`, { conteudo: newComment });
+      invalidatePostCommentsCache(id);
       await loadCommentsTree();
       setNewComment("");
       setShowCommentBox(false);
@@ -409,6 +503,8 @@ export default function VerPost() {
   // Votação post
   const handleVotePost = async (voteType) => {
     if (votingPost || !post) return;
+    // fechar qualquer reply aberto quando executa outra ação
+    closeAllReplies();
     setVotingPost(true);
     const current = post.iteracao;
     const isUp = voteType === "up";
@@ -463,6 +559,8 @@ export default function VerPost() {
   // Votação comentário
   const handleVoteComment = async (commentId, currentVote, voteType) => {
     if (votingComments[commentId]) return;
+    // fechar replies quando votar
+    closeAllReplies();
     setVotingComments((m) => ({ ...m, [commentId]: true }));
 
     const isUp = voteType === "up";
@@ -539,7 +637,11 @@ export default function VerPost() {
   };
 
   const toggleReply = (commentId) => {
-    setReplyOpen((prev) => ({ ...prev, [commentId]: !prev[commentId] }));
+    setReplyOpen((prev) => {
+      const isOpen = !!prev[commentId];
+      // exclusivo: se já está aberto, fecha tudo; caso contrário, abre só este
+      return isOpen ? {} : { [commentId]: true };
+    });
     setLayoutTick((t) => t + 1);
   };
 
@@ -574,6 +676,7 @@ export default function VerPost() {
         );
         setTimeout(() => setLayoutTick((t) => t + 1), 0);
       } else {
+        invalidatePostCommentsCache(id);
         await loadCommentsTree();
       }
       setReplyText((prev) => ({ ...prev, [commentId]: "" }));
@@ -621,6 +724,7 @@ export default function VerPost() {
       async () => {
         try {
           await api.delete(`/forum/comment/${commentId}`);
+          invalidatePostCommentsCache(id);
           await loadCommentsTree();
         } catch (e) {
           console.error("Erro ao eliminar comentário", e);
@@ -699,25 +803,35 @@ export default function VerPost() {
                     className="icon-btn"
                     title="Responder"
                     onClick={() => toggleReply(cid)}
+                    aria-label="Responder"
                   >
-                    ↩
+                    <ReplyIcon filled={!!replyOpen[cid]} size={22} />
                   </button>
                   <button
                     className="icon-btn"
                     title="Reportar"
                     onClick={() => handleReportComment(cid)}
+                    aria-label="Reportar"
                   >
-                    ⚑
+                    <ReportIcon
+                      filled={
+                        !!denunciaOpen &&
+                        denunciaTarget?.kind === "comment" &&
+                        String(denunciaTarget?.id) === String(cid)
+                      }
+                      size={22}
+                    />
                   </button>
                   {/* Removido o botão extra "Denunciar" para evitar redundância */}
                   {isOwner(comment.utilizador) && (
                     <button
-                      className="btn btn-danger btn-sm ms-2"
+                      className="btn btn-danger btn-sm my-1 py-1 pb-2 btn-icon-delete"
                       onClick={() => confirmDeleteComment(cid)}
                       title="Eliminar Comentário"
                       aria-label="Eliminar Comentário"
+                      style={{ marginLeft: "auto" }}
                     >
-                      <i className="ri-delete-bin-line"></i>
+                      <DeleteIcon />
                     </button>
                   )}
                 </div>
@@ -758,7 +872,7 @@ export default function VerPost() {
   const isPostOwner = isOwner(post?.utilizador);
 
   return (
-    <div className="container mt-4">
+    <div className="d-flex">
       {/* Modal de denúncia (usado para post e comentários) */}
       <Modal
         isOpen={denunciaOpen}
@@ -828,28 +942,34 @@ export default function VerPost() {
         <p className="mb-0">{confirmMessage || "Operação?"}</p>
       </Modal>
 
-      {/* Conteúdo da página */}
-      <div className="row">
-        <div className="col-lg-3 d-none d-lg-block">
-          <aside>
-            <LeftSidebar
-              categorias={categorias}
-              areas={areas}
-              topicos={topicos}
-              selectedCategoria={selectedCategoria}
-              setSelectedCategoria={setSelectedCategoria}
-              selectedArea={selectedArea}
-              setSelectedArea={setSelectedArea}
-              selectedTopico={selectedTopico}
-              setSelectedTopico={setSelectedTopico}
-              topicSearch={topicSearch}
-              setTopicSearch={setTopicSearch}
-              toggleSubscribeTopic={() => {}}
-              subscribedTopics={subscribedTopics}
-            />
-          </aside>
-        </div>
-        <main className="col-lg-6">
+      {/* Sidebar esquerda fixa na largura dentro do flex */}
+      <div style={{ flex: "0 0 320px" }}>
+        <LeftSidebar
+          categorias={categorias}
+          areas={areas}
+          topicos={topicos}
+          selectedCategoria={selectedCategoria}
+          setSelectedCategoria={setSelectedCategoria}
+          selectedArea={selectedArea}
+          setSelectedArea={setSelectedArea}
+          selectedTopico={selectedTopico}
+          setSelectedTopico={setSelectedTopico}
+          topicSearch={topicSearch}
+          setTopicSearch={setTopicSearch}
+          toggleSubscribeTopic={() => {}}
+          subscribedTopics={subscribedTopics}
+        />
+      </div>
+
+      {/* Conteúdo principal centrado na área à direita da sidebar */}
+      <main
+        className="flex-grow-1"
+        style={{ padding: "1rem", minWidth: 0, marginTop: "20px" }}
+      >
+        <div
+          className="container-fluid"
+          style={{ maxWidth: "960px", margin: "0 auto" }}
+        >
           {error && <div className="alert alert-danger">{error}</div>}
           {loading ? (
             <div className="text-center card-rounded">
@@ -908,12 +1028,23 @@ export default function VerPost() {
                       className="btn btn-sm ms-auto"
                       onClick={handleReportPost}
                       title="Denunciar conteúdo"
+                      aria-label="Denunciar conteúdo"
                     >
-                      ⚑
+                      <ReportIcon
+                        filled={
+                          !!denunciaOpen &&
+                          denunciaTarget?.kind === "post" &&
+                          String(denunciaTarget?.id) ===
+                            String(post?.idpost || post?.id)
+                        }
+                        size={22}
+                      />
                     </button>
                   </div>
 
-                  <p className="mb-3">{post.conteudo || post.content}</p>
+                  <p className="mb-3 post-body">
+                    {post.conteudo || post.content}
+                  </p>
 
                   {isPostOwner && (
                     <button
@@ -927,7 +1058,10 @@ export default function VerPost() {
                   <div className="comment-actions">
                     <button
                       className="btn btn-link"
-                      onClick={() => setShowCommentBox((s) => !s)}
+                      onClick={() => {
+                        closeAllReplies();
+                        setShowCommentBox((s) => !s);
+                      }}
                     >
                       {showCommentBox ? "Cancelar" : "Comentar"}
                     </button>
@@ -955,7 +1089,16 @@ export default function VerPost() {
 
               <div className="card-rounded comment-section">
                 <h5 className="mb-3">Comentários</h5>
-                {comments.length > 0 ? (
+                {commentsLoading ? (
+                  <div className="container mt-5">
+                    <div className="text-center my-5">
+                      <div className="spinner-border text-primary" />
+                      <p className="mt-2 text-muted">
+                        A carregar comentários...
+                      </p>
+                    </div>
+                  </div>
+                ) : comments.length > 0 ? (
                   <div
                     className="comment-thread position-relative"
                     ref={threadRef}
@@ -993,8 +1136,8 @@ export default function VerPost() {
           ) : (
             <div className="card-rounded text-muted">Post não encontrado.</div>
           )}
-        </main>
-      </div>
+        </div>
+      </main>
     </div>
   );
 }
