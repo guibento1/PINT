@@ -1469,7 +1469,28 @@ controllers.inscreverCurso = async (req, res) => {
       curso: id,
       registo: new Date(),
     };
+
     await models.inscricao.create(insertData);
+    const topicos = await findTopicos(id);
+
+    if(topicos && topicos.length > 0){
+
+      let inscricoestopicos = [];
+
+      topicos.forEach(topico => {
+
+        inscricoestopicos.push({
+          topico : topico.idtopico,
+          utilizador : idDoUtilizadorParaInscricao
+        });
+        
+      });
+
+      await models.topicossubscritosutilizadores.bulkCreate(inscricoestopicos, {ignoreDuplicates: true});
+
+    }
+
+
     logger.info(
       `Utilizador ${idDoUtilizadorParaInscricao} inscrito no curso ${id} com sucesso.`
     );
@@ -1546,6 +1567,25 @@ controllers.sairCurso = async (req, res) => {
     logger.info(
       `Inscrição do formando ${formando} no curso ${id} removida com sucesso.`
     );
+
+
+    let topicos = await findTopicos(id);
+
+    if(topicos && topicos.length > 0){
+
+      topicos = topicos.map((topicoEntry) => topicoEntry.idtopico);
+
+      await models.topicossubscritosutilizadores.destroy({
+          where : {
+            topico : {
+              [Sequelize.Op.in]: topicos
+            },
+            utilizador : idDoUtilizadorParaDesinscricao
+          }
+      });
+
+    }
+
     return res.status(200).json({
       message: "Inscrição removida com sucesso!",
     });
