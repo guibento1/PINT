@@ -15,10 +15,16 @@ var models = initModels(db);
 async function getUserInfo(user) {
 
     const utilizadorObject = await models.utilizadores.findByPk(user,{
-        attributes: ["nome"]
+        attributes: ["nome", "foto"]
     });
 
-    return {id : user, nome: utilizadorObject.nome };
+    let foto = null;
+
+    if (utilizadorObject.dataValues.foto) {
+        foto = await generateSASUrl(utilizadorObject.dataValues.foto, 'userprofiles');
+    } 
+
+    return {id : user, nome: utilizadorObject.nome, foto };
 }
 
 
@@ -31,21 +37,24 @@ async function formatStuff(stuff, utilizador, iteracaoModel) {
         const utilizadorObject = await models.utilizadores.findByPk(
           stuffObject.utilizador,
           {
-            attributes: ["idutilizador", "nome"],
+            attributes: ["idutilizador", "nome", "foto"],
           }
         );
+
+        let foto = null;
+
+
+        if (utilizadorObject.dataValues.foto) {
+            foto = await generateSASUrl(utilizadorObject.dataValues.foto, 'userprofiles');
+        } 
 
         stuffObject.dataValues.utilizador = {
           id: utilizadorObject.idutilizador,
           nome: utilizadorObject.nome,
+          foto
         };
 
 
-        if (stuffObject.dataValues.foto) {
-            stuffObject.dataValues.foto = await generateSASUrl(stuffObject.dataValues.foto, 'userprofiles');
-        } else {
-            stuffObject.dataValues.foto = null;
-        }
       }
 
       const queryOptions = { where: { utilizador } };
