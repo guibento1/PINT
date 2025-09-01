@@ -2,9 +2,13 @@ const { authenticateJWT, authorizeRoles } = require('../middleware.js');
 const express = require('express');
 const router = express.Router();
 
+const multer = require('multer');
+const storage = multer.memoryStorage();
+const upload = multer({ storage: storage });
+
 const forumController = require('../controllers/forumController.js'); 
 
-router.post('/post/topico/:idtopico', authenticateJWT, forumController.createPost);
+router.post('/post/topico/:idtopico', authenticateJWT, upload.single('anexo'), forumController.createPost);
 router.get('/post/:id', authenticateJWT, forumController.getPost);
 router.delete('/post/:id', authenticateJWT, forumController.deletePost);
 router.post('/post/:id/comment', authenticateJWT, forumController.respondPost);

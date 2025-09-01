@@ -83,8 +83,20 @@ const controllers = {};
 controllers.createPost = async (req, res) => {
 
   const { idtopico } = req.params;
-  const { titulo, conteudo } = req.body;
+  const { titulo, conteudo } = JSON.parse(req.body.info || "{}");
+
   const utilizador = req.user.idutilizador;
+  const anexo = req.file;
+
+  const insertData = 
+  {
+      utilizador,
+      topico : idtopico,
+      titulo,
+      conteudo
+  };
+
+
 
 
   logger.debug(
@@ -103,18 +115,27 @@ controllers.createPost = async (req, res) => {
 
   try {
 
-      const post = await models.post.create(
 
-            {
-                utilizador,
-                topico : idtopico,
-                titulo,
-                conteudo
-            },
 
-            { returning: true }
+      const post = await models.post.create(insertData,{ returning: true });
 
-      );
+
+      if (anexo) {
+        insertData.anexo = await updateFile(
+          anexo,
+          "anexosposts",
+          null,
+          [".jpg", ".png",".pdf"]
+        );
+      }
+
+
+      if (post.anexo) {
+        post.dataValues.anexo = await generateSASUrl(
+          post.anexo,
+          "anexosposts"
+        );
+      }
 
       post.dataValues.utilizador = await getUserInfo(utilizador);
 
@@ -166,7 +187,27 @@ controllers.deletePost = async (req, res) => {
 
       if(admin || utilizador == post.utilizador) {
 
+
+
         await post.destroy();
+
+
+        if(post.anexo){
+
+          try {
+            await deleteFile(post.anexo, "anexosposts");
+          } catch (error) {
+            logger.error(
+              `Anexo de post não removido Detalhes: ${error.message}`,
+              {
+                stack: error.stack,
+              }
+            );
+          }
+
+        }
+
+
         return res.status(200).json({message : "Post eleminado com sucesso"});
 
       }
@@ -207,6 +248,13 @@ controllers.getPost = async (req, res) => {
       const post = await models.post.findByPk(id);
 
       post.dataValues.utilizador = await getUserInfo(post.utilizador);
+
+      if (post.anexo) {
+        post.dataValues.anexo = await generateSASUrl(
+          post.anexo,
+          "anexosposts"
+        );
+      }
 
       if(post.utilizador == utilizador){
         post.dataValues.utilizador = "Eu"

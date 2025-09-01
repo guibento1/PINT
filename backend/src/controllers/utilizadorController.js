@@ -672,6 +672,28 @@ controllers.delete = async (req, res) => {
             }
 
             await models.utilizadores.destroy({ where: { idutilizador: id } });
+
+            if(user.foto){
+
+
+                try {
+                  await deleteFile(user.foto, "userprofiles");
+                } catch (error) {
+                  logger.error(
+                    `Imagem de perfil do utilizador com ID ${id} não removida.. Detalhes: ${error.message}`,
+                    {
+                      stack: error.stack,
+                    }
+                  );
+                }
+
+
+            }
+
+
+
+
+
             logger.info(`Utilizador ID ${id} desativado com sucesso.`);
             return res.status(200).json({ message: 'Utilizador desativado' });
 

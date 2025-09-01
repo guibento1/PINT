@@ -46,6 +46,11 @@ module.exports = function(sequelize, DataTypes) {
       type: DataTypes.DATE,
       allowNull: true,
       defaultValue: Sequelize.Sequelize.literal('CURRENT_TIMESTAMP')
+    },
+    anexo: {
+      type: DataTypes.STRING(300),
+      allowNull: true,
+      defaultValue: "NULL"
     }
   }, {
     tableName: 'post',

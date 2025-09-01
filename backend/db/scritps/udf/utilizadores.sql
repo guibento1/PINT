@@ -31,6 +31,11 @@ BEGIN
     END IF;
 
 
+    UPDATE utilizadores
+        SET foto = null 
+        WHERE idutilizador = OLD.idutilizador;
+
+
     IF OLD.ativo THEN
 
     UPDATE utilizadores

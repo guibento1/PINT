@@ -743,6 +743,22 @@ controllers.rmCurso = async (req, res) => {
       },
     });
 
+    if(curso.thumbnail){
+
+      try {
+        await deleteFile(curso.thumbnail, "thumbnailscursos");
+      } catch (error) {
+        logger.error(
+          `Thumbnail de curso com ID ${id} não removida.. Detalhes: ${error.message}`,
+          {
+            stack: error.stack,
+          }
+        );
+      }
+
+    }
+
+
     logger.info(`Curso com ID ${id} removido com sucesso.`);
     return res.status(200).json({
       message: "Curso removido com sucesso.",
