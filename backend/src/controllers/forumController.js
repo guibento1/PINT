@@ -2,6 +2,13 @@ var initModels = require("../models/init-models.js");
 const Sequelize = require("sequelize");
 var db = require("../database.js");
 const logger = require('../logger.js');
+const {
+  updateFile,
+  deleteFile,
+  generateSASUrl,
+  isLink,
+  sendEmail,
+} = require("../utils.js");
 var models = initModels(db);
 
 
@@ -32,6 +39,13 @@ async function formatStuff(stuff, utilizador, iteracaoModel) {
           id: utilizadorObject.idutilizador,
           nome: utilizadorObject.nome,
         };
+
+
+        if (stuffObject.dataValues.foto) {
+            stuffObject.dataValues.foto = await generateSASUrl(stuffObject.dataValues.foto, 'userprofiles');
+        } else {
+            stuffObject.dataValues.foto = null;
+        }
       }
 
       const queryOptions = { where: { utilizador } };
@@ -227,7 +241,7 @@ controllers.getPosts = async (req, res, topico = null) => {
   try {
 
 
-      const queryOptions = {};
+      const queryOptions = {where : {}};
 
       if(orderBy == "recent"){
         queryOptions.order = [['criado', 'DESC']];
@@ -246,7 +260,7 @@ controllers.getPosts = async (req, res, topico = null) => {
 
 
       if(topico != null){
-        queryOptions.where = { topico : topico } ;
+        queryOptions.where.topico = topico ;
       }
 
       let posts = await models.post.findAll(queryOptions);
