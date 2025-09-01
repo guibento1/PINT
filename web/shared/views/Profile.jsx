@@ -7,7 +7,7 @@ import FileUpload from "../components/FileUpload.jsx";
 
 const Profile = () => {
   const user = JSON.parse(sessionStorage.getItem("user"));
-  const id = user?.id;
+  const id = user?.idutilizador || user?.id;
 
   const navigate = useNavigate();
   const [userData, setUserData] = useState(null);
@@ -112,11 +112,19 @@ const Profile = () => {
     const formData = new FormData();
     const info = {};
 
-    if (editData.nome !== userData.nome) info.nome = editData.nome;
-    if (editData.email !== userData.email) info.email = editData.email;
-    if (editData.morada !== userData.morada) info.morada = editData.morada;
-    if (editData.telefone !== userData.telefone)
-      info.telefone = editData.telefone;
+    const nomeTrim = (editData.nome || "").trim();
+    const emailTrim = (editData.email || "").trim();
+    const moradaTrim = (editData.morada ?? "").trim();
+    const telefoneTrim = (editData.telefone ?? "").toString().trim();
+
+    const moradaVal = moradaTrim === "" ? null : moradaTrim;
+    const telefoneVal = telefoneTrim === "" ? null : telefoneTrim;
+
+    if (nomeTrim !== (userData.nome || "")) info.nome = nomeTrim;
+    if (emailTrim !== (userData.email || "")) info.email = emailTrim;
+    if ((userData.morada ?? null) !== moradaVal) info.morada = moradaVal;
+    if ((userData.telefone ?? null) !== telefoneVal)
+      info.telefone = telefoneVal;
 
     formData.append("info", JSON.stringify(info));
 
@@ -154,6 +162,7 @@ const Profile = () => {
       console.error("Erro ao atualizar perfil:", err);
       const errorMessage =
         err.response?.data?.message ||
+        err.response?.data?.error ||
         "Ocorreu um erro ao atualizar o perfil. Tente novamente.";
       openModal("Erro", errorMessage);
     } finally {
