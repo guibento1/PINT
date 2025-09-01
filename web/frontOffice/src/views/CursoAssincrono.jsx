@@ -19,12 +19,12 @@ const CursoAssincrono = () => {
   const [expandedLessonId, setExpandedLessonId] = useState(null);
   const [activeTab, setActiveTab] = useState("conteudos");
 
-  const [operationStatus, setOperationStatus] = useState(null); // null: nenhum, 0: sucesso, 1: erro, 2: erro específico
-  const [operationMessage, setOperationMessage] = useState(""); // Mensagem para o modal de resultado
-  const [isResultModalOpen, setIsResultModalOpen] = useState(false); // Modal para o resultado da operação (sucesso/erro)
+  const [operationStatus, setOperationStatus] = useState(null);
+  const [operationMessage, setOperationMessage] = useState("");
+  const [isResultModalOpen, setIsResultModalOpen] = useState(false);
 
-  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false); // Modal de confirmação
-  const [actionToConfirm, setActionToConfirm] = useState(null); // 'sair'
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const [actionToConfirm, setActionToConfirm] = useState(null);
 
   const maxVisibleTopics = 5;
   const navigate = useNavigate();
@@ -122,7 +122,7 @@ const CursoAssincrono = () => {
         }
       } catch (e) {
         // non-fatal: ignore fetch/redirect errors
-        console.error('Erro ao obter tópicos após inscrição:', e);
+        console.error("Erro ao obter tópicos após inscrição:", e);
       }
     } catch (err) {
       console.error("Erro na inscrição:", err);
@@ -351,6 +351,20 @@ const CursoAssincrono = () => {
             {/* Detalhes do curso — sempre visíveis (para inscritos e não inscritos) */}
             <div className="mt-2">
               <p className="mb-2">
+                {/* Tipo de curso e Estado */}
+                <strong>Tipo de curso:</strong>{" "}
+                {curso?.sincrono === true ? "Síncrono" : "Assíncrono"}
+                <br />
+                {curso?.disponivel !== null &&
+                  curso?.disponivel !== undefined && (
+                    <>
+                      <strong>Estado:</strong>{" "}
+                      {curso.disponivel
+                        ? "Disponível"
+                        : "Indisponível/Arquivado"}
+                      <br />
+                    </>
+                  )}
                 {(curso?.iniciodeinscricoes || curso?.fimdeinscricoes) && (
                   <>
                     <strong>Inscrições:</strong>{" "}
@@ -385,12 +399,6 @@ const CursoAssincrono = () => {
                   }
                   return null;
                 })()}
-                {Array.isArray(inscritosList) && (
-                  <>
-                    <strong>Inscritos:</strong> {inscritosList.length}
-                    <br />
-                  </>
-                )}
               </p>
             </div>
 
