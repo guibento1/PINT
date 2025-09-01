@@ -2,16 +2,29 @@ var initModels = require("../models/init-models.js");
 const Sequelize = require("sequelize");
 var db = require("../database.js");
 const logger = require('../logger.js');
+const {
+  updateFile,
+  deleteFile,
+  generateSASUrl,
+  isLink,
+  sendEmail,
+} = require("../utils.js");
 var models = initModels(db);
 
 
 async function getUserInfo(user) {
 
     const utilizadorObject = await models.utilizadores.findByPk(user,{
-        attributes: ["nome"]
+        attributes: ["nome", "foto"]
     });
 
-    return {id : user, nome: utilizadorObject.nome };
+    let foto = null;
+
+    if (utilizadorObject.dataValues.foto) {
+        foto = await generateSASUrl(utilizadorObject.dataValues.foto, 'userprofiles');
+    } 
+
+    return {id : user, nome: utilizadorObject.nome, foto };
 }
 
 
@@ -24,14 +37,24 @@ async function formatStuff(stuff, utilizador, iteracaoModel) {
         const utilizadorObject = await models.utilizadores.findByPk(
           stuffObject.utilizador,
           {
-            attributes: ["idutilizador", "nome"],
+            attributes: ["idutilizador", "nome", "foto"],
           }
         );
+
+        let foto = null;
+
+
+        if (utilizadorObject.dataValues.foto) {
+            foto = await generateSASUrl(utilizadorObject.dataValues.foto, 'userprofiles');
+        } 
 
         stuffObject.dataValues.utilizador = {
           id: utilizadorObject.idutilizador,
           nome: utilizadorObject.nome,
+          foto
         };
+
+
       }
 
       const queryOptions = { where: { utilizador } };
@@ -227,7 +250,7 @@ controllers.getPosts = async (req, res, topico = null) => {
   try {
 
 
-      const queryOptions = {};
+      const queryOptions = {where : {}};
 
       if(orderBy == "recent"){
         queryOptions.order = [['criado', 'DESC']];
@@ -246,7 +269,7 @@ controllers.getPosts = async (req, res, topico = null) => {
 
 
       if(topico != null){
-        queryOptions.where = { topico : topico } ;
+        queryOptions.where.topico = topico ;
       }
 
       let posts = await models.post.findAll(queryOptions);

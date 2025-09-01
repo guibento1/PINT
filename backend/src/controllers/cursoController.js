@@ -812,6 +812,7 @@ controllers.getCurso = async (req, res) => {
     });
 
     curso = (await addTipo(curso))[0];
+    curso.dataValues.topicos = await findTopicos(id);
     
     if(curso.dataValues.sincrono){
 
@@ -856,7 +857,6 @@ controllers.getCurso = async (req, res) => {
     }
     if (acessible) {
 
-      curso.dataValues.topicos = await findTopicos(id);
       if (formando) curso = (await addInscrito(curso, formando))[0];
 
 
@@ -1451,7 +1451,7 @@ controllers.inscreverCurso = async (req, res) => {
           },
         });
 
-        if (
+        if ( cursoSincronoEncontrado.maxincricoes != null &&
           nInscricoes >= cursoSincronoEncontrado.maxincricoes
         ) {
           logger.warn(`Limite máximo de inscrições atingido para o curso ${id}.`);
