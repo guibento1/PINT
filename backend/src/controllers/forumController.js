@@ -31,9 +31,31 @@ async function getUserInfo(user) {
 async function formatStuff(stuff, utilizador, iteracaoModel) {
   return await Promise.all(
     stuff.map(async (stuffObject) => {
-      stuffObject.dataValues.utilizador = await getUserInfo(
-        stuffObject.utilizador
-      );
+      if (stuffObject.utilizador === utilizador) {
+        stuffObject.dataValues.utilizador = { id: utilizador, nome: "Eu" };
+      } else {
+        const utilizadorObject = await models.utilizadores.findByPk(
+          stuffObject.utilizador,
+          {
+            attributes: ["idutilizador", "nome", "foto"],
+          }
+        );
+
+        let foto = null;
+
+        if (utilizadorObject.dataValues.foto) {
+          foto = await generateSASUrl(
+            utilizadorObject.dataValues.foto,
+            "userprofiles"
+          );
+        }
+
+        stuffObject.dataValues.utilizador = {
+          id: utilizadorObject.idutilizador,
+          nome: utilizadorObject.nome,
+          foto,
+        };
+      }
 
       const queryOptions = { where: { utilizador } };
 
@@ -57,8 +79,17 @@ const controllers = {};
 
 controllers.createPost = async (req, res) => {
   const { idtopico } = req.params;
-  const { titulo, conteudo } = req.body;
+  const { titulo, conteudo } = JSON.parse(req.body.info || "{}");
+
   const utilizador = req.user.idutilizador;
+  const anexo = req.file;
+
+  const insertData = {
+    utilizador,
+    topico: idtopico,
+    titulo,
+    conteudo,
+  };
 
   logger.debug(
     `Recebida requisição para criar post. Query: ${JSON.stringify(req.query)}`
@@ -73,16 +104,19 @@ controllers.createPost = async (req, res) => {
   }
 
   try {
-    const post = await models.post.create(
-      {
-        utilizador,
-        topico: idtopico,
-        titulo,
-        conteudo,
-      },
+    if (anexo && anexo != undefined) {
+      insertData.anexo = await updateFile(anexo, "anexosposts", null, [
+        ".jpg",
+        ".png",
+        ".pdf",
+      ]);
+    }
 
-      { returning: true }
-    );
+    const post = await models.post.create(insertData, { returning: true });
+
+    if (post.anexo != null) {
+      post.dataValues.anexo = await generateSASUrl(post.anexo, "anexosposts");
+    }
 
     post.dataValues.utilizador = await getUserInfo(utilizador);
 
@@ -122,6 +156,20 @@ controllers.deletePost = async (req, res) => {
 
     if (admin || utilizador == post.utilizador) {
       await post.destroy();
+
+      if (post.anexo) {
+        try {
+          await deleteFile(post.anexo, "anexosposts");
+        } catch (error) {
+          logger.error(
+            `Anexo de post não removido Detalhes: ${error.message}`,
+            {
+              stack: error.stack,
+            }
+          );
+        }
+      }
+
       return res.status(200).json({ message: "Post eleminado com sucesso" });
     }
 
@@ -151,6 +199,14 @@ controllers.getPost = async (req, res) => {
     const post = await models.post.findByPk(id);
 
     post.dataValues.utilizador = await getUserInfo(post.utilizador);
+
+    if (post.anexo) {
+      post.dataValues.anexo = await generateSASUrl(post.anexo, "anexosposts");
+    }
+
+    if (post.utilizador == utilizador) {
+      post.dataValues.utilizador = "Eu";
+    }
 
     let iteracao = await models.iteracaopost.findOne({
       where: { post: id, utilizador },
@@ -308,6 +364,8 @@ controllers.respondPost = async (req, res) => {
       comentarioObject.destroy();
       throw new Error("Comentário não inserido na tabela respostaPost");
     }
+
+    comentarioObject.dataValues.utilizador = "Eu";
 
     return res.status(200).json(comentarioObject);
   } catch (error) {
@@ -513,6 +571,8 @@ controllers.respondComent = async (req, res) => {
       comentarioObject.destroy();
       throw new Error("Comentário não inserido na tabela respostaPost");
     }
+
+    comentarioObject.dataValues.utilizador = "Eu";
 
     return res.status(200).json(comentarioObject);
   } catch (error) {
