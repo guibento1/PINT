@@ -62,7 +62,7 @@ async function updateTopicos(id, topicos) {
       });
     }
     if (cursoTopicosInserts.length > 0) {
-      await models.cursotopico.bulkCreate(cursoTopicosInserts);
+      await models.cursotopico.bulkCreate(cursoTopicosInserts, {individualHooks: true});
     }
   } catch (error) {
     console.error("Error in updateTopicos:", error);
@@ -1502,7 +1502,7 @@ controllers.inscreverCurso = async (req, res) => {
         
       });
 
-      await models.topicossubscritosutilizadores.bulkCreate(inscricoestopicos, {ignoreDuplicates: true});
+      await models.topicossubscritosutilizadores.bulkCreate(inscricoestopicos, {ignoreDuplicates: true, individualHooks: true});
 
     }
 

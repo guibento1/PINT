@@ -54,7 +54,7 @@ async function updateAreas(id, areas) {
             topicoAreasInserts.push({ topico: id, area: area });
         }
 
-        await models.topicoarea.bulkCreate(topicoAreasInserts);
+        await models.topicoarea.bulkCreate(topicoAreasInserts,{individualHooks: true});
 
     } catch (error) {
     }
@@ -257,6 +257,7 @@ controllers.update = async (req, res) => {
             designacao,
             areas
         } = req.body;
+
         const updatedData = {};
         if (designacao) updatedData.designacao = designacao;
         if (!designacao && !areas) {
