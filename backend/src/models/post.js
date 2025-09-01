@@ -50,7 +50,7 @@ module.exports = function(sequelize, DataTypes) {
     anexo: {
       type: DataTypes.STRING(300),
       allowNull: true,
-      defaultValue: "NULL"
+      defaultValue: null
     }
   }, {
     tableName: 'post',

@@ -116,11 +116,7 @@ controllers.createPost = async (req, res) => {
   try {
 
 
-
-      const post = await models.post.create(insertData,{ returning: true });
-
-
-      if (anexo) {
+      if (anexo && anexo != undefined) {
         insertData.anexo = await updateFile(
           anexo,
           "anexosposts",
@@ -129,8 +125,10 @@ controllers.createPost = async (req, res) => {
         );
       }
 
+      const post = await models.post.create(insertData,{ returning: true });
 
-      if (post.anexo) {
+
+      if (post.anexo != null) {
         post.dataValues.anexo = await generateSASUrl(
           post.anexo,
           "anexosposts"
