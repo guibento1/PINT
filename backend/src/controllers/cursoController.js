@@ -835,7 +835,7 @@ controllers.getCurso = async (req, res) => {
         curso.dataValues.fim = cursoSinc.fim;
         curso.dataValues.nhoras = cursoSinc.nhoras;
         curso.dataValues.maxincricoes = cursoSinc.maxincricoes;
-        curso.dataValues.inscricoes = cursoSinc.nInscricoes;
+        curso.dataValues.inscricoes = nInscricoes;
 
 
         if(cursoSinc.formador == formador) acessible = true;
