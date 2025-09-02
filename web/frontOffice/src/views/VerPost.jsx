@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useContext, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import api from "@shared/services/axios";
+import { fetchTopicosCached } from "@shared/services/dataCache";
 import LeftSidebar from "../components/LeftSidebar";
 import { SidebarContext } from "../context/SidebarContext";
 import Modal from "@shared/components/Modal";
@@ -36,6 +37,7 @@ export default function VerPost() {
   const [collapsed, setCollapsed] = useState({}); // { [commentId]: bool }
   // Avatar do utilizador atual para decorar comentários/respostas imediatamente
   const [myAvatar, setMyAvatar] = useState(null);
+  const [topicMap, setTopicMap] = useState(new Map()); // idtopico -> designacao
 
   // Denúncias
   const [tiposDenuncia, setTiposDenuncia] = useState([]); // GET /forum/denuncias/tipos
@@ -86,6 +88,19 @@ export default function VerPost() {
     };
     loadMyAvatar();
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Preload topics once to resolve topic name if only id is present
+  useEffect(() => {
+    (async () => {
+      try {
+        const all = await fetchTopicosCached();
+        const map = new Map(
+          (all || []).map((t) => [String(t.idtopico), t.designacao])
+        );
+        setTopicMap(map);
+      } catch {}
+    })();
   }, []);
 
   // Função estável para abrir o modal de confirmação (para actions existentes)
@@ -444,6 +459,32 @@ export default function VerPost() {
     subscribedTopics,
     toggleSubscribeTopic,
   } = useContext(SidebarContext);
+
+  // Resolve topic info for current post
+  const getTopicForPost = (p) => {
+    try {
+      const rawTopico = p?.topico;
+      if (rawTopico && typeof rawTopico === "object") {
+        const id = parseInt(rawTopico.idtopico ?? rawTopico.id);
+        const name = rawTopico.designacao ?? "";
+        return { id: Number.isFinite(id) ? id : null, name };
+      }
+      let id = p?.idtopico ?? p?.idTopico ?? rawTopico;
+      id = parseInt(id);
+      if (!Number.isFinite(id)) return { id: null, name: "" };
+      let name = "";
+      if (topicMap && topicMap.size) {
+        name = topicMap.get(String(id)) || "";
+      }
+      if (Array.isArray(topicos) && topicos.length) {
+        const ref = topicos.find((t) => String(t.idtopico) === String(id));
+        name = name || ref?.designacao || "";
+      }
+      return { id, name };
+    } catch {
+      return { id: null, name: "" };
+    }
+  };
 
   function timeAgo(iso) {
     if (!iso) return "";
@@ -1391,6 +1432,15 @@ export default function VerPost() {
                     })()}
                     <span>• {timeAgo(post?.criado || post?.createdAt)}</span>
                   </div>
+                  {(() => {
+                    const { name } = getTopicForPost(post);
+                    if (!name) return null;
+                    return (
+                      <div className="text-muted small mb-1">
+                        Tópico: <strong>{name}</strong>
+                      </div>
+                    );
+                  })()}
                   <div className="mb-2 d-flex align-items-center">
                     <h3 className="mb-0">{post.titulo || post.title}</h3>
                     {/* Denunciar Post (apenas uma vez) */}
