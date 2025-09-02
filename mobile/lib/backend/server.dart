@@ -5,10 +5,6 @@ import 'shared_preferences.dart' as prefs_utils;
 import 'package:flutter/foundation.dart';
 
 class Servidor {
-  // Base URL aware of platform:
-  // - Android emulator must use 10.0.2.2 to reach the host machine
-  // - iOS simulator and desktop can use localhost
-  // - For real devices, replace with your machine's LAN IP (e.g., http://192.168.1.50:3000)
   final String urlAPI =
       (() {
         if (kIsWeb) return 'http://localhost:3000';

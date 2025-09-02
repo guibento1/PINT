@@ -280,6 +280,42 @@ class _CourseDetailsPageState extends State<CourseDetailsPage> {
     return '$si até $sf';
   }
 
+  // Estado do curso: Em curso, Terminado, Pendente
+  String _resolveEstado(Map<String, dynamic> d) {
+    try {
+      final nested = (d['cursosincrono'] ?? d['cursoSincrono']) as Map?;
+      final startRaw =
+          d['inicio'] ??
+          d['datainicio'] ??
+          (nested is Map ? (nested['inicio'] ?? nested['datainicio']) : null);
+      final endRaw =
+          d['fim'] ??
+          d['datafim'] ??
+          (nested is Map ? (nested['fim'] ?? nested['datafim']) : null);
+      DateTime? start;
+      DateTime? end;
+      if (startRaw != null) {
+        try {
+          start = DateTime.parse(startRaw.toString());
+        } catch (_) {}
+      }
+      if (endRaw != null) {
+        try {
+          end = DateTime.parse(endRaw.toString());
+        } catch (_) {}
+      }
+      final now = DateTime.now();
+      if (end != null && now.isAfter(end)) return 'Terminado';
+      if (start != null && now.isBefore(start)) return 'Pendente';
+      if (start != null && (end == null || !now.isAfter(end)))
+        return 'Em curso';
+      if (d['disponivel'] == false) return 'Pendente';
+      return 'Em curso';
+    } catch (_) {
+      return 'Em curso';
+    }
+  }
+
   // Resolve total hours, inscritos count, and max inscrições from flexible payloads
   String _resolveNumeroHoras(Map<String, dynamic> d) {
     final nested = (d['cursosincrono'] ?? d['cursoSincrono']) as Map?;
@@ -607,6 +643,11 @@ class _CourseDetailsPageState extends State<CourseDetailsPage> {
                 spacing: 10,
                 runSpacing: 10,
                 children: [
+                  _FactChip(
+                    icon: Icons.flag,
+                    label: 'Estado',
+                    value: _resolveEstado(_courseData!),
+                  ),
                   _FactChip(
                     icon: Icons.app_registration,
                     label: 'Inscrições',

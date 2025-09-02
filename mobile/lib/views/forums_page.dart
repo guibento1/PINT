@@ -161,11 +161,11 @@ class _ForumsPageState extends State<ForumsPage> {
     final Map<String, dynamic> p = Map<String, dynamic>.from(
       posts[index] as Map,
     );
-    final int idpost = (p['idpost'] ?? p['id']) as int;
-    final dynamic currentVote = p['iteracao']; // true, false or null
-    int score = (p['pontuacao'] ?? 0) as int;
+    final int? idpost = _asInt(p['idpost'] ?? p['id']);
+    final bool? currentVote = _asVote(p['iteracao']); // normalize types
+    int score = _asInt(p['pontuacao']) ?? 0;
 
-    dynamic newVote = currentVote;
+    bool? newVote = currentVote;
     int delta = 0;
     if (voteType == 'upvote') {
       if (currentVote == true) {
@@ -201,14 +201,16 @@ class _ForumsPageState extends State<ForumsPage> {
     });
 
     // Call server; if it fails, refetch to realign
-    final success = await _votePostById(
-      idpost,
-      voteType,
-      currentVote,
-      silent: true,
-    );
-    if (!success) {
-      await _fetchPosts();
+    if (idpost != null) {
+      final success = await _votePostById(
+        idpost,
+        voteType,
+        currentVote,
+        silent: true,
+      );
+      if (!success) {
+        await _fetchPosts();
+      }
     }
   }
 
@@ -268,14 +270,47 @@ class _ForumsPageState extends State<ForumsPage> {
       ];
       for (final k in possibleKeys) {
         final v = a[k];
-        if (v != null && v.toString().isNotEmpty) return v.toString();
+        if (v != null && v.toString().isNotEmpty) {
+          final s = v.toString();
+          return s.startsWith('http') ? s : '${_server.urlAPI}$s';
+        }
       }
     }
     // sometimes avatar may be at root
     final rootKeys = ['avatar', 'foto', 'avatarUrl'];
     for (final k in rootKeys) {
       final v = p[k];
-      if (v != null && v.toString().isNotEmpty) return v.toString();
+      if (v != null && v.toString().isNotEmpty) {
+        final s = v.toString();
+        return s.startsWith('http') ? s : '${_server.urlAPI}$s';
+      }
+    }
+    return null;
+  }
+
+  int? _asInt(dynamic v) {
+    if (v == null) return null;
+    if (v is int) return v;
+    if (v is String) return int.tryParse(v);
+    if (v is double) return v.toInt();
+    return null;
+  }
+
+  bool? _asVote(dynamic v) {
+    if (v == null) return null;
+    if (v is bool) return v;
+    if (v is int) {
+      if (v > 0) return true;
+      if (v < 0) return false;
+      return null;
+    }
+    if (v is String) {
+      final s = v.toLowerCase();
+      if (s == 'true' || s == '1' || s == 'up' || s == 'upvote') return true;
+      if (s == 'false' || s == '-1' || s == 'down' || s == 'downvote') {
+        return false;
+      }
+      return null;
     }
     return null;
   }
@@ -352,7 +387,7 @@ class _ForumsPageState extends State<ForumsPage> {
                     children: [
                       // Categoria
                       Expanded(
-                        child: DropdownButtonFormField<String>(
+                        child: DropdownButtonFormField<String?>(
                           value: selectedCategoria,
                           isExpanded: true,
                           decoration: InputDecoration(
@@ -388,12 +423,12 @@ class _ForumsPageState extends State<ForumsPage> {
                                 : 'Todas as Categorias',
                           ),
                           items: [
-                            const DropdownMenuItem(
+                            const DropdownMenuItem<String?>(
                               value: null,
                               child: Text('Todas as Categorias'),
                             ),
                             ...categorias.map(
-                              (c) => DropdownMenuItem(
+                              (c) => DropdownMenuItem<String?>(
                                 value: c['idcategoria']?.toString(),
                                 child: Text(c['designacao']?.toString() ?? ''),
                               ),
@@ -422,7 +457,7 @@ class _ForumsPageState extends State<ForumsPage> {
                       const SizedBox(width: 12),
                       // Área
                       Expanded(
-                        child: DropdownButtonFormField<String>(
+                        child: DropdownButtonFormField<String?>(
                           value: selectedArea,
                           isExpanded: true,
                           decoration: InputDecoration(
@@ -456,12 +491,12 @@ class _ForumsPageState extends State<ForumsPage> {
                             _loadingAreas ? 'A carregar...' : 'Todas as Áreas',
                           ),
                           items: [
-                            const DropdownMenuItem(
+                            const DropdownMenuItem<String?>(
                               value: null,
                               child: Text('Todas as Áreas'),
                             ),
                             ...areas.map(
-                              (a) => DropdownMenuItem(
+                              (a) => DropdownMenuItem<String?>(
                                 value: a['idarea']?.toString(),
                                 child: Text(a['designacao']?.toString() ?? ''),
                               ),
@@ -490,7 +525,7 @@ class _ForumsPageState extends State<ForumsPage> {
                       const SizedBox(width: 12),
                       // Tópico
                       Expanded(
-                        child: DropdownButtonFormField<String>(
+                        child: DropdownButtonFormField<String?>(
                           value: selectedTopico,
                           isExpanded: true,
                           decoration: InputDecoration(
@@ -526,7 +561,7 @@ class _ForumsPageState extends State<ForumsPage> {
                                 : 'Todos os Tópicos',
                           ),
                           items: [
-                            const DropdownMenuItem(
+                            const DropdownMenuItem<String?>(
                               value: null,
                               child: Text('Todos os Tópicos'),
                             ),
@@ -541,7 +576,7 @@ class _ForumsPageState extends State<ForumsPage> {
                                       d.contains(topicSearch.toLowerCase());
                                 })
                                 .map(
-                                  (t) => DropdownMenuItem(
+                                  (t) => DropdownMenuItem<String?>(
                                     value: t['idtopico']?.toString(),
                                     child: Text(
                                       t['designacao']?.toString() ?? '',
@@ -687,7 +722,7 @@ class _ForumsPageState extends State<ForumsPage> {
                 separatorBuilder: (_, __) => const SizedBox(height: 12),
                 itemBuilder: (context, idx) {
                   final p = posts[idx] as Map<String, dynamic>;
-                  final idpost = p['idpost'] ?? p['id'];
+                  final idpost = _asInt(p['idpost'] ?? p['id']);
                   // iteracao handled directly from posts[idx]
                   final score = p['pontuacao'] ?? 0;
                   final titulo = p['titulo'] ?? p['title'] ?? '—';
@@ -705,7 +740,11 @@ class _ForumsPageState extends State<ForumsPage> {
                   final String commentsCount = rawComments.toString();
 
                   return GestureDetector(
-                    onTap: () => context.push('/forum_post/$idpost'),
+                    onTap: () {
+                      if (idpost != null) {
+                        context.push('/forum_post/$idpost');
+                      }
+                    },
                     child: Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
@@ -731,27 +770,26 @@ class _ForumsPageState extends State<ForumsPage> {
                                 onPressed:
                                     () => _votePostAtIndex(idx, 'upvote'),
                                 icon: Icon(
-                                  (posts[idx] as Map)['iteracao'] == true
+                                  _asVote((posts[idx] as Map)['iteracao']) ==
+                                          true
                                       ? Icons.thumb_up_alt
                                       : Icons.thumb_up_alt_outlined,
                                   color:
-                                      (posts[idx] as Map)['iteracao'] == true
+                                      _asVote(
+                                                (posts[idx] as Map)['iteracao'],
+                                              ) ==
+                                              true
                                           ? Colors.green
                                           : Colors.grey,
                                   size: 26,
                                 ),
                               ),
-                              Container(
+                              Padding(
                                 padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 2,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFECECEC),
-                                  borderRadius: BorderRadius.circular(12),
+                                  vertical: 4,
                                 ),
                                 child: Text(
-                                  '${(posts[idx] as Map)['pontuacao'] ?? score}',
+                                  '${_asInt((posts[idx] as Map)['pontuacao']) ?? _asInt(score) ?? 0}',
                                   style: const TextStyle(
                                     fontWeight: FontWeight.bold,
                                   ),
@@ -761,11 +799,15 @@ class _ForumsPageState extends State<ForumsPage> {
                                 onPressed:
                                     () => _votePostAtIndex(idx, 'downvote'),
                                 icon: Icon(
-                                  (posts[idx] as Map)['iteracao'] == false
+                                  _asVote((posts[idx] as Map)['iteracao']) ==
+                                          false
                                       ? Icons.thumb_down_alt
                                       : Icons.thumb_down_alt_outlined,
                                   color:
-                                      (posts[idx] as Map)['iteracao'] == false
+                                      _asVote(
+                                                (posts[idx] as Map)['iteracao'],
+                                              ) ==
+                                              false
                                           ? Colors.red
                                           : Colors.grey,
                                   size: 26,

@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useContext } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import api from "@shared/services/axios";
+import { fetchTopicosCached } from "@shared/services/dataCache";
 import LeftSidebar from "../components/LeftSidebar";
 import SubmissionFilePreview from "@shared/components/SubmissionFilePreview";
 import { SidebarContext } from "../context/SidebarContext";
@@ -31,6 +32,7 @@ export default function Forums() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [isCreatingPost, setIsCreatingPost] = useState(false);
+  const [topicMap, setTopicMap] = useState(new Map()); // idtopico -> designacao
 
   const navigate = useNavigate();
   const [reportTypes, setReportTypes] = useState([]);
@@ -180,6 +182,17 @@ export default function Forums() {
   }
 
   useEffect(() => {
+    // Preload all topics to resolve names even when not in current area
+    (async () => {
+      try {
+        const all = await fetchTopicosCached();
+        const map = new Map(
+          (all || []).map((t) => [String(t.idtopico), t.designacao])
+        );
+        setTopicMap(map);
+      } catch {}
+    })();
+
     (async () => {
       try {
         const res = await api.get("/categoria/list");
@@ -319,6 +332,35 @@ export default function Forums() {
   };
 
   const currentUser = JSON.parse(localStorage.getItem("user")); // Retrieve current user from localStorage
+
+  // Resolve the topic for a given post: try post.topico.designacao, then map by id via preloaded topicMap, then Sidebar topics
+  const getPostTopic = (post) => {
+    try {
+      const rawTopico = post?.topico;
+      // If backend returns an embedded object with designacao
+      if (rawTopico && typeof rawTopico === "object") {
+        const id = parseInt(rawTopico.idtopico ?? rawTopico.id);
+        const name = rawTopico.designacao ?? "";
+        return { id: Number.isFinite(id) ? id : null, name };
+      }
+      // Otherwise try to infer id from common fields
+      let id = post?.idtopico ?? post?.idTopico ?? rawTopico;
+      id = parseInt(id);
+      if (!Number.isFinite(id)) return { id: null, name: "" };
+      let name = "";
+      // Prefer global topic map
+      if (topicMap && topicMap.size) {
+        name = topicMap.get(String(id)) || "";
+      }
+      if (Array.isArray(topicos) && topicos.length) {
+        const ref = topicos.find((t) => String(t.idtopico) === String(id));
+        name = name || ref?.designacao || "";
+      }
+      return { id, name };
+    } catch {
+      return { id: null, name: "" };
+    }
+  };
 
   return (
     <div className="d-flex">
@@ -474,33 +516,78 @@ export default function Forums() {
                       </button>
                     </div>
                     <div className="post-main flex-grow-1">
-                      <div className="text-muted small mb-2">
-                        <span>
-                          Postado por{" "}
-                          {(() => {
-                            const myId = String(
-                              currentUser?.id ??
-                                currentUser?.idutilizador ??
-                                currentUser?.utilizador ??
-                                ""
-                            );
-                            const ownerId = String(
-                              p.utilizador?.id ??
-                                p.utilizador?.idutilizador ??
-                                p.utilizador?.utilizador ??
-                                ""
-                            );
-                            const name = p.utilizador?.nome || "Anônimo";
-                            const me = myId && ownerId && myId === ownerId;
+                      <div className="d-flex align-items-center gap-2 text-muted small mb-2">
+                        {(() => {
+                          const myId = String(
+                            currentUser?.id ??
+                              currentUser?.idutilizador ??
+                              currentUser?.utilizador ??
+                              ""
+                          );
+                          const ownerId = String(
+                            p.utilizador?.id ??
+                              p.utilizador?.idutilizador ??
+                              p.utilizador?.utilizador ??
+                              ""
+                          );
+                          const me = myId && ownerId && myId === ownerId;
+                          const authorName = p.utilizador?.nome || "Anônimo";
+                          const avatarUrl =
+                            p?.utilizador?.foto ??
+                            (me ? currentUser?.foto ?? null : null);
+                          if (avatarUrl) {
                             return (
-                              <span className="comment-author">
-                                {me ? <strong>{name}</strong> : name}
-                              </span>
+                              <div className="avatar-sm rounded-circle overflow-hidden">
+                                <img
+                                  src={avatarUrl}
+                                  alt={authorName}
+                                  style={{
+                                    width: "100%",
+                                    height: "100%",
+                                    objectFit: "cover",
+                                  }}
+                                />
+                              </div>
                             );
-                          })()}{" "}
-                          • {timeAgo(p.criado)}
-                        </span>
+                          }
+                          return (
+                            <div className="avatar-sm d-flex align-items-center justify-content-center bg-secondary text-white rounded-circle">
+                              {authorName.charAt(0).toUpperCase()}
+                            </div>
+                          );
+                        })()}
+                        {(() => {
+                          const myId = String(
+                            currentUser?.id ??
+                              currentUser?.idutilizador ??
+                              currentUser?.utilizador ??
+                              ""
+                          );
+                          const ownerId = String(
+                            p.utilizador?.id ??
+                              p.utilizador?.idutilizador ??
+                              p.utilizador?.utilizador ??
+                              ""
+                          );
+                          const name = p.utilizador?.nome || "Anônimo";
+                          const me = myId && ownerId && myId === ownerId;
+                          return (
+                            <span className="comment-author">
+                              {me ? <strong>{name}</strong> : name}
+                            </span>
+                          );
+                        })()}
+                        <span>• {timeAgo(p.criado)}</span>
                       </div>
+                      {(() => {
+                        const { name } = getPostTopic(p);
+                        if (!name) return null;
+                        return (
+                          <div className="text-muted small mb-1">
+                            Tópico: <strong>{name}</strong>
+                          </div>
+                        );
+                      })()}
                       <h5 className="mb-1" style={{ fontWeight: "bold" }}>
                         {p.titulo}
                       </h5>
