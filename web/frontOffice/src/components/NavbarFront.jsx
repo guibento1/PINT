@@ -9,16 +9,22 @@ import NotiEmptyDot from "@shared/assets/images/notification-vazio-ponto.svg?rea
 import NotiFull from "@shared/assets/images/notification-cheio.svg?react";
 import api from "@shared/services/axios";
 
+// Componente de navegação do FrontOffice
 export default function NavbarFront() {
+  // Hooks de localização e navegação
   const location = useLocation();
-
-  const [menuAberto, setMenuAberto] = useState(false);
   const navigate = useNavigate();
+
+  // Estado do menu e dados do utilizador/role
+  const [menuAberto, setMenuAberto] = useState(false);
   const { isFormador, loading } = useUserRole();
+
+  // Estado de notificações e avatar
   const [notificacoesAtivas, setNotificacoesAtivas] = useState(false);
   const [hoverNoti, setHoverNoti] = useState(false);
   const STORAGE_KEY = "hasUnreadNotificationsFront";
 
+  // Dados básicos do utilizador (sessionStorage)
   const user = JSON.parse(sessionStorage.getItem("user") || "{}");
   const nomeUsuario = user?.nome || "Utilizador";
   const avatarUrl =
@@ -30,6 +36,7 @@ export default function NavbarFront() {
     user?.userId ||
     user?.uid;
 
+  // Utilitário para construir URL absoluto de imagem/ficheiro
   const buildFullUrl = (v) => {
     const s = String(v || "");
     if (!s) return "";
@@ -39,21 +46,24 @@ export default function NavbarFront() {
     return base ? `${base}/${path}` : s;
   };
 
+  // Estado do avatar já normalizado
   const [avatarState, setAvatarState] = useState(buildFullUrl(avatarUrl));
 
+  // Efeito: escutar evento global para “novaNotificacao”
   useEffect(() => {
     const handler = () => setNotificacoesAtivas(true);
     window.addEventListener("novaNotificacao", handler);
     return () => window.removeEventListener("novaNotificacao", handler);
   }, []);
 
+  // Efeito: ao abrir a página de notificações, limpar “badge”
   useEffect(() => {
     if (location.pathname === "/notificacoes" && notificacoesAtivas) {
       setNotificacoesAtivas(false);
     }
   }, [location.pathname, notificacoesAtivas]);
 
-  // Fetch fresh user data to ensure avatar photo is available
+  // Efeito: obter avatar actualizado do utilizador
   useEffect(() => {
     let cancelled = false;
     const fetchUser = async () => {
@@ -65,7 +75,7 @@ export default function NavbarFront() {
           setAvatarState(buildFullUrl(foto));
         }
       } catch (_) {
-        // keep existing avatarState on failure
+        // Mantém o avatarState actual em caso de falha
       }
     };
     fetchUser();
@@ -74,37 +84,38 @@ export default function NavbarFront() {
     };
   }, [userId]);
 
+  // Handlers para menu e sessão
   const toggleMenu = () => setMenuAberto(!menuAberto);
   const fecharMenu = () => setMenuAberto(false);
-
   const handleLogout = () => {
     sessionStorage.clear();
     fecharMenu();
     navigate("/");
   };
 
+  // Placeholder de carregamento enquanto se obtém o role
   if (loading) {
-    return <div className="text-center mt-4">A carregar...</div>; // agora depois de todos os hooks declarados
+    return <div className="text-center mt-4">A carregar...</div>;
   }
 
+  // Estrutura da navbar fixa + footer
   return (
     <>
       <nav
         className="navbar navbar-expand-lg navbar-light bg-white shadow-sm"
         style={{
-          position: "fixed", // Torna a navbar fixa
-          top: 0, // Fixa no topo da página
-          width: "100%", // Garante que ocupe toda a largura
-          zIndex: 1050, // Garante que esteja acima de outros elementos
-          borderBottom: "1px solid #e5e5e5", // Linha de separação
-          padding: "5px 0", // Espaço simétrico no topo e na base
+          position: "fixed",
+          top: 0,
+          width: "100%",
+          zIndex: 1050,
+          borderBottom: "1px solid #e5e5e5",
+          padding: "5px 0",
         }}
       >
         <div
           className="container-fluid d-flex align-items-center"
           style={{ minHeight: "60px" }}
         >
-          {/* Esquerda: Logo Softinsa */}
           <div
             className="d-flex align-items-center justify-content-start"
             style={{ minWidth: "180px", paddingLeft: "30px" }}
@@ -118,12 +129,10 @@ export default function NavbarFront() {
             </Link>
           </div>
 
-          {/* Direita: Menu */}
           <div
             className="d-flex align-items-center justify-content-end"
             style={{ width: "180px", paddingRight: "24px" }}
           >
-            {/* Botão do menu (hambúrguer) */}
             <button
               className="navbar-toggler ms-2"
               type="button"
@@ -136,7 +145,6 @@ export default function NavbarFront() {
               )}
             </button>
 
-            {/* Conteúdo da navbar */}
             <div
               className={`collapse navbar-collapse justify-content-end ${
                 menuAberto ? "show" : ""

@@ -8,16 +8,21 @@ function CardCurso({
   lecionado = null,
   notipo = false,
 }) {
+  // Dados do curso
   const { nome, thumbnail, sincrono } = curso;
   const id = curso.idcurso;
+
+  // Rota do curso (síncrono ou assíncrono)
   const route = sincrono ? `/curso-sincrono/${id}` : `/curso/${id}`;
 
+  // Estrutura do cartão do curso
   return (
     <Link to={route} style={{ textDecoration: "none", color: "inherit" }}>
       <div
         className="card h-100 card-sm shadow hover-lift"
         style={{ boxShadow: "0 2px 4px rgba(0, 0, 0, 0.1)" }}
       >
+        {/* Imagem e badge */}
         <div className="ratio-box position-relative">
           <img
             src={
@@ -37,6 +42,8 @@ function CardCurso({
             </span>
           )}
         </div>
+
+        {/* Conteúdo do cartão */}
         <div className="card-body">
           <h5 className="card-title mb-2">{nome}</h5>
           <div className="d-flex flex-wrap gap-2">

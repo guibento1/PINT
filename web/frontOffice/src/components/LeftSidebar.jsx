@@ -1,6 +1,7 @@
 import React from "react";
 import api from "@shared/services/axios";
 
+// Componente da sidebar esquerda (filtros e listas de tópicos)
 const LeftSidebar = ({
   categorias,
   areas,
@@ -13,26 +14,25 @@ const LeftSidebar = ({
   setSelectedTopico,
   topicSearch,
   setTopicSearch,
-  // new
   subscribedTopics = [],
   toggleSubscribeTopic,
   readOnly = false,
 }) => {
-  const searchVal = String(topicSearch || "")
-    .trim()
-    .toLowerCase();
+  // Valor de pesquisa normalizado
+  const searchVal = String(topicSearch || "").trim().toLowerCase();
+
+  // Lista de tópicos seguidos filtrada
   const filteredSubscribed = Array.isArray(subscribedTopics)
     ? subscribedTopics.filter(
         (t) =>
           !searchVal ||
-          String(t?.designacao || "")
-            .toLowerCase()
-            .includes(searchVal)
+          String(t?.designacao || "").toLowerCase().includes(searchVal)
       )
     : [];
+
+  // Ação para deixar de seguir tópico
   const handleUnsubscribe = (t) => {
     if (!toggleSubscribeTopic) return;
-    // If topic is courseLinked, confirm
     if (t?.courseLinked) {
       const ok = window.confirm(
         "Este tópico está associado a um dos cursos em que estás inscrito. Queres mesmo deixar de seguir?"
@@ -41,6 +41,8 @@ const LeftSidebar = ({
     }
     toggleSubscribeTopic(t);
   };
+
+  // Estrutura visual da sidebar
   return (
     <aside
       className="bg-light border-end"
@@ -73,7 +75,7 @@ const LeftSidebar = ({
             Limpar Filtros
           </button>
         </div>
-        {/* Pesquisa imediatamente após o título */}
+
         <div className="mb-3">
           <input
             className="form-control form-control-sm"
@@ -83,7 +85,6 @@ const LeftSidebar = ({
               const val = e.target.value;
               if (!readOnly) {
                 setTopicSearch(val);
-                // Aplicar automaticamente o filtro ao melhor candidato
                 if (val && Array.isArray(topicos) && topicos.length) {
                   const v = val.toLowerCase();
                   const match = topicos.find((t) =>
@@ -91,7 +92,6 @@ const LeftSidebar = ({
                   );
                   if (match) {
                     setSelectedTopico(match.idtopico);
-                    // Auto-selecionar área e categoria associadas ao tópico
                     (async () => {
                       try {
                         const tRes = await api.get(
@@ -116,6 +116,7 @@ const LeftSidebar = ({
             disabled={readOnly}
           />
         </div>
+
         <div className="mb-3">
           <label className="form-label">Categoria</label>
           <select
@@ -132,6 +133,7 @@ const LeftSidebar = ({
             ))}
           </select>
         </div>
+
         <div className="mb-3">
           <label className="form-label">Área</label>
           <select
@@ -148,6 +150,7 @@ const LeftSidebar = ({
             ))}
           </select>
         </div>
+
         <div>
           <div className="form-label">Tópicos</div>
           <div className="list-group mb-3">
@@ -214,9 +217,7 @@ const LeftSidebar = ({
             })()}
           </div>
         </div>
-        {/* Campo de pesquisa movido para cima */}
 
-        {/* Tópicos Seguidos - movido para o fim */}
         <div className="mt-3">
           <h6 className="mb-2">Tópicos Seguidos</h6>
           <div className="list-group">
