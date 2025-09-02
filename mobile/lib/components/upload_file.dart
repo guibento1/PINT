@@ -127,42 +127,62 @@ class _UploadFileState extends State<UploadFile> {
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child:
-                      _selected != null
-                          ? Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                _selected!.name,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                ),
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final isNarrow = constraints.maxWidth < 140;
+                      if (_selected != null) {
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              _selected!.name,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
                               ),
-                              const SizedBox(height: 2),
-                              Text(
-                                '${_selected!.extension ?? 'tipo desconhecido'} · ${_humanSize(_selected!.size)}',
-                                style: hintStyle,
-                              ),
-                            ],
-                          )
-                          : Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Text(
-                                'Solte aqui o ficheiro',
-                                style: TextStyle(fontWeight: FontWeight.w600),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                'ou toque para selecionar',
-                                style: hintStyle,
-                              ),
-                            ],
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              '${_selected!.extension ?? 'tipo desconhecido'} · ${_humanSize(_selected!.size)}',
+                              style: hintStyle,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        );
+                      }
+                      // Placeholder when no file is selected
+                      if (isNarrow) {
+                        return Text(
+                          'Selecionar ficheiro',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontWeight: FontWeight.w600),
+                        );
+                      }
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Text(
+                            'Solte aqui o ficheiro',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(fontWeight: FontWeight.w600),
                           ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'ou toque para selecionar',
+                            style: hintStyle,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      );
+                    },
+                  ),
                 ),
                 const SizedBox(width: 8),
                 OutlinedButton(

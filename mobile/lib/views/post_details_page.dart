@@ -659,6 +659,7 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
                   labelText: 'Tipo de denúncia',
                   border: OutlineInputBorder(),
                 ),
+                isExpanded: true,
                 items:
                     _reportTypes
                         .map(
@@ -670,6 +671,8 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
                             child: Text(
                               (t['designacao'] ?? t['nome'] ?? 'Tipo')
                                   .toString(),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                         )
