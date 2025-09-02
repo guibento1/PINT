@@ -40,7 +40,7 @@ export default function Forums() {
   const [reportTipo, setReportTipo] = useState("");
   const [reportDescricao, setReportDescricao] = useState("");
 
-  const [sortBy, setSortBy] = useState("recent");
+  const [sortBy, setSortBy] = useState("top");
   const isFollowed =
     selectedTopico &&
     Array.isArray(subscribedTopics) &&

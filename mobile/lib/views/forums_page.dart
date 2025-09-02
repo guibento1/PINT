@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mobile/backend/server.dart';
 import '../middleware.dart';
+import 'package:mobile/components/submission_file_preview.dart';
 
 class ForumsPage extends StatefulWidget {
   const ForumsPage({super.key});
@@ -18,11 +19,13 @@ class _ForumsPageState extends State<ForumsPage> {
   List<Map<String, dynamic>> areas = [];
   List<Map<String, dynamic>> topicos = [];
   List<dynamic> posts = [];
+  // Global topic name cache (id -> designacao) to resolve names even when only the id is present in posts
+  Map<int, String> _topicMap = {};
 
   String? selectedCategoria;
   String? selectedArea;
   String? selectedTopico;
-  String sortBy = 'recent';
+  String sortBy = 'top';
   String topicSearch = '';
 
   bool loading = true;
@@ -44,8 +47,31 @@ class _ForumsPageState extends State<ForumsPage> {
 
   Future<void> _bootstrap() async {
     await _fetchCategories();
+    // Preload all topics to resolve names regardless of current filters
+    await _loadTopicMap();
     // Carregar posts iniciais (sem filtro de tópico) para mostrar conteúdo logo
     await _fetchPosts();
+  }
+
+  Future<void> _loadTopicMap() async {
+    try {
+      final res = await _server.getData('topico/list');
+      if (res is List) {
+        final map = <int, String>{};
+        for (final it in res) {
+          if (it is Map) {
+            final id = _asInt(it['idtopico'] ?? it['id']);
+            final name = (it['designacao'] ?? it['nome'])?.toString();
+            if (id != null && name != null && name.trim().isNotEmpty) {
+              map[id] = name.trim();
+            }
+          }
+        }
+        if (mounted) setState(() => _topicMap = map);
+      }
+    } catch (_) {
+      // ignore; best-effort cache
+    }
   }
 
   Future<void> _fetchCategories() async {
@@ -153,6 +179,56 @@ class _ForumsPageState extends State<ForumsPage> {
     }
   }
 
+  // Apply topicSearch: find a topic whose name contains the search and filter posts by it
+  Future<void> _applyTopicSearch() async {
+    final term = topicSearch.trim().toLowerCase();
+    if (term.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Escreva um tópico para procurar.')),
+        );
+      }
+      return;
+    }
+
+    // 1) Try current loaded topics list first
+    int? matchId;
+    for (final Map<String, dynamic> t in topicos) {
+      final name = (t['designacao'] ?? t['nome'])?.toString().toLowerCase();
+      if (name != null && name.contains(term)) {
+        matchId = _asInt(t['idtopico'] ?? t['idTopico'] ?? t['id']);
+        break;
+      }
+    }
+    // 2) Fallback to global cache
+    if (matchId == null && _topicMap.isNotEmpty) {
+      try {
+        matchId =
+            _topicMap.entries
+                .firstWhere(
+                  (e) => e.value.toLowerCase().contains(term),
+                  orElse: () => const MapEntry(-1, ''),
+                )
+                .key;
+        if (matchId == -1) matchId = null;
+      } catch (_) {}
+    }
+
+    if (matchId == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Nenhum tópico encontrado para '$term'.")),
+        );
+      }
+      return;
+    }
+
+    setState(() {
+      selectedTopico = matchId!.toString();
+    });
+    await _fetchPosts();
+  }
+
   // legacy signature kept previously is no longer used
 
   // Optimistic voting: update local state immediately, then call API; fallback to refetch on error
@@ -181,7 +257,7 @@ class _ForumsPageState extends State<ForumsPage> {
     } else {
       if (currentVote == false) {
         newVote = null;
-        delta = -1;
+        delta = 1; // fix: removing a downvote should increase by 1
       } else if (currentVote == true) {
         newVote = false;
         delta = -2;
@@ -315,6 +391,111 @@ class _ForumsPageState extends State<ForumsPage> {
     return null;
   }
 
+  String? _topicNameOf(Map<String, dynamic> p) {
+    final t = p['topico'];
+    if (t is Map) {
+      final n = (t['designacao'] ?? t['nome'] ?? t['title'])?.toString();
+      if (n != null && n.trim().isNotEmpty) return n.trim();
+    }
+    final flat =
+        (p['topicoNome'] ??
+            p['nomeTopico'] ??
+            p['designacaoTopico'] ??
+            p['topic'] ??
+            p['topicName']);
+    if (flat is String && flat.trim().isNotEmpty) return flat.trim();
+
+    // Try resolve by id using the loaded topics list
+    int? idtopico = _asInt(
+      p['idtopico'] ??
+          p['idTopico'] ??
+          p['topicoId'] ??
+          p['id_topico'] ??
+          p['id_topic'],
+    );
+    if (idtopico == null) {
+      if (t is int) idtopico = t;
+      if (t is String) idtopico = int.tryParse(t);
+      if (t is Map) {
+        idtopico = _asInt(t['idtopico'] ?? t['idTopico'] ?? t['id']);
+      }
+    }
+    if (idtopico != null) {
+      final dynamic found = topicos.firstWhere((e) {
+        final mid = _asInt(e['idtopico'] ?? e['idTopico'] ?? e['id']);
+        return mid == idtopico;
+      }, orElse: () => <String, dynamic>{});
+      if (found is Map && found.isNotEmpty) {
+        final name = (found['designacao'] ?? found['nome'])?.toString();
+        if (name != null && name.trim().isNotEmpty) return name.trim();
+      }
+      // As a last resort, if we're filtered by a specific topic, use that selection's name
+      if (selectedTopico != null && selectedTopico!.isNotEmpty) {
+        final selId = int.tryParse(selectedTopico!);
+        if (selId != null && selId == idtopico) {
+          final dynSel = topicos.firstWhere((e) {
+            final mid = _asInt(e['idtopico'] ?? e['idTopico'] ?? e['id']);
+            return mid == selId;
+          }, orElse: () => <String, dynamic>{});
+          if (dynSel.isNotEmpty) {
+            final name = (dynSel['designacao'] ?? dynSel['nome'])?.toString();
+            if (name != null && name.trim().isNotEmpty) return name.trim();
+          }
+        }
+      }
+      // Global cache fallback
+      final cached = _topicMap[idtopico];
+      if (cached != null && cached.trim().isNotEmpty) return cached.trim();
+    }
+    return null;
+  }
+
+  // Build unique topic items for the dropdown, filtered by topicSearch,
+  // and ensure the currently selectedTopico exists exactly once in the list.
+  List<DropdownMenuItem<String?>> _topicDropdownItems() {
+    final List<DropdownMenuItem<String?>> items = [
+      const DropdownMenuItem<String?>(
+        value: null,
+        child: Text('Todos os Tópicos'),
+      ),
+    ];
+
+    final seen = <String>{};
+    for (final t in topicos) {
+      final name = t['designacao']?.toString() ?? '';
+      if (topicSearch.isNotEmpty &&
+          !name.toLowerCase().contains(topicSearch.toLowerCase())) {
+        continue;
+      }
+      final id = t['idtopico']?.toString();
+      if (id == null || id.isEmpty) continue;
+      if (seen.add(id)) {
+        items.add(DropdownMenuItem<String?>(value: id, child: Text(name)));
+      }
+    }
+
+    // Ensure the selectedTopico appears exactly once in the list
+    if (selectedTopico != null && selectedTopico!.isNotEmpty) {
+      final alreadyIn = items.any((i) => i.value == selectedTopico);
+      if (!alreadyIn) {
+        final idInt = int.tryParse(selectedTopico!);
+        final fallbackName = idInt != null ? _topicMap[idInt] : null;
+        items.add(
+          DropdownMenuItem<String?>(
+            value: selectedTopico,
+            child: Text(
+              (fallbackName != null && fallbackName.isNotEmpty)
+                  ? fallbackName
+                  : 'Tópico #${selectedTopico!}',
+            ),
+          ),
+        );
+      }
+    }
+
+    return items;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -335,12 +516,12 @@ class _ForumsPageState extends State<ForumsPage> {
             ),
             const SizedBox(height: 16),
 
-            // Filtros (cartão) — alinhado com course_filter.dart
+            // Filtros (cartão) — layout igual ao CourseFilterWidget
             Container(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(20),
                 boxShadow: [
                   BoxShadow(
                     color: Colors.grey.withOpacity(0.3),
@@ -353,10 +534,23 @@ class _ForumsPageState extends State<ForumsPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Optional search within topics
+                  const Text(
+                    'Filtrar Posts',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF007BFF),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Text(
+                    'Pesquisar por Tópico:',
+                    style: TextStyle(color: Color(0xFF222B45)),
+                  ),
+                  const SizedBox(height: 8),
                   TextField(
                     decoration: InputDecoration(
-                      hintText: 'Pesquisar tópico...',
+                      hintText: 'Ex: JavaScript, Gestão...',
                       hintStyle: const TextStyle(color: Color(0xFF8F9BB3)),
                       filled: true,
                       fillColor: Colors.white,
@@ -382,262 +576,291 @@ class _ForumsPageState extends State<ForumsPage> {
                       setState(() {});
                     },
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 20),
                   Row(
                     children: [
-                      // Categoria
                       Expanded(
-                        child: DropdownButtonFormField<String?>(
-                          value: selectedCategoria,
-                          isExpanded: true,
-                          decoration: InputDecoration(
-                            filled: true,
-                            fillColor: Colors.white,
-                            labelText: 'Categoria',
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10.0),
-                              borderSide: const BorderSide(
-                                color: Color(0xFFD3DCE6),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Categoria:',
+                              style: TextStyle(color: Color(0xFF222B45)),
+                            ),
+                            const SizedBox(height: 8),
+                            DropdownButtonFormField<String?>(
+                              value: selectedCategoria,
+                              isExpanded: true,
+                              decoration: InputDecoration(
+                                filled: true,
+                                fillColor: Colors.white,
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(10.0),
+                                  borderSide: const BorderSide(
+                                    color: Color(0xFFD3DCE6),
+                                  ),
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(10.0),
+                                  borderSide: const BorderSide(
+                                    color: Color(0xFFD3DCE6),
+                                  ),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(10.0),
+                                  borderSide: const BorderSide(
+                                    color: Color(0xFF007BFF),
+                                  ),
+                                ),
+                                contentPadding: const EdgeInsets.symmetric(
+                                  vertical: 12,
+                                  horizontal: 15,
+                                ),
                               ),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10.0),
-                              borderSide: const BorderSide(
-                                color: Color(0xFFD3DCE6),
+                              hint: Text(
+                                _loadingCategorias
+                                    ? 'A carregar...'
+                                    : 'Todas as Categorias',
                               ),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10.0),
-                              borderSide: const BorderSide(
-                                color: Color(0xFF007BFF),
-                              ),
-                            ),
-                            contentPadding: const EdgeInsets.symmetric(
-                              vertical: 12,
-                              horizontal: 15,
-                            ),
-                          ),
-                          hint: Text(
-                            _loadingCategorias
-                                ? 'A carregar...'
-                                : 'Todas as Categorias',
-                          ),
-                          items: [
-                            const DropdownMenuItem<String?>(
-                              value: null,
-                              child: Text('Todas as Categorias'),
-                            ),
-                            ...categorias.map(
-                              (c) => DropdownMenuItem<String?>(
-                                value: c['idcategoria']?.toString(),
-                                child: Text(c['designacao']?.toString() ?? ''),
-                              ),
-                            ),
-                          ],
-                          onChanged:
-                              _loadingCategorias
-                                  ? null
-                                  : (val) async {
-                                    setState(() {
-                                      selectedCategoria = val;
-                                      selectedArea = null;
-                                      selectedTopico = null;
-                                      areas = [];
-                                      topicos = [];
-                                    });
-                                    if (val != null) {
-                                      await _fetchAreas();
-                                    } else {
-                                      await _fetchPosts();
-                                    }
-                                  },
-                          validator: (_) => _errorCategorias,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      // Área
-                      Expanded(
-                        child: DropdownButtonFormField<String?>(
-                          value: selectedArea,
-                          isExpanded: true,
-                          decoration: InputDecoration(
-                            filled: true,
-                            fillColor: Colors.white,
-                            labelText: 'Área',
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10.0),
-                              borderSide: const BorderSide(
-                                color: Color(0xFFD3DCE6),
-                              ),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10.0),
-                              borderSide: const BorderSide(
-                                color: Color(0xFFD3DCE6),
-                              ),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10.0),
-                              borderSide: const BorderSide(
-                                color: Color(0xFF007BFF),
-                              ),
-                            ),
-                            contentPadding: const EdgeInsets.symmetric(
-                              vertical: 12,
-                              horizontal: 15,
-                            ),
-                          ),
-                          hint: Text(
-                            _loadingAreas ? 'A carregar...' : 'Todas as Áreas',
-                          ),
-                          items: [
-                            const DropdownMenuItem<String?>(
-                              value: null,
-                              child: Text('Todas as Áreas'),
-                            ),
-                            ...areas.map(
-                              (a) => DropdownMenuItem<String?>(
-                                value: a['idarea']?.toString(),
-                                child: Text(a['designacao']?.toString() ?? ''),
-                              ),
-                            ),
-                          ],
-                          onChanged:
-                              (selectedCategoria == null ||
-                                      _loadingAreas ||
-                                      areas.isEmpty)
-                                  ? null
-                                  : (val) async {
-                                    setState(() {
-                                      selectedArea = val;
-                                      selectedTopico = null;
-                                      topicos = [];
-                                    });
-                                    if (val != null) {
-                                      await _fetchTopicos();
-                                    } else {
-                                      await _fetchPosts();
-                                    }
-                                  },
-                          validator: (_) => _errorAreas,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      // Tópico
-                      Expanded(
-                        child: DropdownButtonFormField<String?>(
-                          value: selectedTopico,
-                          isExpanded: true,
-                          decoration: InputDecoration(
-                            filled: true,
-                            fillColor: Colors.white,
-                            labelText: 'Tópico',
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10.0),
-                              borderSide: const BorderSide(
-                                color: Color(0xFFD3DCE6),
-                              ),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10.0),
-                              borderSide: const BorderSide(
-                                color: Color(0xFFD3DCE6),
-                              ),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10.0),
-                              borderSide: const BorderSide(
-                                color: Color(0xFF007BFF),
-                              ),
-                            ),
-                            contentPadding: const EdgeInsets.symmetric(
-                              vertical: 12,
-                              horizontal: 15,
-                            ),
-                          ),
-                          hint: Text(
-                            _loadingTopicos
-                                ? 'A carregar...'
-                                : 'Todos os Tópicos',
-                          ),
-                          items: [
-                            const DropdownMenuItem<String?>(
-                              value: null,
-                              child: Text('Todos os Tópicos'),
-                            ),
-                            ...topicos
-                                .where((t) {
-                                  final d =
-                                      t['designacao']
-                                          ?.toString()
-                                          .toLowerCase() ??
-                                      '';
-                                  return topicSearch.isEmpty ||
-                                      d.contains(topicSearch.toLowerCase());
-                                })
-                                .map(
-                                  (t) => DropdownMenuItem<String?>(
-                                    value: t['idtopico']?.toString(),
+                              items: [
+                                const DropdownMenuItem<String?>(
+                                  value: null,
+                                  child: Text('Todas as Categorias'),
+                                ),
+                                ...categorias.map(
+                                  (c) => DropdownMenuItem<String?>(
+                                    value: c['idcategoria']?.toString(),
                                     child: Text(
-                                      t['designacao']?.toString() ?? '',
+                                      c['designacao']?.toString() ?? '',
                                     ),
                                   ),
                                 ),
+                              ],
+                              onChanged:
+                                  _loadingCategorias
+                                      ? null
+                                      : (val) async {
+                                        setState(() {
+                                          selectedCategoria = val;
+                                          selectedArea = null;
+                                          selectedTopico = null;
+                                          areas = [];
+                                          topicos = [];
+                                        });
+                                        if (val != null) {
+                                          await _fetchAreas();
+                                        } else {
+                                          await _fetchPosts();
+                                        }
+                                      },
+                              validator: (_) => _errorCategorias,
+                            ),
                           ],
-                          onChanged:
-                              (selectedArea == null ||
-                                      _loadingTopicos ||
-                                      topicos.isEmpty)
-                                  ? null
-                                  : (val) async {
-                                    setState(() {
-                                      selectedTopico = val;
-                                    });
-                                    await _fetchPosts();
-                                  },
-                          validator: (_) => _errorTopicos,
+                        ),
+                      ),
+                      const SizedBox(width: 15),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Área:',
+                              style: TextStyle(color: Color(0xFF222B45)),
+                            ),
+                            const SizedBox(height: 8),
+                            DropdownButtonFormField<String?>(
+                              value: selectedArea,
+                              isExpanded: true,
+                              decoration: InputDecoration(
+                                filled: true,
+                                fillColor: Colors.white,
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(10.0),
+                                  borderSide: const BorderSide(
+                                    color: Color(0xFFD3DCE6),
+                                  ),
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(10.0),
+                                  borderSide: const BorderSide(
+                                    color: Color(0xFFD3DCE6),
+                                  ),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(10.0),
+                                  borderSide: const BorderSide(
+                                    color: Color(0xFF007BFF),
+                                  ),
+                                ),
+                                contentPadding: const EdgeInsets.symmetric(
+                                  vertical: 12,
+                                  horizontal: 15,
+                                ),
+                              ),
+                              hint: Text(
+                                _loadingAreas
+                                    ? 'A carregar...'
+                                    : 'Todas as Áreas',
+                              ),
+                              items: [
+                                const DropdownMenuItem<String?>(
+                                  value: null,
+                                  child: Text('Todas as Áreas'),
+                                ),
+                                ...areas.map(
+                                  (a) => DropdownMenuItem<String?>(
+                                    value: a['idarea']?.toString(),
+                                    child: Text(
+                                      a['designacao']?.toString() ?? '',
+                                    ),
+                                  ),
+                                ),
+                              ],
+                              onChanged:
+                                  (selectedCategoria == null ||
+                                          _loadingAreas ||
+                                          areas.isEmpty)
+                                      ? null
+                                      : (val) async {
+                                        setState(() {
+                                          selectedArea = val;
+                                          selectedTopico = null;
+                                          topicos = [];
+                                        });
+                                        if (val != null) {
+                                          await _fetchTopicos();
+                                        } else {
+                                          await _fetchPosts();
+                                        }
+                                      },
+                              validator: (_) => _errorAreas,
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 15),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Tópico:',
+                              style: TextStyle(color: Color(0xFF222B45)),
+                            ),
+                            const SizedBox(height: 8),
+                            Builder(
+                              builder: (context) {
+                                final items = _topicDropdownItems();
+                                final String? safeValue =
+                                    (selectedTopico != null &&
+                                            items.any(
+                                              (i) => i.value == selectedTopico,
+                                            ))
+                                        ? selectedTopico
+                                        : null;
+                                return DropdownButtonFormField<String?>(
+                                  value: safeValue,
+                                  isExpanded: true,
+                                  decoration: InputDecoration(
+                                    filled: true,
+                                    fillColor: Colors.white,
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(10.0),
+                                      borderSide: const BorderSide(
+                                        color: Color(0xFFD3DCE6),
+                                      ),
+                                    ),
+                                    enabledBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(10.0),
+                                      borderSide: const BorderSide(
+                                        color: Color(0xFFD3DCE6),
+                                      ),
+                                    ),
+                                    focusedBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(10.0),
+                                      borderSide: const BorderSide(
+                                        color: Color(0xFF007BFF),
+                                      ),
+                                    ),
+                                    contentPadding: const EdgeInsets.symmetric(
+                                      vertical: 12,
+                                      horizontal: 15,
+                                    ),
+                                  ),
+                                  hint: Text(
+                                    _loadingTopicos
+                                        ? 'A carregar...'
+                                        : 'Todos os Tópicos',
+                                  ),
+                                  items: items,
+                                  onChanged:
+                                      (selectedArea == null ||
+                                              _loadingTopicos ||
+                                              topicos.isEmpty)
+                                          ? null
+                                          : (val) async {
+                                            setState(() {
+                                              selectedTopico = val;
+                                            });
+                                            await _fetchPosts();
+                                          },
+                                  validator: (_) => _errorTopicos,
+                                );
+                              },
+                            ),
+                          ],
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 12),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    children: [
-                      ConstrainedBox(
-                        constraints: const BoxConstraints(
-                          minWidth: 180,
-                          maxWidth: 480,
-                        ),
-                        child: DropdownButtonFormField<String>(
-                          decoration: const InputDecoration(
-                            labelText: 'Ordenar por',
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.all(
-                                Radius.circular(12),
-                              ),
-                            ),
-                          ),
-                          isExpanded: true,
-                          value: sortBy,
-                          items: const [
-                            DropdownMenuItem(
-                              value: 'recent',
-                              child: Text('Mais recentes'),
-                            ),
-                            DropdownMenuItem(
-                              value: 'top',
-                              child: Text('Mais votados'),
-                            ),
-                          ],
-                          onChanged: (v) async {
-                            sortBy = v ?? 'recent';
-                            await _fetchPosts();
-                          },
-                        ),
+                  const SizedBox(height: 20),
+                  Text(
+                    'Ordenar por:',
+                    style: TextStyle(color: Color(0xFF222B45)),
+                  ),
+                  const SizedBox(height: 8),
+                  DropdownButtonFormField<String>(
+                    value: sortBy,
+                    decoration: InputDecoration(
+                      filled: true,
+                      fillColor: Colors.white,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10.0),
+                        borderSide: const BorderSide(color: Color(0xFFD3DCE6)),
                       ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10.0),
+                        borderSide: const BorderSide(color: Color(0xFFD3DCE6)),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10.0),
+                        borderSide: const BorderSide(color: Color(0xFF007BFF)),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        vertical: 12,
+                        horizontal: 15,
+                      ),
+                    ),
+                    items: const [
+                      DropdownMenuItem(
+                        value: 'recent',
+                        child: Text('Mais recentes'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'top',
+                        child: Text('Mais votados'),
+                      ),
+                    ],
+                    onChanged: (v) async {
+                      sortBy = v ?? 'recent';
+                      await _fetchPosts();
+                    },
+                    isExpanded: true,
+                  ),
+                  const SizedBox(height: 30),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
                       OutlinedButton(
                         onPressed: () async {
                           setState(() {
@@ -661,31 +884,54 @@ class _ForumsPageState extends State<ForumsPage> {
                             vertical: 12,
                           ),
                         ),
-                        child: const Text('Limpar filtros'),
+                        child: const Text('Limpar Filtros'),
                       ),
-                      ElevatedButton.icon(
+                      const SizedBox(width: 10),
+                      ElevatedButton(
+                        onPressed: _applyTopicSearch,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF00B0DA),
-                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 12,
+                          ),
                         ),
-                        onPressed:
-                            (selectedTopico == null || selectedTopico!.isEmpty)
-                                ? null
-                                : () => context
-                                    .push(
-                                      '/forum/create',
-                                      extra: {
-                                        'idtopico': selectedTopico,
-                                        'topicos': topicos,
-                                      },
-                                    )
-                                    .then((_) => _fetchPosts()),
-                        icon: const Icon(Icons.add),
-                        label: const Text('Criar Post'),
+                        child: const Text(
+                          'Aplicar Filtros',
+                          style: TextStyle(color: Colors.white),
+                        ),
                       ),
                     ],
                   ),
                 ],
+              ),
+            ),
+
+            // Botão criar post (fora do cartão, como ação separada)
+            Align(
+              alignment: Alignment.centerRight,
+              child: Padding(
+                padding: const EdgeInsets.only(top: 8.0),
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF00B0DA),
+                    foregroundColor: Colors.white,
+                  ),
+                  onPressed:
+                      (selectedTopico == null || selectedTopico!.isEmpty)
+                          ? null
+                          : () => context
+                              .push(
+                                '/forum_create',
+                                extra: {'idtopico': selectedTopico},
+                              )
+                              .then((_) => _fetchPosts()),
+                  icon: const Icon(Icons.add),
+                  label: const Text('Criar Post'),
+                ),
               ),
             ),
 
@@ -861,6 +1107,40 @@ class _ForumsPageState extends State<ForumsPage> {
                                     ),
                                   ],
                                 ),
+                                // Topic name (if available)
+                                Builder(
+                                  builder: (_) {
+                                    final topic = _topicNameOf(p);
+                                    if (topic == null || topic.isEmpty) {
+                                      return const SizedBox.shrink();
+                                    }
+                                    return Padding(
+                                      padding: const EdgeInsets.only(top: 6.0),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          const Icon(
+                                            Icons.label_important_outline,
+                                            size: 14,
+                                            color: Color(0xFF6C757D),
+                                          ),
+                                          const SizedBox(width: 6),
+                                          Flexible(
+                                            child: Text(
+                                              'Tópico: $topic',
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: const TextStyle(
+                                                fontSize: 12,
+                                                color: Color(0xFF6C757D),
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  },
+                                ),
                                 const SizedBox(height: 6),
                                 Text(
                                   titulo.toString(),
@@ -881,6 +1161,71 @@ class _ForumsPageState extends State<ForumsPage> {
                                     fontSize: 14,
                                     color: Color(0xFF49454F),
                                   ),
+                                ),
+                                // Attachment preview (if any)
+                                Builder(
+                                  builder: (_) {
+                                    // Resolve URL from common keys
+                                    final raw =
+                                        p['anexo'] ??
+                                        p['anexoUrl'] ??
+                                        p['attachment'] ??
+                                        p['ficheiro'];
+                                    final url = raw?.toString();
+                                    if (url == null || url.isEmpty) {
+                                      return const SizedBox.shrink();
+                                    }
+                                    final resolved =
+                                        url.startsWith('http')
+                                            ? url
+                                            : '${_server.urlAPI}$url';
+
+                                    // Try to determine a human filename similarly to post details
+                                    String? fileName;
+                                    // 1) Direct known flat keys
+                                    for (final k in const [
+                                      'anexoNome',
+                                      'nomeAnexo',
+                                      'nomeFicheiro',
+                                      'ficheiroNome',
+                                      'filename',
+                                      'anexoFilename',
+                                      'anexo_name',
+                                    ]) {
+                                      final v = p[k];
+                                      if (v != null &&
+                                          v.toString().trim().isNotEmpty) {
+                                        fileName = v.toString().trim();
+                                        break;
+                                      }
+                                    }
+                                    // 2) Nested anexo object
+                                    if (fileName == null) {
+                                      final a = p['anexo'];
+                                      if (a is Map) {
+                                        for (final k in const [
+                                          'filename',
+                                          'nome',
+                                          'name',
+                                        ]) {
+                                          final v = a[k];
+                                          if (v != null &&
+                                              v.toString().trim().isNotEmpty) {
+                                            fileName = v.toString().trim();
+                                            break;
+                                          }
+                                        }
+                                      }
+                                    }
+
+                                    return Padding(
+                                      padding: const EdgeInsets.only(top: 8.0),
+                                      child: SubmissionFilePreview(
+                                        url: resolved,
+                                        filename: fileName,
+                                      ),
+                                    );
+                                  },
                                 ),
                                 const SizedBox(height: 8),
                                 // Footer meta: comments count

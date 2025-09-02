@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mobile/backend/server.dart';
+import 'package:mobile/components/upload_file.dart';
+import 'package:file_picker/file_picker.dart';
 
 class CreatePostPage extends StatefulWidget {
   final String idtopico;
@@ -14,6 +16,7 @@ class _CreatePostPageState extends State<CreatePostPage> {
   final _formKey = GlobalKey<FormState>();
   final _tituloCtrl = TextEditingController();
   final _conteudoCtrl = TextEditingController();
+  PlatformFile? _file;
   bool _submitting = false;
   String? _error;
 
@@ -33,25 +36,59 @@ class _CreatePostPageState extends State<CreatePostPage> {
       _error = null;
     });
     try {
-      final payload = {
-        'titulo': _tituloCtrl.text.trim(),
-        'conteudo': _conteudoCtrl.text.trim(),
+      final tituloVal = _tituloCtrl.text.trim();
+      final conteudoVal = _conteudoCtrl.text.trim();
+
+      final fields = <String, String>{
+        'titulo': tituloVal,
+        'conteudo': conteudoVal,
+        'info': '{"titulo":"$tituloVal","conteudo":"$conteudoVal"}',
       };
-      final res = await _server.postData(
-        'forum/post/topico/${widget.idtopico}',
-        payload,
-      );
-      final created = (res is Map<String, dynamic>) ? res : <String, dynamic>{};
-      final newId = created['idpost'] ?? created['id'];
-      if (mounted) {
-        if (newId != null) {
-          context.go('/forum/post/$newId');
-        } else {
-          context.pop();
+
+      Map<String, dynamic>? res;
+      if (_file != null) {
+        final path = _file!.path;
+        if (path != null && path.isNotEmpty) {
+          // Multipart with file by path
+          res = await _server.postMultipartData(
+            'forum/post/topico/${widget.idtopico}',
+            fields,
+            'anexo',
+            path,
+          );
+        } else if (_file!.bytes != null) {
+          // Multipart with in-memory bytes
+          res = await _server.postMultipartDataBytes(
+            'forum/post/topico/${widget.idtopico}',
+            fields,
+            'anexo',
+            _file!.bytes!,
+            _file!.name,
+          );
         }
       }
+
+      // If no file or previous branch didn't set res, send fields-only multipart
+      res ??= await _server.postMultipartFieldsOnly(
+        'forum/post/topico/${widget.idtopico}',
+        fields,
+      );
+
+      final created = res ?? <String, dynamic>{};
+      final newId = created['idpost'] ?? created['id'];
+      if (!mounted) return;
+      if (newId != null) {
+        context.go('/forum_post/$newId');
+      } else {
+        context.pop();
+      }
     } catch (e) {
-      _error = 'Erro ao criar post. Tente novamente.';
+      final msg = e.toString();
+      setState(
+        () =>
+            _error =
+                msg.isNotEmpty ? msg : 'Erro ao criar post. Tente novamente.',
+      );
     } finally {
       if (mounted) setState(() => _submitting = false);
     }
@@ -61,18 +98,31 @@ class _CreatePostPageState extends State<CreatePostPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF6F9FB),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFFF6F9FB),
+        elevation: 0,
+        leading: Container(
+          margin: const EdgeInsets.only(left: 8, top: 6, bottom: 6),
+          decoration: const BoxDecoration(
+            color: Color(0xFF007BFF),
+            shape: BoxShape.circle,
+          ),
+          child: IconButton(
+            icon: const Icon(Icons.arrow_back, color: Colors.white),
+            onPressed: () => context.go('/forums'),
+          ),
+        ),
+        title: const Text(
+          'Criar Post',
+          style: TextStyle(
+            color: Color(0xFF007BFF),
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
       body: ListView(
         padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 20.0),
         children: [
-          const Text(
-            'Criar Post',
-            style: TextStyle(
-              fontSize: 25,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF007BFF),
-            ),
-          ),
-          const SizedBox(height: 16),
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -95,7 +145,7 @@ class _CreatePostPageState extends State<CreatePostPage> {
                   TextFormField(
                     controller: _tituloCtrl,
                     decoration: const InputDecoration(
-                      labelText: 'Título',
+                      labelText: 'Título:',
                       border: OutlineInputBorder(),
                     ),
                     validator:
@@ -109,7 +159,7 @@ class _CreatePostPageState extends State<CreatePostPage> {
                     controller: _conteudoCtrl,
                     maxLines: 8,
                     decoration: const InputDecoration(
-                      labelText: 'Conteúdo',
+                      labelText: 'Conteúdo:',
                       border: OutlineInputBorder(),
                     ),
                     validator:
@@ -119,6 +169,13 @@ class _CreatePostPageState extends State<CreatePostPage> {
                                 : null,
                   ),
                   const SizedBox(height: 16),
+                  UploadFile(
+                    id: 'post-anexo',
+                    label: 'Anexo (opcional):',
+                    accept: '.pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,image/*',
+                    onSelect: (pf) => setState(() => _file = pf),
+                  ),
+                  const SizedBox(height: 12),
                   if (_error != null) ...[
                     Text(_error!, style: const TextStyle(color: Colors.red)),
                     const SizedBox(height: 8),
@@ -126,7 +183,8 @@ class _CreatePostPageState extends State<CreatePostPage> {
                   Row(
                     children: [
                       OutlinedButton(
-                        onPressed: _submitting ? null : () => context.pop(),
+                        onPressed:
+                            _submitting ? null : () => context.go('/forums'),
                         child: const Text('Cancelar'),
                       ),
                       const Spacer(),

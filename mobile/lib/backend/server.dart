@@ -262,6 +262,68 @@ class Servidor {
     }
   }
 
+  // Multipart request with only fields (no file). Useful to always send FormData like the web does.
+  Future<Map<String, dynamic>?> postMultipartFieldsOnly(
+    String endpoint,
+    Map<String, String> fields,
+  ) async {
+    try {
+      final headers = await _getAuthHeaders();
+      final request = http.MultipartRequest('POST', _buildUri(endpoint));
+      request.fields.addAll(fields);
+      request.headers.addAll(headers);
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return json.decode(response.body);
+      } else if (response.statusCode == 401 || response.statusCode == 403) {
+        await clearToken();
+        return null;
+      } else {
+        print('Failed to send multipart fields: ${response.statusCode}');
+        print('Response body: ${response.body}');
+        return null;
+      }
+    } catch (e) {
+      print('Error during multipart (fields-only) POST request: $e');
+      return null;
+    }
+  }
+
+  // Multipart request using in-memory bytes for the file (when a path is not available)
+  Future<Map<String, dynamic>?> postMultipartDataBytes(
+    String endpoint,
+    Map<String, String> fields,
+    String fileField,
+    List<int> bytes,
+    String filename,
+  ) async {
+    try {
+      final headers = await _getAuthHeaders();
+      final request = http.MultipartRequest('POST', _buildUri(endpoint));
+      request.fields.addAll(fields);
+      request.files.add(
+        http.MultipartFile.fromBytes(fileField, bytes, filename: filename),
+      );
+      request.headers.addAll(headers);
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return json.decode(response.body);
+      } else if (response.statusCode == 401 || response.statusCode == 403) {
+        await clearToken();
+        return null;
+      } else {
+        print('Failed to send multipart bytes: ${response.statusCode}');
+        print('Response body: ${response.body}');
+        return null;
+      }
+    } catch (e) {
+      print('Error during multipart (bytes) POST request: $e');
+      return null;
+    }
+  }
+
   Future<Map<String, dynamic>?> putMultipartData(
     String endpoint,
     Map<String, String> fields,

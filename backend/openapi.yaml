@@ -68,7 +68,7 @@ components:
         roles:
           type: array
           items:
-            $ref: '#/components/schemas/Role'
+            $ref: "#/components/schemas/Role"
     LoginRequest:
       type: object
       required: [email, password]
@@ -100,7 +100,7 @@ components:
         roles:
           type: array
           items:
-            $ref: '#/components/schemas/Role'
+            $ref: "#/components/schemas/Role"
         accessToken:
           type: string
     Categoria:
@@ -129,7 +129,7 @@ components:
         areas:
           type: array
           items:
-            $ref: '#/components/schemas/Area'
+            $ref: "#/components/schemas/Area"
     Curso:
       type: object
       properties:
@@ -181,7 +181,7 @@ components:
         materiais:
           type: array
           items:
-            $ref: '#/components/schemas/Material'
+            $ref: "#/components/schemas/Material"
     Sessao:
       type: object
       properties:
@@ -207,7 +207,7 @@ components:
         materiais:
           type: array
           items:
-            $ref: '#/components/schemas/Material'
+            $ref: "#/components/schemas/Material"
     Material:
       type: object
       properties:
@@ -330,7 +330,7 @@ paths:
       tags: [Root]
       summary: Root endpoint
       responses:
-        '200':
+        "200":
           description: Texto simples informativo
           content:
             text/plain:
@@ -350,15 +350,15 @@ paths:
           schema: { type: string, format: email }
           required: true
       responses:
-        '200':
+        "200":
           description: Utilizador
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/User'
-        '400': { description: Pedido inválido }
-        '403': { description: Proibido }
-        '404': { description: Não encontrado }
+                $ref: "#/components/schemas/User"
+        "400": { description: Pedido inválido }
+        "403": { description: Proibido }
+        "404": { description: Não encontrado }
 
   /utilizador/list:
     get:
@@ -368,15 +368,15 @@ paths:
       security:
         - bearerAuth: []
       responses:
-        '200':
+        "200":
           description: Lista de utilizadores
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/User'
-        '403': { description: Proibido }
+                  $ref: "#/components/schemas/User"
+        "403": { description: Proibido }
 
   /utilizador/login:
     post:
@@ -387,18 +387,18 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/LoginRequest'
+              $ref: "#/components/schemas/LoginRequest"
       responses:
-        '200':
+        "200":
           description: Autenticado
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/LoginResponse'
-        '400': { description: Pedido inválido }
-        '401': { description: Credenciais inválidas }
-        '403': { description: Conta desativada ou email não confirmado }
-        '404': { description: Utilizador não encontrado }
+                $ref: "#/components/schemas/LoginResponse"
+        "400": { description: Pedido inválido }
+        "401": { description: Credenciais inválidas }
+        "403": { description: Conta desativada ou email não confirmado }
+        "404": { description: Utilizador não encontrado }
 
   /utilizador/id/{id}:
     get:
@@ -413,14 +413,14 @@ paths:
           required: true
           schema: { type: integer }
       responses:
-        '200':
+        "200":
           description: Utilizador
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/User'
-        '403': { description: Proibido }
-        '404': { description: Não encontrado }
+                $ref: "#/components/schemas/User"
+        "403": { description: Proibido }
+        "404": { description: Não encontrado }
     put:
       tags: [Utilizador]
       summary: Atualizar utilizador
@@ -447,14 +447,14 @@ paths:
                   description: JSON stringificado com campos a atualizar
                   example: '{"nome":"Novo Nome","email":"user@dominio.com","password":"nova","morada":"..","telefone":"..","roles":["admin","formando"]}'
       responses:
-        '200':
+        "200":
           description: Utilizador atualizado
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/User'
-        '403': { description: Proibido }
-        '404': { description: Não encontrado }
+                $ref: "#/components/schemas/User"
+        "403": { description: Proibido }
+        "404": { description: Não encontrado }
     delete:
       tags: [Utilizador]
       summary: Desativar/remover utilizador
@@ -467,9 +467,9 @@ paths:
           required: true
           schema: { type: integer }
       responses:
-        '200': { description: Utilizador desativado }
-        '403': { description: Proibido }
-        '404': { description: Não encontrado }
+        "200": { description: Utilizador desativado }
+        "403": { description: Proibido }
+        "404": { description: Não encontrado }
 
   /utilizador/activate/{id}:
     patch:
@@ -484,9 +484,9 @@ paths:
           required: true
           schema: { type: integer }
       responses:
-        '200': { description: Ativado }
-        '403': { description: Proibido }
-        '404': { description: Não encontrado }
+        "200": { description: Ativado }
+        "403": { description: Proibido }
+        "404": { description: Não encontrado }
 
   /utilizador/register:
     post:
@@ -503,8 +503,8 @@ paths:
                 nome: { type: string }
                 email: { type: string, format: email }
       responses:
-        '200': { description: Email de confirmação enviado }
-        '409': { description: Conflito (utilizador existente) }
+        "200": { description: Email de confirmação enviado }
+        "409": { description: Conflito (utilizador existente) }
 
   /utilizador/resetpassword:
     post:
@@ -522,12 +522,12 @@ paths:
               properties:
                 password: { type: string, format: password }
       responses:
-        '200':
+        "200":
           description: Utilizador
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/User'
+                $ref: "#/components/schemas/User"
 
   /utilizador/admin/id/{id}:
     get:
@@ -542,8 +542,8 @@ paths:
           required: true
           schema: { type: integer }
       responses:
-        '200': { description: Utilizador básico }
-        '404': { description: Não encontrado }
+        "200": { description: Utilizador básico }
+        "404": { description: Não encontrado }
 
   /utilizador/formador/id/{id}:
     get:
@@ -557,8 +557,8 @@ paths:
           required: true
           schema: { type: integer }
       responses:
-        '200': { description: Utilizador básico }
-        '404': { description: Não encontrado }
+        "200": { description: Utilizador básico }
+        "404": { description: Não encontrado }
 
   /categoria/list:
     get:
@@ -567,13 +567,13 @@ paths:
       security:
         - bearerAuth: []
       responses:
-        '200':
+        "200":
           description: Lista
           content:
             application/json:
               schema:
                 type: array
-                items: { $ref: '#/components/schemas/Categoria' }
+                items: { $ref: "#/components/schemas/Categoria" }
 
   /categoria/id/{id}:
     get:
@@ -587,8 +587,8 @@ paths:
           required: true
           schema: { type: integer }
       responses:
-        '200': { description: Categoria }
-        '404': { description: Não encontrado }
+        "200": { description: Categoria }
+        "404": { description: Não encontrado }
     put:
       tags: [Categoria]
       summary: Atualizar categoria
@@ -610,9 +610,9 @@ paths:
               properties:
                 designacao: { type: string }
       responses:
-        '200': { description: Atualizado }
-        '400': { description: Pedido inválido }
-        '404': { description: Não encontrado }
+        "200": { description: Atualizado }
+        "400": { description: Pedido inválido }
+        "404": { description: Não encontrado }
     delete:
       tags: [Categoria]
       summary: Remover categoria
@@ -625,9 +625,9 @@ paths:
           required: true
           schema: { type: integer }
       responses:
-        '200': { description: Removido }
-        '404': { description: Não encontrado }
-        '409': { description: Dependências existentes }
+        "200": { description: Removido }
+        "404": { description: Não encontrado }
+        "409": { description: Dependências existentes }
 
   /categoria/id/{id}/list:
     get:
@@ -641,13 +641,13 @@ paths:
           required: true
           schema: { type: integer }
       responses:
-        '200':
+        "200":
           description: Lista de áreas
           content:
             application/json:
               schema:
                 type: array
-                items: { $ref: '#/components/schemas/Area' }
+                items: { $ref: "#/components/schemas/Area" }
 
   /categoria:
     post:
@@ -666,7 +666,7 @@ paths:
               properties:
                 designacao: { type: string }
       responses:
-        '201': { description: Criada }
+        "201": { description: Criada }
 
   /area/list:
     get:
@@ -675,13 +675,13 @@ paths:
       security:
         - bearerAuth: []
       responses:
-        '200':
+        "200":
           description: Lista
           content:
             application/json:
               schema:
                 type: array
-                items: { $ref: '#/components/schemas/Area' }
+                items: { $ref: "#/components/schemas/Area" }
 
   /area/id/{id}:
     get:
@@ -695,8 +695,8 @@ paths:
           required: true
           schema: { type: integer }
       responses:
-        '200': { description: Área }
-        '404': { description: Não encontrado }
+        "200": { description: Área }
+        "404": { description: Não encontrado }
     put:
       tags: [Area]
       summary: Atualizar área
@@ -718,9 +718,9 @@ paths:
                 designacao: { type: string }
                 categoria: { type: integer }
       responses:
-        '200': { description: Atualizado }
-        '400': { description: Pedido inválido }
-        '404': { description: Não encontrado }
+        "200": { description: Atualizado }
+        "400": { description: Pedido inválido }
+        "404": { description: Não encontrado }
     delete:
       tags: [Area]
       summary: Remover área
@@ -733,9 +733,9 @@ paths:
           required: true
           schema: { type: integer }
       responses:
-        '200': { description: Removida }
-        '404': { description: Não encontrado }
-        '409': { description: Dependências existentes }
+        "200": { description: Removida }
+        "404": { description: Não encontrado }
+        "409": { description: Dependências existentes }
 
   /area/id/{id}/list:
     get:
@@ -749,13 +749,13 @@ paths:
           required: true
           schema: { type: integer }
       responses:
-        '200':
+        "200":
           description: Lista de tópicos
           content:
             application/json:
               schema:
                 type: array
-                items: { $ref: '#/components/schemas/Topico' }
+                items: { $ref: "#/components/schemas/Topico" }
 
   /area:
     post:
@@ -775,7 +775,7 @@ paths:
                 designacao: { type: string }
                 categoria: { type: integer }
       responses:
-        '201': { description: Criada }
+        "201": { description: Criada }
 
   /topico/list:
     get:
@@ -784,13 +784,13 @@ paths:
       security:
         - bearerAuth: []
       responses:
-        '200':
+        "200":
           description: Lista
           content:
             application/json:
               schema:
                 type: array
-                items: { $ref: '#/components/schemas/Topico' }
+                items: { $ref: "#/components/schemas/Topico" }
 
   /topico/id/{id}:
     get:
@@ -804,8 +804,8 @@ paths:
           required: true
           schema: { type: integer }
       responses:
-        '200': { description: Tópico }
-        '404': { description: Não encontrado }
+        "200": { description: Tópico }
+        "404": { description: Não encontrado }
     put:
       tags: [Topico]
       summary: Atualizar tópico
@@ -829,9 +829,9 @@ paths:
                   type: array
                   items: { type: integer }
       responses:
-        '200': { description: Atualizado }
-        '400': { description: Pedido inválido }
-        '404': { description: Não encontrado }
+        "200": { description: Atualizado }
+        "400": { description: Pedido inválido }
+        "404": { description: Não encontrado }
     delete:
       tags: [Topico]
       summary: Remover tópico
@@ -844,9 +844,9 @@ paths:
           required: true
           schema: { type: integer }
       responses:
-        '200': { description: Removido }
-        '404': { description: Não encontrado }
-        '409': { description: Dependências }
+        "200": { description: Removido }
+        "404": { description: Não encontrado }
+        "409": { description: Dependências }
 
   /topico/id/{id}/nobjetos:
     get:
@@ -860,7 +860,7 @@ paths:
           required: true
           schema: { type: integer }
       responses:
-        '200':
+        "200":
           description: Contagens
           content:
             application/json:
@@ -890,7 +890,7 @@ paths:
                   type: array
                   items: { type: integer }
       responses:
-        '201': { description: Criado }
+        "201": { description: Criado }
 
   /topico/id/{id}/subscribe:
     post:
@@ -904,7 +904,7 @@ paths:
           required: true
           schema: { type: integer }
       responses:
-        '200': { description: Subscrito }
+        "200": { description: Subscrito }
 
   /topico/id/{id}/unsubscribe:
     delete:
@@ -918,7 +918,7 @@ paths:
           required: true
           schema: { type: integer }
       responses:
-        '200': { description: Desinscrito }
+        "200": { description: Desinscrito }
 
   /topico/subscricoes:
     get:
@@ -927,7 +927,7 @@ paths:
       security:
         - bearerAuth: []
       responses:
-        '200': { description: Lista de tópicos }
+        "200": { description: Lista de tópicos }
 
   /notificacao/list:
     get:
@@ -936,7 +936,7 @@ paths:
       security:
         - bearerAuth: []
       responses:
-        '200': { description: Lista de notificações }
+        "200": { description: Lista de notificações }
 
   /notificacao/list/canais:
     get:
@@ -945,7 +945,7 @@ paths:
       security:
         - bearerAuth: []
       responses:
-        '200': { description: Lista de canais }
+        "200": { description: Lista de canais }
 
   /notificacao/list/canal/{idCanal}:
     get:
@@ -959,7 +959,7 @@ paths:
           required: true
           schema: { type: integer }
       responses:
-        '200': { description: Lista de notificações }
+        "200": { description: Lista de notificações }
 
   /notificacao/list/subscricoes/{idutilizador}:
     get:
@@ -974,8 +974,8 @@ paths:
           required: true
           schema: { type: integer }
       responses:
-        '200': { description: Lista de IDs de canais }
-        '403': { description: Proibido }
+        "200": { description: Lista de IDs de canais }
+        "403": { description: Proibido }
 
   /notificacao/create/general:
     post:
@@ -994,7 +994,7 @@ paths:
                 titulo: { type: string }
                 conteudo: { type: string }
       responses:
-        '201': { description: Enviada }
+        "201": { description: Enviada }
 
   /notificacao/create/admin:
     post:
@@ -1013,7 +1013,7 @@ paths:
                 titulo: { type: string }
                 conteudo: { type: string }
       responses:
-        '201': { description: Enviada }
+        "201": { description: Enviada }
 
   /notificacao/create/course:
     post:
@@ -1033,7 +1033,7 @@ paths:
                 titulo: { type: string }
                 conteudo: { type: string }
       responses:
-        '201': { description: Enviada }
+        "201": { description: Enviada }
 
   /notificacao/create/utilizador/{idutilizador}:
     post:
@@ -1057,7 +1057,7 @@ paths:
                 titulo: { type: string }
                 conteudo: { type: string }
       responses:
-        '201': { description: Enviada }
+        "201": { description: Enviada }
 
   /notificacao/devicesub:
     post:
@@ -1075,7 +1075,7 @@ paths:
               properties:
                 device: { type: string, description: Token do dispositivo }
       responses:
-        '200': { description: Subscrito }
+        "200": { description: Subscrito }
 
   /notificacao/deviceregister:
     post:
@@ -1093,7 +1093,7 @@ paths:
               properties:
                 device: { type: string }
       responses:
-        '200': { description: Registado }
+        "200": { description: Registado }
 
   /curso/list:
     get:
@@ -1124,13 +1124,13 @@ paths:
           name: sincrono
           schema: { type: boolean }
       responses:
-        '200':
+        "200":
           description: Lista de cursos
           content:
             application/json:
               schema:
                 type: array
-                items: { $ref: '#/components/schemas/Curso' }
+                items: { $ref: "#/components/schemas/Curso" }
 
   /curso/{id}:
     get:
@@ -1144,8 +1144,21 @@ paths:
           required: true
           schema: { type: integer }
       responses:
-        '200': { description: Curso e conteúdo detalhado }
-        '404': { description: Não encontrado ou não acessível }
+        "200": { description: Curso e conteúdo detalhado }
+        "404": { description: Não encontrado ou não acessível }
+    delete:
+      tags: [Curso]
+      summary: Remover curso (admin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        "200": { description: Removido }
+        "404": { description: Não encontrado }
 
   /curso/inscricoes/utilizador/{idutilizador}:
     get:
@@ -1163,8 +1176,8 @@ paths:
           name: search
           schema: { type: string }
       responses:
-        '200': { description: Lista de cursos }
-        '403': { description: Proibido }
+        "200": { description: Lista de cursos }
+        "403": { description: Proibido }
 
   /curso/inscricoes/{id}:
     get:
@@ -1178,8 +1191,11 @@ paths:
           required: true
           schema: { type: integer }
       responses:
-        '200': { description: Lista de utilizadores com idformando e nota (se aplicável) }
-        '403': { description: Proibido }
+        "200":
+          {
+            description: Lista de utilizadores com idformando e nota (se aplicável),
+          }
+        "403": { description: Proibido }
 
   /curso/{id}/inscrever:
     post:
@@ -1202,11 +1218,11 @@ paths:
               properties:
                 utilizador: { type: integer }
       responses:
-        '201': { description: Inscrito }
-        '400': { description: Inválido }
-        '403': { description: Proibido }
-        '404': { description: Não encontrado }
-        '409': { description: Já inscrito ou conflito }
+        "201": { description: Inscrito }
+        "400": { description: Inválido }
+        "403": { description: Proibido }
+        "404": { description: Não encontrado }
+        "409": { description: Já inscrito ou conflito }
 
   /curso/{id}/sair:
     post:
@@ -1229,23 +1245,8 @@ paths:
               properties:
                 utilizador: { type: integer }
       responses:
-        '200': { description: Removido }
-        '404': { description: Inscrição não encontrada }
-
-  /curso/{id}:
-    delete:
-      tags: [Curso]
-      summary: Remover curso (admin)
-      security:
-        - bearerAuth: []
-      parameters:
-        - in: path
-          name: id
-          required: true
-          schema: { type: integer }
-      responses:
-        '200': { description: Removido }
-        '404': { description: Não encontrado }
+        "200": { description: Removido }
+        "404": { description: Inscrição não encontrada }
 
   /curso/cursoassincrono:
     post:
@@ -1268,7 +1269,7 @@ paths:
                   type: string
                   description: JSON com {nome, disponivel, iniciodeinscricoes, fimdeinscricoes?, planocurricular?, topicos[]}
       responses:
-        '201': { description: Criado }
+        "201": { description: Criado }
 
   /curso/cursoassincrono/{id}:
     put:
@@ -1295,7 +1296,7 @@ paths:
                   type: string
                   description: JSON com campos a atualizar
       responses:
-        '200': { description: Atualizado }
+        "200": { description: Atualizado }
 
   /curso/licao/{idcursoassinc}:
     post:
@@ -1319,7 +1320,7 @@ paths:
                 titulo: { type: string }
                 descricao: { type: string }
       responses:
-        '201': { description: Criada }
+        "201": { description: Criada }
 
   /curso/licao/{idlicao}:
     delete:
@@ -1333,8 +1334,8 @@ paths:
           required: true
           schema: { type: integer }
       responses:
-        '200': { description: Removida }
-        '404': { description: Não encontrada }
+        "200": { description: Removida }
+        "404": { description: Não encontrada }
     put:
       tags: [Curso]
       summary: Atualizar lição (admin)
@@ -1355,7 +1356,7 @@ paths:
                 titulo: { type: string }
                 descricao: { type: string }
       responses:
-        '200': { description: Atualizada }
+        "200": { description: Atualizada }
 
   /curso/licao/{idlicao}/material:
     post:
@@ -1383,7 +1384,7 @@ paths:
                   type: string
                   description: JSON com {titulo, tipo, link?}
       responses:
-        '201': { description: Material criado }
+        "201": { description: Material criado }
 
   /curso/licao/{idlicao}/material/{idmaterial}:
     delete:
@@ -1401,7 +1402,7 @@ paths:
           required: true
           schema: { type: integer }
       responses:
-        '201': { description: Removido }
+        "201": { description: Removido }
 
   /curso/formador/{idformador}:
     get:
@@ -1433,7 +1434,7 @@ paths:
           style: form
           explode: true
       responses:
-        '200': { description: Lista de cursos }
+        "200": { description: Lista de cursos }
 
   /curso/cursosincrono:
     post:
@@ -1456,7 +1457,7 @@ paths:
                   type: string
                   description: JSON com {nome, disponivel, iniciodeinscricoes, fimdeinscricoes?, planocurricular?, topicos[], formador, nhoras, inicio, fim, maxinscricoes?}
       responses:
-        '201': { description: Criado }
+        "201": { description: Criado }
 
   /curso/cursosincrono/{id}:
     put:
@@ -1483,7 +1484,7 @@ paths:
                   type: string
                   description: JSON com campos do curso e do cursosincrono
       responses:
-        '200': { description: Atualizado }
+        "200": { description: Atualizado }
 
   /curso/sessao/{idcursosinc}:
     post:
@@ -1502,7 +1503,15 @@ paths:
           application/json:
             schema:
               type: object
-              required: [titulo, descricao, linksessao, datahora, duracaohoras, plataformavideoconferencia]
+              required:
+                [
+                  titulo,
+                  descricao,
+                  linksessao,
+                  datahora,
+                  duracaohoras,
+                  plataformavideoconferencia,
+                ]
               properties:
                 titulo: { type: string }
                 descricao: { type: string }
@@ -1511,11 +1520,11 @@ paths:
                 duracaohoras: { type: number }
                 plataformavideoconferencia: { type: string }
       responses:
-        '201':
+        "201":
           description: Sessão criada
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/Sessao' }
+              schema: { $ref: "#/components/schemas/Sessao" }
 
   /curso/sessao/{idsessao}:
     delete:
@@ -1529,8 +1538,8 @@ paths:
           required: true
           schema: { type: integer }
       responses:
-        '200': { description: Removida }
-        '404': { description: Não encontrada }
+        "200": { description: Removida }
+        "404": { description: Não encontrada }
     put:
       tags: [Curso]
       summary: Atualizar sessão (admin ou formador)
@@ -1555,7 +1564,7 @@ paths:
                 duracaohoras: { type: number }
                 plataformavideoconferencia: { type: string }
       responses:
-        '201': { description: Atualizada }
+        "201": { description: Atualizada }
 
   /curso/sessao/{idsessao}/material:
     post:
@@ -1583,7 +1592,7 @@ paths:
                   type: string
                   description: JSON com {titulo, tipo, link?}
       responses:
-        '201': { description: Criado }
+        "201": { description: Criado }
 
   /curso/sessao/{idsessao}/material/{idmaterial}:
     delete:
@@ -1601,7 +1610,7 @@ paths:
           required: true
           schema: { type: integer }
       responses:
-        '201': { description: Removido }
+        "201": { description: Removido }
 
   /curso/cursosincrono/{id}/avalicaocontinua:
     post:
@@ -1629,7 +1638,7 @@ paths:
                 info:
                   type: string
       responses:
-        '201': { description: Criada }
+        "201": { description: Criada }
 
   /curso/cursosincrono/{id}/avalicaocontinua/{idavalicao}:
     put:
@@ -1659,7 +1668,7 @@ paths:
                 info:
                   type: string
       responses:
-        '200': { description: Atualizada }
+        "200": { description: Atualizada }
     delete:
       tags: [Curso]
       summary: Remover avaliação contínua (admin ou formador)
@@ -1675,7 +1684,7 @@ paths:
           required: true
           schema: { type: integer }
       responses:
-        '200': { description: Removida }
+        "200": { description: Removida }
 
   /curso/cursosincrono/{id}/avalicaocontinua/{idavalicao}/submeter:
     post:
@@ -1704,7 +1713,7 @@ paths:
                   type: string
                   format: binary
       responses:
-        '201': { description: Submetido, retorna submissão com URL }
+        "201": { description: Submetido, retorna submissão com URL }
     put:
       tags: [Curso]
       summary: Atualizar submissão (formando)
@@ -1731,7 +1740,7 @@ paths:
                   type: string
                   format: binary
       responses:
-        '200': { description: Atualizada }
+        "200": { description: Atualizada }
 
   /curso/cursosincrono/{id}/avalicaocontinua/{idavalicao}/submissoes:
     get:
@@ -1749,7 +1758,7 @@ paths:
           required: true
           schema: { type: integer }
       responses:
-        '200': { description: Lista de submissões }
+        "200": { description: Lista de submissões }
 
   /curso/cursosincrono/{id}/avalicaocontinua/{idavalicao}/corrigir:
     put:
@@ -1777,7 +1786,7 @@ paths:
                 idsubmissao: { type: integer }
                 nota: { type: number }
       responses:
-        '200': { description: Nota atribuída }
+        "200": { description: Nota atribuída }
 
   /curso/cursosincrono/{id}/formando/{formando}/avaliacaofinal:
     post:
@@ -1804,7 +1813,7 @@ paths:
               properties:
                 nota: { type: number }
       responses:
-        '201': { description: Criada }
+        "201": { description: Criada }
     put:
       tags: [Curso]
       summary: Atualizar avaliação final (admin ou formador)
@@ -1829,7 +1838,7 @@ paths:
               properties:
                 nota: { type: number }
       responses:
-        '200': { description: Atualizada }
+        "200": { description: Atualizada }
     delete:
       tags: [Curso]
       summary: Remover avaliação final (admin ou formador)
@@ -1845,7 +1854,7 @@ paths:
           required: true
           schema: { type: integer }
       responses:
-        '200': { description: Removida }
+        "200": { description: Removida }
 
   /curso/cursosincrono/{id}/certificado:
     post:
@@ -1869,7 +1878,7 @@ paths:
                 nome: { type: string }
                 descricao: { type: string }
       responses:
-        '201': { description: Criado }
+        "201": { description: Criado }
 
   /curso/certificado/{idcertificado}:
     put:
@@ -1892,7 +1901,7 @@ paths:
                 nome: { type: string }
                 descricao: { type: string }
       responses:
-        '201': { description: Atualizado }
+        "201": { description: Atualizado }
     delete:
       tags: [Curso]
       summary: Remover certificado (admin)
@@ -1904,8 +1913,8 @@ paths:
           required: true
           schema: { type: integer }
       responses:
-        '200': { description: Removido }
-        '404': { description: Não encontrado }
+        "200": { description: Removido }
+        "404": { description: Não encontrado }
 
   /curso/cursosincrono/{id}/certificados:
     get:
@@ -1919,8 +1928,8 @@ paths:
           required: true
           schema: { type: integer }
       responses:
-        '200': { description: Lista de certificados }
-        '404': { description: Não encontrado }
+        "200": { description: Lista de certificados }
+        "404": { description: Não encontrado }
 
   /forum/post/topico/{idtopico}:
     post:
@@ -1948,7 +1957,7 @@ paths:
                   type: string
                   description: JSON {titulo, conteudo}
       responses:
-        '200': { description: Post criado, retorna objeto Post }
+        "200": { description: Post criado, retorna objeto Post }
 
   /forum/post/{id}:
     get:
@@ -1962,12 +1971,12 @@ paths:
           required: true
           schema: { type: integer }
       responses:
-        '200':
+        "200":
           description: Post
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/Post' }
-        '404': { description: Não encontrado }
+              schema: { $ref: "#/components/schemas/Post" }
+        "404": { description: Não encontrado }
     delete:
       tags: [Forum]
       summary: Remover post (autor ou admin)
@@ -1979,9 +1988,9 @@ paths:
           required: true
           schema: { type: integer }
       responses:
-        '200': { description: Removido }
-        '403': { description: Proibido }
-        '404': { description: Não encontrado }
+        "200": { description: Removido }
+        "403": { description: Proibido }
+        "404": { description: Não encontrado }
 
   /forum/post/{id}/comment:
     post:
@@ -2004,9 +2013,7 @@ paths:
               properties:
                 conteudo: { type: string }
       responses:
-        '200': { description: Comentário criado }
-  
-  /forum/post/{id}/comment:
+        "200": { description: Comentário criado }
     get:
       tags: [Forum]
       summary: Listar comentários de um post
@@ -2021,7 +2028,7 @@ paths:
           name: order
           schema: { type: string, enum: [recent, popular] }
       responses:
-        '200': { description: Lista de comentários }
+        "200": { description: Lista de comentários }
 
   /forum/comment/{id}/respond:
     post:
@@ -2044,7 +2051,7 @@ paths:
               properties:
                 conteudo: { type: string }
       responses:
-        '200': { description: Comentário criado }
+        "200": { description: Comentário criado }
 
   /forum/comment/{id}:
     get:
@@ -2058,11 +2065,11 @@ paths:
           required: true
           schema: { type: integer }
       responses:
-        '200':
+        "200":
           description: Comentário
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/Comentario' }
+              schema: { $ref: "#/components/schemas/Comentario" }
     delete:
       tags: [Forum]
       summary: Remover comentário (autor ou admin)
@@ -2074,8 +2081,8 @@ paths:
           required: true
           schema: { type: integer }
       responses:
-        '200': { description: Removido }
-        '403': { description: Proibido }
+        "200": { description: Removido }
+        "403": { description: Proibido }
 
   /forum/comment/{id}/replies:
     get:
@@ -2092,7 +2099,7 @@ paths:
           name: order
           schema: { type: string, enum: [recent, popular] }
       responses:
-        '200': { description: Lista de comentários }
+        "200": { description: Lista de comentários }
 
   /forum/posts:
     get:
@@ -2108,7 +2115,7 @@ paths:
           name: search
           schema: { type: string }
       responses:
-        '200': { description: Lista de posts }
+        "200": { description: Lista de posts }
 
   /forum/posts/topico/{id}:
     get:
@@ -2128,7 +2135,7 @@ paths:
           name: search
           schema: { type: string }
       responses:
-        '200': { description: Lista de posts }
+        "200": { description: Lista de posts }
 
   /forum/post/{id}/upvote:
     post:
@@ -2142,7 +2149,7 @@ paths:
           required: true
           schema: { type: integer }
       responses:
-        '200': { description: Votado }
+        "200": { description: Votado }
 
   /forum/post/{id}/downvote:
     post:
@@ -2156,7 +2163,7 @@ paths:
           required: true
           schema: { type: integer }
       responses:
-        '200': { description: Votado }
+        "200": { description: Votado }
 
   /forum/post/{id}/unvote:
     delete:
@@ -2170,7 +2177,7 @@ paths:
           required: true
           schema: { type: integer }
       responses:
-        '200': { description: Desvotado }
+        "200": { description: Desvotado }
 
   /forum/post/{id}/reportar:
     post:
@@ -2194,7 +2201,7 @@ paths:
                 tipo: { type: integer }
                 descricao: { type: string }
       responses:
-        '200': { description: Denúncia criada }
+        "200": { description: Denúncia criada }
 
   /forum/comment/{id}/upvote:
     post:
@@ -2208,7 +2215,7 @@ paths:
           required: true
           schema: { type: integer }
       responses:
-        '200': { description: Votado }
+        "200": { description: Votado }
 
   /forum/comment/{id}/downvote:
     post:
@@ -2222,7 +2229,7 @@ paths:
           required: true
           schema: { type: integer }
       responses:
-        '200': { description: Votado }
+        "200": { description: Votado }
 
   /forum/comment/{id}/unvote:
     delete:
@@ -2236,7 +2243,7 @@ paths:
           required: true
           schema: { type: integer }
       responses:
-        '200': { description: Desvotado }
+        "200": { description: Desvotado }
 
   /forum/comment/{id}/reportar:
     post:
@@ -2260,7 +2267,7 @@ paths:
                 tipo: { type: integer }
                 descricao: { type: string }
       responses:
-        '200': { description: Denúncia criada }
+        "200": { description: Denúncia criada }
 
   /forum/denuncias/tipos:
     get:
@@ -2269,7 +2276,7 @@ paths:
       security:
         - bearerAuth: []
       responses:
-        '200': { description: Lista de tipos }
+        "200": { description: Lista de tipos }
 
   /forum/denuncias/posts:
     get:
@@ -2278,7 +2285,7 @@ paths:
       security:
         - bearerAuth: []
       responses:
-        '200': { description: Lista de denúncias }
+        "200": { description: Lista de denúncias }
 
   /forum/denuncias/comentarios:
     get:
@@ -2287,7 +2294,7 @@ paths:
       security:
         - bearerAuth: []
       responses:
-        '200': { description: Lista de denúncias }
+        "200": { description: Lista de denúncias }
 
   /forum/denuncias/{id}:
     delete:
@@ -2301,14 +2308,14 @@ paths:
           required: true
           schema: { type: integer }
       responses:
-        '200': { description: Removida }
+        "200": { description: Removida }
 
   /test/jwt:
     post:
       tags: [Test]
       summary: Gerar token de teste
       responses:
-        '200': { description: Token gerado }
+        "200": { description: Token gerado }
 
   /test/fileupload:
     post:
@@ -2326,7 +2333,7 @@ paths:
                   type: string
                   format: binary
       responses:
-        '200': { description: URL do ficheiro }
+        "200": { description: URL do ficheiro }
 
   /test/auth:
     post:
@@ -2335,19 +2342,19 @@ paths:
       security:
         - bearerAuth: []
       responses:
-        '200': { description: Sucesso }
-        '403': { description: Proibido }
+        "200": { description: Sucesso }
+        "403": { description: Proibido }
 
   /test/sendemail:
     post:
       tags: [Test]
       summary: Enviar email de teste
       responses:
-        '200': { description: Sucesso }
+        "200": { description: Sucesso }
 
   /test/sendnotification:
     post:
       tags: [Test]
       summary: Enviar notificação de teste
       responses:
-        '200': { description: Sucesso }
+        "200": { description: Sucesso }

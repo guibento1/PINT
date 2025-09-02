@@ -50,7 +50,8 @@ final rotas = GoRouter(
             currentPath == '/course_details' ||
             currentPath.startsWith('/course_details/') ||
             currentPath == '/forum_post' ||
-            currentPath.startsWith('/forum_post/');
+            currentPath.startsWith('/forum_post/') ||
+            currentPath == '/forum_create';
 
         return WillPopScope(
           onWillPop: () async {

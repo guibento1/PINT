@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mobile/backend/server.dart';
 import 'package:mobile/backend/shared_preferences.dart' as prefs;
+import 'package:mobile/components/submission_file_preview.dart';
 
 class PostDetailsPage extends StatefulWidget {
   final int id;
@@ -12,11 +13,12 @@ class PostDetailsPage extends StatefulWidget {
 }
 
 class _PostDetailsPageState extends State<PostDetailsPage> {
-  final Servidor _server = Servidor();
-  Map<String, dynamic>? post;
-  List<dynamic> comments = [];
+  final _server = Servidor();
   bool loading = true;
   String? error;
+  Map<String, dynamic>? post;
+  List<dynamic> comments = [];
+
   // Report types cache
   List<dynamic> _reportTypes = [];
 
@@ -25,6 +27,11 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
   final Set<int> _expanded = {}; // expanded comments
   final Set<int> _loadingReplies = {}; // loading state per comment
   final Set<int> _replyBoxOpen = {}; // which comments show reply field
+  // Track if a comment is known to have children (replies); null = unknown
+  final Map<int, bool> _hasChildren = {};
+  // Global topic name cache (id -> designacao) to resolve names when only the id is present
+  Map<int, String> _topicMap = {};
+
   Map<String, dynamic>? _currentUser;
   final TextEditingController _newCommentCtrl = TextEditingController();
   final Map<int, TextEditingController> _replyCtrls = {};
@@ -37,11 +44,33 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
 
   Future<void> _bootstrap() async {
     _currentUser = await prefs.getUser();
-    // Preload report types for modal dropdown
     try {
       _reportTypes = await _server.fetchReportTypes();
     } catch (_) {}
+    // Preload topic names to resolve topic label reliably
+    await _loadTopicMap();
     await _fetch();
+  }
+
+  Future<void> _loadTopicMap() async {
+    try {
+      final res = await _server.getData('topico/list');
+      if (res is List) {
+        final map = <int, String>{};
+        for (final it in res) {
+          if (it is Map) {
+            final id = _asInt(it['idtopico'] ?? it['id']);
+            final name = (it['designacao'] ?? it['nome'])?.toString();
+            if (id != null && name != null && name.trim().isNotEmpty) {
+              map[id] = name.trim();
+            }
+          }
+        }
+        if (mounted) setState(() => _topicMap = map);
+      }
+    } catch (_) {
+      // ignore; best-effort cache
+    }
   }
 
   Future<void> _fetch() async {
@@ -51,10 +80,8 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
     });
     try {
       final p = await _server.getData('forum/post/${widget.id}');
-      if (p is Map<String, dynamic>) {
-        post = p;
-      }
-      // Prefer generic comments endpoint used in server helpers
+      if (p is Map<String, dynamic>) post = p;
+
       final c = await _server.getData('forum/post/${widget.id}/comment');
       comments =
           (c is List)
@@ -62,6 +89,18 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
               : (c is Map && c['data'] is List)
               ? List.from(c['data'] as List)
               : [];
+      // Pre-populate has-children cache using any counts/arrays present
+      for (final e in comments) {
+        if (e is Map<String, dynamic>) {
+          final id = _asInt(e['idcomentario'] ?? e['id']);
+          if (id != null) {
+            final inf = _inferHasChildren(e);
+            if (inf != null) {
+              _hasChildren[id] = inf;
+            }
+          }
+        }
+      }
     } catch (e) {
       error = 'Erro a carregar post.';
     } finally {
@@ -69,68 +108,122 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
     }
   }
 
-  Future<void> _handleVote(
-    int postId,
-    String voteType,
-    dynamic currentVote,
-  ) async {
-    // Optimistic update similar to forums list
-    try {
-      final current = post;
-      if (current == null) return;
-      final int score = _asInt(current['pontuacao']) ?? 0;
-      final bool? cur = _asVote(currentVote);
-      bool? newVote = cur;
-      int delta = 0;
-      if (voteType == 'upvote') {
-        if (cur == true) {
-          newVote = null;
-          delta = -1;
-        } else if (cur == false) {
-          newVote = true;
-          delta = 2;
-        } else {
-          newVote = true;
-          delta = 1;
-        }
-      } else {
-        if (cur == false) {
-          newVote = null;
-          delta = -1;
-        } else if (cur == true) {
-          newVote = false;
-          delta = -2;
-        } else {
-          newVote = false;
-          delta = -1;
-        }
-      }
-      setState(() {
-        post = {...current, 'iteracao': newVote, 'pontuacao': score + delta};
-      });
+  int? _asInt(dynamic v) {
+    if (v == null) return null;
+    if (v is int) return v;
+    if (v is String) return int.tryParse(v);
+    if (v is double) return v.toInt();
+    return null;
+  }
 
-      if (voteType == 'upvote') {
-        if (cur == true) {
-          await _server.deleteData('forum/post/$postId/unvote');
-        } else if (cur == false) {
-          await _server.deleteData('forum/post/$postId/unvote');
-          await _server.postData('forum/post/$postId/upvote', {});
-        } else {
-          await _server.postData('forum/post/$postId/upvote', {});
-        }
-      } else {
-        if (cur == false) {
-          await _server.deleteData('forum/post/$postId/unvote');
-        } else if (cur == true) {
-          await _server.deleteData('forum/post/$postId/unvote');
-          await _server.postData('forum/post/$postId/downvote', {});
-        } else {
-          await _server.postData('forum/post/$postId/downvote', {});
+  // Computes how much narrower a child reply should be from the left, per depth.
+  // Keeps right edge aligned. Tunable step (12px) and optional cap.
+  double _leftIndentForDepth(int depth) {
+    final d = depth < 0 ? 0 : depth;
+    final v = d * 16.0; // 16 logical px per level for clearer step
+    return v.clamp(0.0, 160.0); // cap at 160px
+  }
+
+  bool? _asVote(dynamic v) {
+    if (v == null) return null;
+    if (v is bool) return v;
+    if (v is int) {
+      if (v > 0) return true;
+      if (v < 0) return false;
+      return null;
+    }
+    if (v is String) {
+      final s = v.toLowerCase();
+      if (s == 'true' || s == '1' || s == 'up' || s == 'upvote') return true;
+      if (s == 'false' || s == '-1' || s == 'down' || s == 'downvote')
+        return false;
+      return null;
+    }
+    return null;
+  }
+
+  bool? _inferHasChildren(Map<String, dynamic> m) {
+    // Try a variety of common keys that might be present from the API
+    final candidatesList = [
+      m['replies'],
+      m['respostas'],
+      m['children'],
+      m['filhos'],
+    ];
+    for (final c in candidatesList) {
+      if (c is List) return c.isNotEmpty ? true : false;
+    }
+    final candidatesCount = [
+      m['repliesCount'],
+      m['replyCount'],
+      m['numRespostas'],
+      m['qtdRespostas'],
+      m['countRespostas'],
+      m['childrenCount'],
+      m['numeroRespostas'],
+      m['temRespostas'],
+      m['temFilhos'],
+    ];
+    for (final c in candidatesCount) {
+      if (c is int) return c > 0;
+      if (c is bool) return c;
+      if (c is String) {
+        final n = int.tryParse(c);
+        if (n != null) return n > 0;
+        final s = c.toLowerCase();
+        if (s == 'true' || s == 'yes' || s == 'sim') return true;
+        if (s == 'false' || s == 'no' || s == 'nao' || s == 'não') {
+          return false;
         }
       }
-    } catch (e) {
-      await _fetch();
     }
+    return null; // unknown
+  }
+
+  // Explicit negative: return true only when we have clear evidence there are no children
+  bool _explicitlyNoChildren(Map<String, dynamic> m) {
+    // boolean hints
+    final b = m['temRespostas'] ?? m['temFilhos'];
+    if (b is bool && b == false) return true;
+    if (b is String) {
+      final s = b.toLowerCase();
+      if (s == 'false' || s == 'no' || s == 'nao' || s == 'não') return true;
+    }
+    // count hints
+    final countKeys = [
+      'repliesCount',
+      'replyCount',
+      'numRespostas',
+      'qtdRespostas',
+      'countRespostas',
+      'childrenCount',
+      'numeroRespostas',
+    ];
+    for (final k in countKeys) {
+      final v = m[k];
+      if (v is int && v == 0) return true;
+      if (v is String) {
+        final n = int.tryParse(v);
+        if (n != null && n == 0) return true;
+      }
+    }
+    return false;
+  }
+
+  bool _shouldShowToggle(Map<String, dynamic> item, int id) {
+    // If already expanded, always show (to allow collapse)
+    if (_expanded.contains(id)) return true;
+    // If we've fetched this branch, show toggle only if it actually has children
+    if (_replies.containsKey(id)) {
+      final list = _replies[id];
+      return (list != null && list.isNotEmpty);
+    }
+    // If cache says it has children, show
+    if (_hasChildren[id] == true) return true;
+    // If we have explicit evidence of no children, hide
+    if (_explicitlyNoChildren(item)) return false;
+    // Unknown: show to allow fetching
+    return true;
   }
 
   String _authorName(Map<String, dynamic> p) {
@@ -169,33 +262,6 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
     return null;
   }
 
-  int? _asInt(dynamic v) {
-    if (v == null) return null;
-    if (v is int) return v;
-    if (v is String) return int.tryParse(v);
-    if (v is double) return v.toInt();
-    return null;
-  }
-
-  bool? _asVote(dynamic v) {
-    if (v == null) return null;
-    if (v is bool) return v;
-    if (v is int) {
-      if (v > 0) return true;
-      if (v < 0) return false;
-      return null;
-    }
-    if (v is String) {
-      final s = v.toLowerCase();
-      if (s == 'true' || s == '1' || s == 'up' || s == 'upvote') return true;
-      if (s == 'false' || s == '-1' || s == 'down' || s == 'downvote') {
-        return false;
-      }
-      return null;
-    }
-    return null;
-  }
-
   bool _isOwner(Map<String, dynamic> entity) {
     final uid =
         _currentUser != null
@@ -210,16 +276,42 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
     return false;
   }
 
-  // Helper to derive reply count from comment data or loaded replies
-  int _replyCountFor(int cid, Map<String, dynamic> comment) {
-    final fromLoaded = _replies[cid]?.length;
-    if (fromLoaded != null) return fromLoaded;
-    final keys = ['numRespostas', 'repliesCount', 'respostas', 'qtdRespostas'];
-    for (final k in keys) {
-      final v = _asInt(comment[k]);
-      if (v != null) return v;
+  // reply counts removed from UI; helpers omitted
+
+  String? _topicNameOf(Map<String, dynamic> p) {
+    final t = p['topico'];
+    if (t is Map) {
+      final n = (t['designacao'] ?? t['nome'] ?? t['title'])?.toString();
+      if (n != null && n.trim().isNotEmpty) return n.trim();
     }
-    return 0;
+    // Sometimes backend may flatten
+    final flat =
+        (p['topicoNome'] ??
+            p['nomeTopico'] ??
+            p['designacaoTopico'] ??
+            p['topic'] ??
+            p['topicName']);
+    if (flat is String && flat.trim().isNotEmpty) return flat.trim();
+    // Try resolve by id using our preloaded topic map
+    int? idtopico = _asInt(
+      p['idtopico'] ??
+          p['idTopico'] ??
+          p['topicoId'] ??
+          p['id_topico'] ??
+          p['id_topic'],
+    );
+    if (idtopico == null) {
+      if (t is int) idtopico = t;
+      if (t is String) idtopico = int.tryParse(t);
+      if (t is Map) {
+        idtopico = _asInt(t['idtopico'] ?? t['idTopico'] ?? t['id']);
+      }
+    }
+    if (idtopico != null) {
+      final cached = _topicMap[idtopico];
+      if (cached != null && cached.trim().isNotEmpty) return cached.trim();
+    }
+    return null;
   }
 
   Future<void> _toggleReplies(int commentId) async {
@@ -243,13 +335,15 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
               : <dynamic>[];
       setState(() {
         _replies[commentId] = list;
+        _hasChildren[commentId] = list.isNotEmpty;
+        if (list.isEmpty) {
+          // Collapse immediately if there are no children
+          _expanded.remove(commentId);
+        }
       });
     } catch (_) {
-      // ignore
     } finally {
-      setState(() {
-        _loadingReplies.remove(commentId);
-      });
+      setState(() => _loadingReplies.remove(commentId));
     }
   }
 
@@ -277,23 +371,262 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
         'conteudo': text,
       });
       ctrl.clear();
+      // Refresh only this branch
       if (_expanded.contains(commentId)) {
-        await _toggleReplies(commentId); // collapse first
+        await _toggleReplies(commentId); // collapse
         await _toggleReplies(commentId); // expand and reload
       }
     } catch (_) {}
   }
 
-  // Open report bottom sheet for post or comment
+  Future<void> _handleVote(
+    int postId,
+    String voteType,
+    dynamic currentVote,
+  ) async {
+    try {
+      final current = post;
+      if (current == null) return;
+      final int score = _asInt(current['pontuacao']) ?? 0;
+      final bool? cur = _asVote(currentVote);
+      bool? newVote = cur;
+      int delta = 0;
+
+      if (voteType == 'upvote') {
+        if (cur == true) {
+          newVote = null;
+          delta = -1;
+        } else if (cur == false) {
+          newVote = true;
+          delta = 2;
+        } else {
+          newVote = true;
+          delta = 1;
+        }
+      } else {
+        if (cur == false) {
+          newVote = null;
+          delta = 1; // fix: removing a downvote should add back 1
+        } else if (cur == true) {
+          newVote = false;
+          delta = -2;
+        } else {
+          newVote = false;
+          delta = -1;
+        }
+      }
+
+      setState(
+        () =>
+            post = {
+              ...current,
+              'iteracao': newVote,
+              'pontuacao': score + delta,
+            },
+      );
+
+      if (voteType == 'upvote') {
+        if (cur == true) {
+          await _server.deleteData('forum/post/$postId/unvote');
+        } else if (cur == false) {
+          await _server.deleteData('forum/post/$postId/unvote');
+          await _server.postData('forum/post/$postId/upvote', {});
+        } else {
+          await _server.postData('forum/post/$postId/upvote', {});
+        }
+      } else {
+        if (cur == false) {
+          await _server.deleteData('forum/post/$postId/unvote');
+        } else if (cur == true) {
+          await _server.deleteData('forum/post/$postId/unvote');
+          await _server.postData('forum/post/$postId/downvote', {});
+        } else {
+          await _server.postData('forum/post/$postId/downvote', {});
+        }
+      }
+    } catch (_) {
+      await _fetch();
+    }
+  }
+
+  // Optimistic voting for a comment/reply within a parent thread list
+  Future<void> _voteReply({
+    required int parentId,
+    required int commentId,
+    required String voteType,
+    required dynamic currentVote,
+  }) async {
+    final list = _replies[parentId];
+    if (list == null) return;
+    final idx = list.indexWhere((e) {
+      final m = e as Map<String, dynamic>;
+      final id = _asInt(m['idcomentario'] ?? m['id']);
+      return id == commentId;
+    });
+    if (idx < 0) return;
+
+    final Map<String, dynamic> item = Map<String, dynamic>.from(
+      list[idx] as Map,
+    );
+    final int score = _asInt(item['pontuacao']) ?? 0;
+    final bool? cur = _asVote(item['iteracao']);
+
+    bool? newVote = cur;
+    int delta = 0;
+    if (voteType == 'upvote') {
+      if (cur == true) {
+        newVote = null;
+        delta = -1;
+      } else if (cur == false) {
+        newVote = true;
+        delta = 2;
+      } else {
+        newVote = true;
+        delta = 1;
+      }
+    } else {
+      if (cur == false) {
+        newVote = null;
+        delta = 1; // fix symmetrical logic
+      } else if (cur == true) {
+        newVote = false;
+        delta = -2;
+      } else {
+        newVote = false;
+        delta = -1;
+      }
+    }
+
+    // Apply optimistic update
+    final updated =
+        Map<String, dynamic>.from(item)
+          ..['iteracao'] = newVote
+          ..['pontuacao'] = score + delta;
+    setState(() {
+      _replies[parentId]![idx] = updated;
+    });
+
+    // Sync with server, fallback by refetching this branch on error
+    try {
+      if (voteType == 'upvote') {
+        if (cur == true) {
+          await _server.deleteData('forum/comment/$commentId/unvote');
+        } else if (cur == false) {
+          await _server.deleteData('forum/comment/$commentId/unvote');
+          await _server.postData('forum/comment/$commentId/upvote', {});
+        } else {
+          await _server.postData('forum/comment/$commentId/upvote', {});
+        }
+      } else {
+        if (cur == false) {
+          await _server.deleteData('forum/comment/$commentId/unvote');
+        } else if (cur == true) {
+          await _server.deleteData('forum/comment/$commentId/unvote');
+          await _server.postData('forum/comment/$commentId/downvote', {});
+        } else {
+          await _server.postData('forum/comment/$commentId/downvote', {});
+        }
+      }
+    } catch (_) {
+      // revert by reloading only this branch if expanded
+      if (_expanded.contains(parentId)) {
+        await _toggleReplies(parentId); // collapse
+        await _toggleReplies(parentId); // expand & reload
+      }
+    }
+  }
+
+  // Optimistic voting for a top-level comment within the `comments` list
+  Future<void> _voteComment({
+    required int commentId,
+    required String voteType,
+    required dynamic currentVote,
+  }) async {
+    final idx = comments.indexWhere((e) {
+      final m = e as Map<String, dynamic>;
+      final id = _asInt(m['idcomentario'] ?? m['id']);
+      return id == commentId;
+    });
+    if (idx < 0) return;
+
+    final Map<String, dynamic> item = Map<String, dynamic>.from(
+      comments[idx] as Map,
+    );
+    final int score = _asInt(item['pontuacao']) ?? 0;
+    final bool? cur = _asVote(item['iteracao']);
+
+    bool? newVote = cur;
+    int delta = 0;
+    if (voteType == 'upvote') {
+      if (cur == true) {
+        newVote = null;
+        delta = -1;
+      } else if (cur == false) {
+        newVote = true;
+        delta = 2;
+      } else {
+        newVote = true;
+        delta = 1;
+      }
+    } else {
+      if (cur == false) {
+        newVote = null;
+        delta = 1; // symmetrical remove downvote
+      } else if (cur == true) {
+        newVote = false;
+        delta = -2;
+      } else {
+        newVote = false;
+        delta = -1;
+      }
+    }
+
+    // Apply optimistic update in the top-level list
+    final updated =
+        Map<String, dynamic>.from(item)
+          ..['iteracao'] = newVote
+          ..['pontuacao'] = score + delta;
+    setState(() {
+      comments[idx] = updated;
+    });
+
+    // Sync with server
+    try {
+      if (voteType == 'upvote') {
+        if (cur == true) {
+          await _server.deleteData('forum/comment/$commentId/unvote');
+        } else if (cur == false) {
+          await _server.deleteData('forum/comment/$commentId/unvote');
+          await _server.postData('forum/comment/$commentId/upvote', {});
+        } else {
+          await _server.postData('forum/comment/$commentId/upvote', {});
+        }
+      } else {
+        if (cur == false) {
+          await _server.deleteData('forum/comment/$commentId/unvote');
+        } else if (cur == true) {
+          await _server.deleteData('forum/comment/$commentId/unvote');
+          await _server.postData('forum/comment/$commentId/downvote', {});
+        } else {
+          await _server.postData('forum/comment/$commentId/downvote', {});
+        }
+      }
+    } catch (_) {
+      // fallback by refetching whole page state
+      await _fetch();
+    }
+  }
+
   void _openReport({required String kind, required int id}) async {
     int? selectedTipo;
     final TextEditingController descCtrl = TextEditingController();
+
     if (_reportTypes.isEmpty) {
       try {
         _reportTypes = await _server.fetchReportTypes();
       } catch (_) {}
     }
-    // ignore: use_build_context_synchronously
+
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -403,7 +736,6 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
     );
   }
 
-  // Confirm deletions
   Future<void> _confirmDeletePost() async {
     final bool? go = await showDialog<bool>(
       context: context,
@@ -463,7 +795,7 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
       if (!mounted) return;
       if (ok) {
         if (parentId == null) {
-          // remove from root comments
+          // top-level comment removed locally
           setState(() {
             comments =
                 comments.where((c) {
@@ -472,10 +804,10 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
                 }).toList();
           });
         } else {
-          // refresh replies for parent
+          // child reply deleted; refresh that branch if expanded
           if (_expanded.contains(parentId)) {
-            await _toggleReplies(parentId);
-            await _toggleReplies(parentId);
+            await _toggleReplies(parentId); // collapse
+            await _toggleReplies(parentId); // expand reload
           }
         }
         ScaffoldMessenger.of(
@@ -487,6 +819,308 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
         ).showSnackBar(const SnackBar(content: Text('Falha ao eliminar.')));
       }
     }
+  }
+
+  Widget _buildReplyThread(int parentId, {int depth = 1}) {
+    final items = _replies[parentId] ?? const <dynamic>[];
+    if (items.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      children:
+          items.map((r) {
+            final ra = r as Map<String, dynamic>;
+            final rid = _asInt(ra['idcomentario'] ?? ra['id']);
+            if (rid == null) return const SizedBox.shrink();
+            final rname = _authorName(ra);
+            final rav = _authorAvatar(ra);
+            final expanded = _expanded.contains(rid);
+            final loading = _loadingReplies.contains(rid);
+            // Cache inferred children info for this reply if present
+            final inferredChild = _inferHasChildren(ra);
+            if (inferredChild != null) {
+              _hasChildren[rid] = inferredChild;
+            }
+            final replyCtrl = _replyCtrls.putIfAbsent(
+              rid,
+              () => TextEditingController(),
+            );
+            // Right edge stays aligned; reduce width slightly from the left per depth
+            final double leftIndent = _leftIndentForDepth(depth);
+
+            return Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Right edge aligned; narrower from the left using a spacer like Reddit
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (leftIndent > 0) SizedBox(width: leftIndent),
+                      Expanded(
+                        child: Container(
+                          padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF9FAFB),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: const Color(0xFFE5E7EB)),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  if (rav != null && rav.isNotEmpty)
+                                    CircleAvatar(
+                                      radius: 9,
+                                      backgroundImage: NetworkImage(rav),
+                                    )
+                                  else
+                                    const CircleAvatar(
+                                      radius: 9,
+                                      backgroundColor: Color(0xFF00B0DA),
+                                      child: Icon(
+                                        Icons.person,
+                                        size: 11,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  const SizedBox(width: 6),
+                                  Expanded(
+                                    child: Text(
+                                      rname,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        color: Color(0xFF8F9BB3),
+                                      ),
+                                    ),
+                                  ),
+                                  IconButton(
+                                    padding: EdgeInsets.zero,
+                                    constraints: const BoxConstraints(),
+                                    visualDensity: const VisualDensity(
+                                      horizontal: -4,
+                                      vertical: -4,
+                                    ),
+                                    splashRadius: 14,
+                                    icon: const Icon(
+                                      Icons.flag,
+                                      size: 14,
+                                      color: Color(0xFF8F9BB3),
+                                    ),
+                                    onPressed:
+                                        () => _openReport(
+                                          kind: 'comment',
+                                          id: rid,
+                                        ),
+                                  ),
+                                  if (_isOwner(ra))
+                                    IconButton(
+                                      padding: EdgeInsets.zero,
+                                      constraints: const BoxConstraints(),
+                                      visualDensity: const VisualDensity(
+                                        horizontal: -4,
+                                        vertical: -4,
+                                      ),
+                                      splashRadius: 14,
+                                      icon: const Icon(
+                                        Icons.delete_outline,
+                                        size: 14,
+                                        color: Color(0xFF8F9BB3),
+                                      ),
+                                      onPressed:
+                                          () => _confirmDeleteComment(
+                                            rid,
+                                            parentId: parentId,
+                                          ),
+                                    ),
+                                ],
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                (ra['conteudo'] ?? ra['content'] ?? '')
+                                    .toString(),
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  color: Color(0xFF49454F),
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  IconButton(
+                                    padding: EdgeInsets.zero,
+                                    constraints: const BoxConstraints(),
+                                    visualDensity: const VisualDensity(
+                                      horizontal: -2,
+                                      vertical: -2,
+                                    ),
+                                    splashRadius: 18,
+                                    icon: const Icon(Icons.reply, size: 18),
+                                    tooltip: 'Responder',
+                                    onPressed: () {
+                                      setState(() {
+                                        if (_replyBoxOpen.contains(rid)) {
+                                          _replyBoxOpen.remove(rid);
+                                        } else {
+                                          _replyBoxOpen.add(rid);
+                                        }
+                                      });
+                                    },
+                                  ),
+                                  const SizedBox(width: 1),
+                                  // Voting for replies
+                                  IconButton(
+                                    padding: EdgeInsets.zero,
+                                    constraints: const BoxConstraints(),
+                                    visualDensity: const VisualDensity(
+                                      horizontal: -2,
+                                      vertical: -2,
+                                    ),
+                                    splashRadius: 18,
+                                    icon: Icon(
+                                      _asVote(ra['iteracao']) == true
+                                          ? Icons.thumb_up_alt
+                                          : Icons.thumb_up_alt_outlined,
+                                      size: 18,
+                                      color:
+                                          _asVote(ra['iteracao']) == true
+                                              ? Colors.green
+                                              : const Color(0xFF8F9BB3),
+                                    ),
+                                    tooltip: 'Gostei',
+                                    onPressed:
+                                        () => _voteReply(
+                                          parentId: parentId,
+                                          commentId: rid,
+                                          voteType: 'upvote',
+                                          currentVote: ra['iteracao'],
+                                        ),
+                                  ),
+                                  Text(
+                                    '${_asInt(ra['pontuacao']) ?? 0}',
+                                    style: const TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFF8F9BB3),
+                                    ),
+                                  ),
+                                  IconButton(
+                                    padding: EdgeInsets.zero,
+                                    constraints: const BoxConstraints(),
+                                    visualDensity: const VisualDensity(
+                                      horizontal: -2,
+                                      vertical: -2,
+                                    ),
+                                    splashRadius: 18,
+                                    icon: Icon(
+                                      _asVote(ra['iteracao']) == false
+                                          ? Icons.thumb_down_alt
+                                          : Icons.thumb_down_alt_outlined,
+                                      size: 18,
+                                      color:
+                                          _asVote(ra['iteracao']) == false
+                                              ? Colors.red
+                                              : const Color(0xFF8F9BB3),
+                                    ),
+                                    tooltip: 'Não gostei',
+                                    onPressed:
+                                        () => _voteReply(
+                                          parentId: parentId,
+                                          commentId: rid,
+                                          voteType: 'downvote',
+                                          currentVote: ra['iteracao'],
+                                        ),
+                                  ),
+                                  const SizedBox(width: 1),
+                                  Builder(
+                                    builder: (_) {
+                                      final bool show = _shouldShowToggle(
+                                        ra,
+                                        rid,
+                                      );
+                                      if (!show) return const SizedBox();
+                                      return IconButton(
+                                        padding: EdgeInsets.zero,
+                                        constraints: const BoxConstraints(),
+                                        onPressed: () => _toggleReplies(rid),
+                                        icon: Icon(
+                                          expanded
+                                              ? Icons.remove_circle_outline
+                                              : Icons.add_circle_outline,
+                                          size: 18,
+                                          color: const Color(0xFF8F9BB3),
+                                        ),
+                                        visualDensity: const VisualDensity(
+                                          horizontal: -2,
+                                          vertical: -2,
+                                        ),
+                                        splashRadius: 18,
+                                        tooltip: 'Respostas',
+                                      );
+                                    },
+                                  ),
+                                ],
+                              ),
+                              if (_replyBoxOpen.contains(rid))
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 6.0),
+                                  child: Row(
+                                    children: [
+                                      Expanded(
+                                        child: TextField(
+                                          controller: replyCtrl,
+                                          decoration: const InputDecoration(
+                                            hintText: 'A tua resposta...',
+                                            border: OutlineInputBorder(),
+                                          ),
+                                          minLines: 1,
+                                          maxLines: 3,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      ElevatedButton(
+                                        onPressed: () => _submitReply(rid),
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: const Color(
+                                            0xFF00B0DA,
+                                          ),
+                                          foregroundColor: Colors.white,
+                                        ),
+                                        child: const Text('Enviar'),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              // Child thread stays outside the card
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (expanded)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 6.0),
+                      child:
+                          loading
+                              ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                              : _buildReplyThread(rid, depth: depth + 1),
+                    ),
+                ],
+              ),
+            );
+          }).toList(),
+    );
   }
 
   @override
@@ -548,7 +1182,6 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
                   ),
                   children: [
                     const SizedBox(height: 4),
-                    // Post card mirroring forums layout
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
@@ -566,7 +1199,7 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Voting
+                          // Voting column
                           Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
@@ -619,13 +1252,11 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
                               ),
                             ],
                           ),
-                          const SizedBox(width: 12),
-                          // Content
+                          const SizedBox(height: 8),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                // Header: avatar + author name + actions
                                 Row(
                                   children: [
                                     Builder(
@@ -666,9 +1297,14 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
                                     IconButton(
                                       padding: EdgeInsets.zero,
                                       constraints: const BoxConstraints(),
+                                      visualDensity: const VisualDensity(
+                                        horizontal: -4,
+                                        vertical: -4,
+                                      ),
+                                      splashRadius: 16,
                                       icon: const Icon(
                                         Icons.flag,
-                                        size: 18,
+                                        size: 16,
                                         color: Color(0xFF8F9BB3),
                                       ),
                                       onPressed:
@@ -682,15 +1318,54 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
                                       IconButton(
                                         padding: EdgeInsets.zero,
                                         constraints: const BoxConstraints(),
+                                        visualDensity: const VisualDensity(
+                                          horizontal: -4,
+                                          vertical: -4,
+                                        ),
+                                        splashRadius: 16,
                                         icon: const Icon(
                                           Icons.delete_outline,
-                                          size: 18,
+                                          size: 16,
                                           color: Color(0xFF8F9BB3),
                                         ),
                                         onPressed: _confirmDeletePost,
                                         tooltip: 'Eliminar',
                                       ),
                                   ],
+                                ),
+                                // Topic name (if available)
+                                Builder(
+                                  builder: (_) {
+                                    final topic = _topicNameOf(post!);
+                                    if (topic == null || topic.isEmpty) {
+                                      return const SizedBox.shrink();
+                                    }
+                                    return Padding(
+                                      padding: const EdgeInsets.only(top: 6.0),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          const Icon(
+                                            Icons.label_important_outline,
+                                            size: 14,
+                                            color: Color(0xFF6C757D),
+                                          ),
+                                          const SizedBox(width: 6),
+                                          Flexible(
+                                            child: Text(
+                                              'Tópico: $topic',
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: const TextStyle(
+                                                fontSize: 12,
+                                                color: Color(0xFF6C757D),
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  },
                                 ),
                                 const SizedBox(height: 6),
                                 Text(
@@ -712,6 +1387,30 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
                                     fontSize: 14,
                                     color: Color(0xFF49454F),
                                   ),
+                                ),
+                                // Attachment preview (if any)
+                                Builder(
+                                  builder: (_) {
+                                    final raw =
+                                        post!['anexo'] ??
+                                        post!['anexoUrl'] ??
+                                        post!['attachment'] ??
+                                        post!['ficheiro'];
+                                    final url = raw?.toString();
+                                    if (url == null || url.isEmpty) {
+                                      return const SizedBox.shrink();
+                                    }
+                                    final resolved =
+                                        url.startsWith('http')
+                                            ? url
+                                            : '${_server.urlAPI}$url';
+                                    return Padding(
+                                      padding: const EdgeInsets.only(top: 8.0),
+                                      child: SubmissionFilePreview(
+                                        url: resolved,
+                                      ),
+                                    );
+                                  },
                                 ),
                                 const SizedBox(height: 8),
                                 Row(
@@ -738,7 +1437,7 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    // New comment box
+                    // New comment composer
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
@@ -801,12 +1500,9 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
                         itemBuilder: (context, index) {
                           final m = comments[index] as Map<String, dynamic>;
                           final cid = _asInt(m['idcomentario'] ?? m['id']);
-                          if (cid == null) {
-                            return const SizedBox.shrink();
-                          }
+                          if (cid == null) return const SizedBox.shrink();
                           final authorName = _authorName(m);
                           final avatar = _authorAvatar(m);
-                          final replies = _replies[cid] ?? const [];
                           final expanded = _expanded.contains(cid);
                           final loadingReplies = _loadingReplies.contains(cid);
                           final replyCtrl = _replyCtrls.putIfAbsent(
@@ -864,9 +1560,14 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
                                     IconButton(
                                       padding: EdgeInsets.zero,
                                       constraints: const BoxConstraints(),
+                                      visualDensity: const VisualDensity(
+                                        horizontal: -4,
+                                        vertical: -4,
+                                      ),
+                                      splashRadius: 14,
                                       icon: const Icon(
                                         Icons.flag,
-                                        size: 16,
+                                        size: 14,
                                         color: Color(0xFF8F9BB3),
                                       ),
                                       onPressed:
@@ -880,34 +1581,39 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
                                       IconButton(
                                         padding: EdgeInsets.zero,
                                         constraints: const BoxConstraints(),
+                                        visualDensity: const VisualDensity(
+                                          horizontal: -4,
+                                          vertical: -4,
+                                        ),
+                                        splashRadius: 14,
                                         icon: const Icon(
                                           Icons.delete_outline,
-                                          size: 16,
+                                          size: 14,
                                           color: Color(0xFF8F9BB3),
                                         ),
                                         onPressed:
                                             () => _confirmDeleteComment(cid),
                                         tooltip: 'Eliminar',
                                       ),
-                                    TextButton.icon(
-                                      style: TextButton.styleFrom(
+                                    if (_shouldShowToggle(m, cid))
+                                      IconButton(
                                         padding: EdgeInsets.zero,
-                                        foregroundColor: const Color(
-                                          0xFF8F9BB3,
+                                        constraints: const BoxConstraints(),
+                                        visualDensity: const VisualDensity(
+                                          horizontal: -2,
+                                          vertical: -2,
                                         ),
+                                        splashRadius: 18,
+                                        onPressed: () => _toggleReplies(cid),
+                                        icon: Icon(
+                                          expanded
+                                              ? Icons.remove_circle_outline
+                                              : Icons.add_circle_outline,
+                                          size: 18,
+                                          color: const Color(0xFF8F9BB3),
+                                        ),
+                                        tooltip: 'Respostas',
                                       ),
-                                      onPressed: () => _toggleReplies(cid),
-                                      icon: Icon(
-                                        expanded
-                                            ? Icons.remove_circle_outline
-                                            : Icons.add_circle_outline,
-                                        size: 18,
-                                      ),
-                                      label: Text(
-                                        'Respostas (${_replyCountFor(cid, m)})',
-                                        style: const TextStyle(fontSize: 12),
-                                      ),
-                                    ),
                                   ],
                                 ),
                                 const SizedBox(height: 6),
@@ -921,8 +1627,18 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
                                 ),
                                 const SizedBox(height: 8),
                                 Row(
+                                  mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    TextButton.icon(
+                                    IconButton(
+                                      padding: EdgeInsets.zero,
+                                      constraints: const BoxConstraints(),
+                                      visualDensity: const VisualDensity(
+                                        horizontal: -2,
+                                        vertical: -2,
+                                      ),
+                                      splashRadius: 18,
+                                      icon: const Icon(Icons.reply, size: 18),
+                                      tooltip: 'Responder',
                                       onPressed: () {
                                         setState(() {
                                           if (_replyBoxOpen.contains(cid)) {
@@ -932,8 +1648,68 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
                                           }
                                         });
                                       },
-                                      icon: const Icon(Icons.reply, size: 16),
-                                      label: const Text('Responder'),
+                                    ),
+                                    const SizedBox(width: 2),
+                                    // Voting for top-level comments
+                                    IconButton(
+                                      padding: EdgeInsets.zero,
+                                      constraints: const BoxConstraints(),
+                                      visualDensity: const VisualDensity(
+                                        horizontal: -2,
+                                        vertical: -2,
+                                      ),
+                                      splashRadius: 18,
+                                      icon: Icon(
+                                        _asVote(m['iteracao']) == true
+                                            ? Icons.thumb_up_alt
+                                            : Icons.thumb_up_alt_outlined,
+                                        size: 18,
+                                        color:
+                                            _asVote(m['iteracao']) == true
+                                                ? Colors.green
+                                                : const Color(0xFF8F9BB3),
+                                      ),
+                                      tooltip: 'Gostei',
+                                      onPressed:
+                                          () => _voteComment(
+                                            commentId: cid,
+                                            voteType: 'upvote',
+                                            currentVote: m['iteracao'],
+                                          ),
+                                    ),
+                                    Text(
+                                      '${_asInt(m['pontuacao']) ?? 0}',
+                                      style: const TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.bold,
+                                        color: Color(0xFF8F9BB3),
+                                      ),
+                                    ),
+                                    IconButton(
+                                      padding: EdgeInsets.zero,
+                                      constraints: const BoxConstraints(),
+                                      visualDensity: const VisualDensity(
+                                        horizontal: -2,
+                                        vertical: -2,
+                                      ),
+                                      splashRadius: 18,
+                                      icon: Icon(
+                                        _asVote(m['iteracao']) == false
+                                            ? Icons.thumb_down_alt
+                                            : Icons.thumb_down_alt_outlined,
+                                        size: 18,
+                                        color:
+                                            _asVote(m['iteracao']) == false
+                                                ? Colors.red
+                                                : const Color(0xFF8F9BB3),
+                                      ),
+                                      tooltip: 'Não gostei',
+                                      onPressed:
+                                          () => _voteComment(
+                                            commentId: cid,
+                                            voteType: 'downvote',
+                                            currentVote: m['iteracao'],
+                                          ),
                                     ),
                                   ],
                                 ),
@@ -982,213 +1758,7 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
                                                     ),
                                               ),
                                             )
-                                            : Row(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              children: [
-                                                // Thread guide line
-                                                Container(
-                                                  width: 3,
-                                                  margin: const EdgeInsets.only(
-                                                    left: 2,
-                                                    right: 8,
-                                                  ),
-                                                  decoration: BoxDecoration(
-                                                    color: const Color(
-                                                      0xFFE5E7EB,
-                                                    ),
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                          2,
-                                                        ),
-                                                  ),
-                                                  height:
-                                                      (replies.length * 88)
-                                                          .clamp(40, 10000)
-                                                          .toDouble(),
-                                                ),
-                                                Expanded(
-                                                  child: Column(
-                                                    children:
-                                                        replies.map((r) {
-                                                          final ra =
-                                                              r
-                                                                  as Map<
-                                                                    String,
-                                                                    dynamic
-                                                                  >;
-                                                          final rname =
-                                                              _authorName(ra);
-                                                          final rav =
-                                                              _authorAvatar(ra);
-                                                          return Container(
-                                                            margin:
-                                                                const EdgeInsets.only(
-                                                                  bottom: 8,
-                                                                ),
-                                                            padding:
-                                                                const EdgeInsets.all(
-                                                                  10,
-                                                                ),
-                                                            decoration: BoxDecoration(
-                                                              color:
-                                                                  const Color(
-                                                                    0xFFF9FAFB,
-                                                                  ),
-                                                              borderRadius:
-                                                                  BorderRadius.circular(
-                                                                    10,
-                                                                  ),
-                                                              border: Border.all(
-                                                                color:
-                                                                    const Color(
-                                                                      0xFFE5E7EB,
-                                                                    ),
-                                                              ),
-                                                            ),
-                                                            child: Column(
-                                                              crossAxisAlignment:
-                                                                  CrossAxisAlignment
-                                                                      .start,
-                                                              children: [
-                                                                Row(
-                                                                  children: [
-                                                                    if (rav !=
-                                                                            null &&
-                                                                        rav.isNotEmpty)
-                                                                      CircleAvatar(
-                                                                        radius:
-                                                                            9,
-                                                                        backgroundImage:
-                                                                            NetworkImage(
-                                                                              rav,
-                                                                            ),
-                                                                      )
-                                                                    else
-                                                                      const CircleAvatar(
-                                                                        radius:
-                                                                            9,
-                                                                        backgroundColor:
-                                                                            Color(
-                                                                              0xFF00B0DA,
-                                                                            ),
-                                                                        child: Icon(
-                                                                          Icons
-                                                                              .person,
-                                                                          size:
-                                                                              11,
-                                                                          color:
-                                                                              Colors.white,
-                                                                        ),
-                                                                      ),
-                                                                    const SizedBox(
-                                                                      width: 6,
-                                                                    ),
-                                                                    Expanded(
-                                                                      child: Text(
-                                                                        rname,
-                                                                        maxLines:
-                                                                            1,
-                                                                        overflow:
-                                                                            TextOverflow.ellipsis,
-                                                                        style: const TextStyle(
-                                                                          fontSize:
-                                                                              12,
-                                                                          color: Color(
-                                                                            0xFF8F9BB3,
-                                                                          ),
-                                                                        ),
-                                                                      ),
-                                                                    ),
-                                                                    IconButton(
-                                                                      padding:
-                                                                          EdgeInsets
-                                                                              .zero,
-                                                                      constraints:
-                                                                          const BoxConstraints(),
-                                                                      icon: const Icon(
-                                                                        Icons
-                                                                            .flag,
-                                                                        size:
-                                                                            16,
-                                                                        color: Color(
-                                                                          0xFF8F9BB3,
-                                                                        ),
-                                                                      ),
-                                                                      onPressed: () {
-                                                                        final rid = _asInt(
-                                                                          ra['idcomentario'] ??
-                                                                              ra['id'],
-                                                                        );
-                                                                        if (rid !=
-                                                                            null) {
-                                                                          _openReport(
-                                                                            kind:
-                                                                                'comment',
-                                                                            id:
-                                                                                rid,
-                                                                          );
-                                                                        }
-                                                                      },
-                                                                    ),
-                                                                    if (_isOwner(
-                                                                      ra,
-                                                                    ))
-                                                                      IconButton(
-                                                                        padding:
-                                                                            EdgeInsets.zero,
-                                                                        constraints:
-                                                                            const BoxConstraints(),
-                                                                        icon: const Icon(
-                                                                          Icons
-                                                                              .delete_outline,
-                                                                          size:
-                                                                              16,
-                                                                          color: Color(
-                                                                            0xFF8F9BB3,
-                                                                          ),
-                                                                        ),
-                                                                        onPressed: () {
-                                                                          final rid = _asInt(
-                                                                            ra['idcomentario'] ??
-                                                                                ra['id'],
-                                                                          );
-                                                                          if (rid !=
-                                                                              null) {
-                                                                            _confirmDeleteComment(
-                                                                              rid,
-                                                                              parentId:
-                                                                                  cid,
-                                                                            );
-                                                                          }
-                                                                        },
-                                                                      ),
-                                                                  ],
-                                                                ),
-                                                                const SizedBox(
-                                                                  height: 4,
-                                                                ),
-                                                                Text(
-                                                                  (ra['conteudo'] ??
-                                                                          ra['content'] ??
-                                                                          '')
-                                                                      .toString(),
-                                                                  style: const TextStyle(
-                                                                    fontSize:
-                                                                        14,
-                                                                    color: Color(
-                                                                      0xFF49454F,
-                                                                    ),
-                                                                  ),
-                                                                ),
-                                                              ],
-                                                            ),
-                                                          );
-                                                        }).toList(),
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
+                                            : _buildReplyThread(cid, depth: 1),
                                   ),
                               ],
                             ),
