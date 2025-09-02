@@ -17,6 +17,7 @@ const CriarCursoSincrono = () => {
     planocurricular: "",
     iniciodeinscricoes: "",
     fimdeinscricoes: "",
+    disponivel: true,
     inicio: "",
     fim: "",
     nhoras: "",
@@ -24,6 +25,7 @@ const CriarCursoSincrono = () => {
     topicos: [],
     formador: "",
   });
+
   const [thumbnailFile, setThumbnailFile] = useState(null);
   const [previewThumbnail, setPreviewThumbnail] = useState("");
 
@@ -153,6 +155,7 @@ const CriarCursoSincrono = () => {
           ? parseInt(formData.maxinscricoes, 10)
           : null,
         topicos: formData.topicos,
+        disponivel: formData.disponivel
       };
       if (formData.formador) info.formador = parseInt(formData.formador, 10);
 
@@ -360,6 +363,27 @@ const CriarCursoSincrono = () => {
                 Defina primeiro a data-limite de inscrições para poder definir vagas.
               </div>
             )}
+          </div>
+
+          <div className="col-md-6">
+            <div className="form-check form-switch mt-3">
+              <input
+                className="form-check-input"
+                type="checkbox"
+                id="disponivel"
+                name="disponivel"
+                checked={formData.disponivel}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    disponivel: e.target.checked,
+                  }))
+                }
+              />
+              <label className="form-check-label" htmlFor="disponivel">
+                Curso disponível
+              </label>
+            </div>
           </div>
 
           {/* Thumbnail */}

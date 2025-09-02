@@ -28,6 +28,7 @@ const EditarCursoSincrono = () => {
     maxinscricoes: "",
     topicos: [],
     formador: "",
+    disponivel: true
   });
   const [thumbnailFile, setThumbnailFile] = useState(null);
   const [currentThumbnail, setCurrentThumbnail] = useState("");
@@ -95,6 +96,7 @@ const EditarCursoSincrono = () => {
         ? new Date(c.fimdeinscricoes).toISOString().slice(0, 16)
         : "",
       inicio: c.inicio || "",
+      disponivel: c.disponivel ?? true,
       fim: c.fim || "",
       nhoras: c.nhoras?.toString() || "",
       maxinscricoes: (c.maxinscricoes ?? c.maxincricoes ?? "").toString(),
@@ -166,6 +168,7 @@ const EditarCursoSincrono = () => {
           ? parseInt(formData.maxinscricoes)
           : null,
         topicos: formData.topicos,
+        disponivel: formData.disponivel
       };
       if (formData.formador) info.formador = parseInt(formData.formador);
       fd.append("info", JSON.stringify(info));
@@ -410,6 +413,28 @@ const EditarCursoSincrono = () => {
               onChange={handleChange}
               required
             />
+          </div>
+
+
+          <div className="col-md-6">
+            <div className="form-check form-switch mt-3">
+              <input
+                className="form-check-input"
+                type="checkbox"
+                id="disponivel"
+                name="disponivel"
+                checked={formData.disponivel}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    disponivel: e.target.checked,
+                  }))
+                }
+              />
+              <label className="form-check-label" htmlFor="disponivel">
+                Curso disponível
+              </label>
+            </div>
           </div>
 
           <div className="col-12">
