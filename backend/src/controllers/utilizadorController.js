@@ -438,7 +438,8 @@ controllers.list = async (req, res) => {
                 idutilizador: {
                     [Sequelize.Op.ne]: id
                 }
-            }
+            },
+            order : [["idutilizador", "ASC"]]
         });
 
         if (!data.length) {
