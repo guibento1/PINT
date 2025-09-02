@@ -7,15 +7,20 @@ export default function EditarCategoria() {
   const { id } = useParams();
   const navigate = useNavigate();
 
+  // Estado da categoria
   const [designacao, setDesignacao] = useState("");
+
+  // Controlo de carregamento, envio e erros
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
 
+  // Resultado da operação
   const [operationStatus, setOperationStatus] = useState(null);
   const [operationMessage, setOperationMessage] = useState("");
   const [isResultModalOpen, setIsResultModalOpen] = useState(false);
 
+  // Título do modal
   const getResultModalTitle = () => {
     switch (operationStatus) {
       case 0:
@@ -27,6 +32,7 @@ export default function EditarCategoria() {
     }
   };
 
+  // Mensagem do modal
   const getResultModalBody = () => {
     switch (operationStatus) {
       case 0:
@@ -34,28 +40,27 @@ export default function EditarCategoria() {
       case 1:
         return (
           <>
-            <p>{operationMessage || "Ocorreu um erro da nossa parte."}</p>
-            <p>
-              Tente novamente mais tarde. Se o erro persistir, contacte o nosso
-              suporte.
-            </p>
+            <p>{operationMessage || "Ocorreu um erro."}</p>
+            <p>Tente novamente mais tarde.</p>
           </>
         );
       default:
-        return <p>Estado da operação desconhecido.</p>;
+        return <p>Estado desconhecido.</p>;
     }
   };
 
+  // Abrir/fechar modal
   const openResultModal = () => setIsResultModalOpen(true);
   const closeResultModal = () => {
     setIsResultModalOpen(false);
     setOperationStatus(null);
     setOperationMessage("");
     if (operationStatus === 0) {
-      navigate("/gerir-estrutura"); // Navega de volta após sucesso
+      navigate("/gerir-estrutura"); // Volta atrás se sucesso
     }
   };
 
+  // Buscar categoria
   useEffect(() => {
     const fetchCategoria = async () => {
       setLoading(true);
@@ -67,10 +72,8 @@ export default function EditarCategoria() {
           setError("Categoria não encontrada.");
         }
       } catch (err) {
-        console.error("Erro ao carregar categoria:", err);
-        setError(
-          "Não foi possível carregar a categoria. Tente novamente mais tarde."
-        );
+        console.error("Erro ao carregar:", err);
+        setError("Não foi possível carregar a categoria.");
       } finally {
         setLoading(false);
       }
@@ -78,6 +81,7 @@ export default function EditarCategoria() {
     fetchCategoria();
   }, [id]);
 
+  // Submeter edição
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
@@ -86,7 +90,7 @@ export default function EditarCategoria() {
       setOperationStatus(0);
       setOperationMessage("Categoria atualizada com sucesso!");
     } catch (err) {
-      console.error("Erro ao atualizar categoria:", err);
+      console.error("Erro ao atualizar:", err);
       setOperationStatus(1);
       setOperationMessage(
         err.response?.data?.message || "Erro ao atualizar categoria."
@@ -97,6 +101,7 @@ export default function EditarCategoria() {
     }
   };
 
+  // Mostrar carregamento
   if (loading) {
     return (
       <div className="container mt-5">
@@ -108,6 +113,7 @@ export default function EditarCategoria() {
     );
   }
 
+  // Mostrar erro
   if (error) {
     return (
       <div className="container mt-4">
@@ -116,6 +122,7 @@ export default function EditarCategoria() {
     );
   }
 
+  // Formulário
   return (
     <div className="container mt-4">
       <br />
@@ -152,6 +159,7 @@ export default function EditarCategoria() {
         </button>
       </form>
 
+      {/* Modal de resultado */}
       <Modal
         isOpen={isResultModalOpen}
         onClose={closeResultModal}
