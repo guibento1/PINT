@@ -5,6 +5,7 @@ import '../backend/notifications_service.dart';
 import '../middleware.dart';
 import '../components/confirmation_dialog.dart';
 import '../backend/shared_preferences.dart' as my_prefs;
+import '../components/submission_file_preview.dart';
 
 class CourseDetailsPage extends StatefulWidget {
   final int id;
@@ -455,6 +456,67 @@ class _CourseDetailsPageState extends State<CourseDetailsPage> {
     return '-';
   }
 
+  // --- Síncrono tabs helpers ---
+  List<Map<String, dynamic>> _extractSessoes(Map<String, dynamic> d) {
+    final raw = d['sessoes'];
+    if (raw is List)
+      return raw.whereType<Map>().cast<Map<String, dynamic>>().toList();
+    final nested = d['cursosincrono'] ?? d['cursoSincrono'];
+    if (nested is Map) {
+      final r = nested['sessoes'];
+      if (r is List)
+        return r.whereType<Map>().cast<Map<String, dynamic>>().toList();
+    }
+    return const [];
+  }
+
+  List<Map<String, dynamic>> _extractAvaliacoesContinuas(
+    Map<String, dynamic> d,
+  ) {
+    const keys = [
+      'avaliacoescontinuas',
+      'avaliacoesContinuas',
+      'avaliacoes',
+      'avaliacoes_continuas',
+      'avaliacaocontinua',
+    ];
+    for (final k in keys) {
+      final v = d[k];
+      if (v is List)
+        return v.whereType<Map>().cast<Map<String, dynamic>>().toList();
+    }
+    final nested = d['cursosincrono'] ?? d['cursoSincrono'];
+    if (nested is Map) {
+      for (final k in keys) {
+        final v = nested[k];
+        if (v is List)
+          return v.whereType<Map>().cast<Map<String, dynamic>>().toList();
+      }
+    }
+    return const [];
+  }
+
+  Map<String, dynamic>? _extractAvaliacaoFinal(Map<String, dynamic> d) {
+    const keys = [
+      'avaliacaofinal',
+      'avaliacaoFinal',
+      'final',
+      'avaliacao_final',
+    ];
+    for (final k in keys) {
+      final v = d[k];
+      if (v is Map) return v.cast<String, dynamic>();
+    }
+    final nested = d['cursosincrono'] ?? d['cursoSincrono'];
+    if (nested is Map) {
+      for (final k in keys) {
+        final v = nested[k];
+        if (v is Map) return v.cast<String, dynamic>();
+      }
+    }
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -867,12 +929,8 @@ class _CourseDetailsPageState extends State<CourseDetailsPage> {
             ),
           ),
         const SizedBox(height: 24),
-        // Sessões (apenas para cursos síncronos)
-        if (_isSincrono(_courseData!) &&
-            _courseData!['sessoes'] is List &&
-            (_courseData!['sessoes'] as List).isNotEmpty)
+        if (_isSincrono(_courseData!))
           Container(
-            padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(18),
@@ -884,64 +942,54 @@ class _CourseDetailsPageState extends State<CourseDetailsPage> {
                 ),
               ],
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Sessões ao vivo',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF007BFF),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                ...List<Widget>.from(
-                  ((_courseData!['sessoes'] as List)).map((s) {
-                    final Map<String, dynamic> sessao =
-                        Map<String, dynamic>.from(s as Map);
-                    final titulo = sessao['titulo'] ?? 'Sessão';
-                    final inicio = _formatDateTime(
-                      sessao['inicio']?.toString() ??
-                          sessao['datainicio']?.toString(),
-                    );
-                    final fim = _formatDateTime(
-                      sessao['fim']?.toString() ??
-                          sessao['datafim']?.toString(),
-                    );
-                    final local = sessao['local'] ?? sessao['sala'] ?? '';
-                    final link = sessao['link'] ?? sessao['url'] ?? null;
-                    return ListTile(
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 8),
-                      leading: const Icon(
-                        Icons.video_call,
+            child: DefaultTabController(
+              length: 3,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Padding(
+                    padding: EdgeInsets.fromLTRB(16, 16, 16, 0),
+                    child: Text(
+                      'Conteúdos do Curso',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
                         color: Color(0xFF007BFF),
                       ),
-                      title: Text(
-                        titulo.toString(),
-                        style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  const TabBar(
+                    labelColor: Color(0xFF007BFF),
+                    unselectedLabelColor: Color(0xFF8F9BB3),
+                    indicatorColor: Color(0xFF007BFF),
+                    tabs: [
+                      Tab(text: 'Sessões', icon: Icon(Icons.event)),
+                      Tab(
+                        text: 'Avaliações Contínuas',
+                        icon: Icon(Icons.assignment),
                       ),
-                      subtitle: Text(
-                        [
-                          inicio,
-                          fim != '-' ? 'até $fim' : null,
-                          local.toString().isNotEmpty ? ' • $local' : null,
-                        ].whereType<String>().join('  '),
-                      ),
-                      trailing:
-                          link != null
-                              ? IconButton(
-                                icon: const Icon(
-                                  Icons.open_in_new,
-                                  color: Color(0xFF007BFF),
-                                ),
-                                onPressed: () => _launchURL(link.toString()),
-                              )
-                              : null,
-                    );
-                  }),
-                ),
-              ],
+                      Tab(text: 'Avaliação Final', icon: Icon(Icons.grade)),
+                    ],
+                  ),
+                  SizedBox(
+                    height: 320,
+                    child: TabBarView(
+                      children: [
+                        _SessoesTabDetails(
+                          sessoes: _extractSessoes(_courseData!),
+                        ),
+                        _AvaliacoesContinuasTabDetails(
+                          avaliacoes: _extractAvaliacoesContinuas(_courseData!),
+                        ),
+                        _AvaliacaoFinalTabDetails(
+                          avaliacaoFinal: _extractAvaliacaoFinal(_courseData!),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         if (_isInscrito &&
@@ -1130,3 +1178,541 @@ class _FactChip extends StatelessWidget {
 }
 
 // Removed old _DetailRow as details are now presented as chips
+
+// --- Tab contents (read-only, no uploads) ---
+class _SessoesTabDetails extends StatelessWidget {
+  final List<Map<String, dynamic>> sessoes;
+  const _SessoesTabDetails({required this.sessoes});
+
+  String _fmtDT(dynamic raw) {
+    if (raw == null) return '-';
+    try {
+      final dt = DateTime.tryParse(raw.toString());
+      if (dt == null) return raw.toString();
+      String two(int n) => n.toString().padLeft(2, '0');
+      return '${two(dt.day)}/${two(dt.month)}/${dt.year} ${two(dt.hour)}:${two(dt.minute)}';
+    } catch (_) {
+      return raw.toString();
+    }
+  }
+
+  DateTime? _parseDT(dynamic raw) {
+    if (raw == null) return null;
+    try {
+      return DateTime.tryParse(raw.toString());
+    } catch (_) {
+      return null;
+    }
+  }
+
+  (double? progress, String status) _progressFor(
+    dynamic siRaw,
+    dynamic sfRaw,
+    String? duracaoHoras,
+  ) {
+    final now = DateTime.now();
+    DateTime? si = _parseDT(siRaw);
+    DateTime? sf = _parseDT(sfRaw);
+    // If only duration is available, derive end from start
+    if (sf == null &&
+        si != null &&
+        duracaoHoras != null &&
+        duracaoHoras.isNotEmpty) {
+      final h = double.tryParse(duracaoHoras.replaceAll(',', '.'));
+      if (h != null && h > 0) {
+        final minutes = (h * 60).round();
+        sf = si.add(Duration(minutes: minutes));
+      }
+    }
+    if (si == null && sf == null) return (null, '');
+    if (si != null && now.isBefore(si)) return (0.0, 'Pendente');
+    if (sf != null && now.isAfter(sf)) return (1.0, 'Terminada');
+    if (si != null && sf != null) {
+      final total = sf.difference(si).inSeconds;
+      if (total <= 0) return (null, '');
+      final elapsed = now.difference(si).inSeconds.clamp(0, total);
+      final p = (elapsed / total).clamp(0.0, 1.0);
+      return (p, 'Em curso');
+    }
+    return (null, '');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (sessoes.isEmpty) {
+      return const Center(
+        child: Text(
+          'Sem sessões disponíveis.',
+          style: TextStyle(color: Color(0xFF8F9BB3)),
+        ),
+      );
+    }
+    return ListView.separated(
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+      itemBuilder: (ctx, i) {
+        final s = sessoes[i];
+        final titulo =
+            (s['titulo'] ?? s['assunto'] ?? 'Sessão ${i + 1}').toString();
+        final datahora = s['datahora'];
+        final inicio = _fmtDT(s['inicio'] ?? s['datainicio'] ?? datahora);
+        final fim = _fmtDT(s['fim'] ?? s['datafim']);
+        final local =
+            (s['local'] ?? s['sala'] ?? s['link'] ?? s['url'] ?? '').toString();
+        final plataforma =
+            (s['plataformavideoconferencia'] ?? s['plataforma'])?.toString();
+        final duracaoHoras =
+            (s['duracaohoras'] ?? s['duracao'] ?? s['horas'])?.toString();
+        final linkSessao =
+            (s['linksessao'] ??
+                    s['linkSessao'] ??
+                    s['meeting'] ??
+                    s['meet'] ??
+                    s['url'])
+                ?.toString();
+        final materiais =
+            (s['materiais'] ??
+                s['materials'] ??
+                s['conteudos'] ??
+                s['materiaisSessao'] ??
+                s['conteudosSessao']);
+        final List<Map<String, dynamic>> mats =
+            (materiais is List)
+                ? materiais
+                    .whereType<Map>()
+                    .cast<Map<String, dynamic>>()
+                    .toList()
+                : const [];
+        final (p, status) = _progressFor(
+          s['inicio'] ?? s['datainicio'] ?? datahora,
+          s['fim'] ?? s['datafim'],
+          duracaoHoras,
+        );
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 6.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  const Padding(
+                    padding: EdgeInsets.only(right: 8.0),
+                    child: Icon(
+                      Icons.event_available,
+                      color: Color(0xFF007BFF),
+                    ),
+                  ),
+                  Expanded(
+                    child: Text(
+                      titulo,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ),
+                  if (linkSessao != null && linkSessao.isNotEmpty)
+                    TextButton.icon(
+                      onPressed: () async {
+                        final uri = Uri.tryParse(linkSessao);
+                        if (uri != null) {
+                          await launchUrl(
+                            uri,
+                            mode: LaunchMode.externalApplication,
+                          );
+                        }
+                      },
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 8,
+                        ),
+                      ),
+                      icon: const Icon(Icons.link, size: 16),
+                      label: const Text('Reunião'),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              DefaultTextStyle(
+                style: const TextStyle(color: Color(0xFF49454F), fontSize: 13),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (datahora != null)
+                      Wrap(
+                        spacing: 6,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          Text(inicio != '-' ? inicio : '-'),
+                          if (duracaoHoras != null &&
+                              duracaoHoras.toString().isNotEmpty)
+                            Text('(${duracaoHoras}h)'),
+                          if (plataforma != null && plataforma.isNotEmpty)
+                            Text('— $plataforma'),
+                        ],
+                      )
+                    else if (inicio != '-' || fim != '-')
+                      Text('De $inicio até $fim'),
+                    if (local.isNotEmpty) Text('Local: $local'),
+                  ],
+                ),
+              ),
+              if (p != null) ...[
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    Expanded(
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(4),
+                        child: LinearProgressIndicator(
+                          minHeight: 6,
+                          value: p.isNaN ? null : p,
+                          backgroundColor: const Color(0xFFE6ECF2),
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            status == 'Terminada'
+                                ? Colors.green
+                                : status == 'Pendente'
+                                ? const Color(0xFF8F9BB3)
+                                : const Color(0xFF007BFF),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade200,
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Text(
+                        status,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey.shade800,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+              if (mats.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                const Text(
+                  'Materiais:',
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 6),
+                ...mats.asMap().entries.map((entry) {
+                  final idx = entry.key;
+                  final m = entry.value;
+                  final mname =
+                      (m['nome'] ??
+                              m['filename'] ??
+                              m['titulo'] ??
+                              m['designacao'] ??
+                              'Material ${idx + 1}')
+                          .toString();
+                  final murl =
+                      (m['url'] ??
+                              m['link'] ??
+                              m['referencia'] ??
+                              m['ficheiro'] ??
+                              m['file'] ??
+                              m['path'])
+                          ?.toString();
+                  final mdate =
+                      (m['data'] ?? m['createdAt'] ?? m['updatedAt'] ?? m['at'])
+                          ?.toString();
+                  final isPdf =
+                      (murl != null && murl.toLowerCase().endsWith('.pdf'));
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 6.0),
+                    child: SubmissionFilePreview(
+                      url: murl ?? '',
+                      filename: mname,
+                      type: isPdf ? 'application/pdf' : null,
+                      date: mdate != null ? DateTime.tryParse(mdate) : null,
+                    ),
+                  );
+                }).toList(),
+              ] else ...[
+                const SizedBox(height: 6),
+                const Text(
+                  'Sem materiais.',
+                  style: TextStyle(color: Color(0xFF8F9BB3)),
+                ),
+              ],
+            ],
+          ),
+        );
+      },
+      separatorBuilder: (_, __) => const Divider(height: 1),
+      itemCount: sessoes.length,
+    );
+  }
+}
+
+class _AvaliacoesContinuasTabDetails extends StatelessWidget {
+  final List<Map<String, dynamic>> avaliacoes;
+  const _AvaliacoesContinuasTabDetails({required this.avaliacoes});
+
+  String _fmtDT(dynamic raw) {
+    if (raw == null) return '-';
+    try {
+      final dt = DateTime.tryParse(raw.toString());
+      if (dt == null) return raw.toString();
+      String two(int n) => n.toString().padLeft(2, '0');
+      return '${two(dt.day)}/${two(dt.month)}/${dt.year} ${two(dt.hour)}:${two(dt.minute)}';
+    } catch (_) {
+      return raw.toString();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (avaliacoes.isEmpty) {
+      return const Center(
+        child: Text(
+          'Sem avaliações contínuas.',
+          style: TextStyle(color: Color(0xFF8F9BB3)),
+        ),
+      );
+    }
+    return ListView.separated(
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+      itemBuilder: (ctx, i) {
+        final av = avaliacoes[i];
+        final titulo =
+            (av['titulo'] ?? av['nome'] ?? 'Avaliação ${i + 1}').toString();
+        final descricao = (av['descricao'] ?? '').toString();
+        final inicioDisp = _fmtDT(
+          av['iniciodisponibilidade'] ?? av['inicioDisponibilidade'],
+        );
+        final fimDisp = _fmtDT(
+          av['fimdisponibilidade'] ?? av['fimDisponibilidade'],
+        );
+        final inicioSub = _fmtDT(
+          av['iniciodesubmissoes'] ?? av['inicioDeSubmissoes'],
+        );
+        final fimSub = _fmtDT(
+          av['fimdesubmissoes'] ?? av['fimDeSubmissoes'] ?? av['deadline'],
+        );
+        final enunciado =
+            (av['enunciado'] ?? av['enunciadoUrl'] ?? av['enunciadoLink'])
+                ?.toString();
+        // Try to detect the current user's submission from common keys (server may embed it)
+        final sub =
+            (av['minhasubmissao'] ?? av['minhaSubmissao'] ?? av['submissao'])
+                as dynamic;
+        String? subUrl;
+        String? subDate;
+        String? subNota;
+        if (sub is Map) {
+          subUrl =
+              (sub['submissao'] ?? sub['link'] ?? sub['url'] ?? sub['ficheiro'])
+                  ?.toString();
+          subDate =
+              (sub['data'] ??
+                      sub['dataSubmissao'] ??
+                      sub['createdAt'] ??
+                      sub['at'])
+                  ?.toString();
+          subNota = (sub['nota'] ?? sub['classificacao'])?.toString();
+        } else if (sub is String) {
+          subUrl = sub;
+        }
+        // Some APIs put note at the evaluation level already resolved for the student
+        subNota ??= (av['nota'] ?? av['classificacao'])?.toString();
+
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ListTile(
+                contentPadding: const EdgeInsets.symmetric(horizontal: 8),
+                leading: const Icon(
+                  Icons.assignment_turned_in,
+                  color: Color(0xFF5E35B1),
+                ),
+                title: Text(
+                  titulo,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                subtitle: Text(
+                  [
+                    if (descricao.isNotEmpty) descricao,
+                    if (inicioDisp != '-' || fimDisp != '-')
+                      'Início disponibilidade: $inicioDisp' +
+                          (fimDisp != '-' ? '  |  Fim: $fimDisp' : ''),
+                    if (inicioSub != '-' || fimSub != '-')
+                      'Início submissões: $inicioSub' +
+                          (fimSub != '-' ? '  |  Fim: $fimSub' : ''),
+                  ].join('\n'),
+                ),
+                isThreeLine: true,
+              ),
+              if (enunciado != null && enunciado.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8.0,
+                    vertical: 4.0,
+                  ),
+                  child: SubmissionFilePreview(
+                    url: enunciado,
+                    filename: 'Enunciado',
+                    type:
+                        enunciado.toLowerCase().endsWith('.pdf')
+                            ? 'application/pdf'
+                            : null,
+                  ),
+                ),
+              if (subUrl != null && subUrl.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8.0,
+                    vertical: 4.0,
+                  ),
+                  child: SubmissionFilePreview(
+                    url: subUrl,
+                    filename: 'Ficheiro submetido',
+                    type:
+                        subUrl.toLowerCase().endsWith('.pdf')
+                            ? 'application/pdf'
+                            : null,
+                    date: subDate != null ? DateTime.tryParse(subDate) : null,
+                    statusLabel:
+                        (subNota != null && subNota.isNotEmpty)
+                            ? 'Nota: $subNota'
+                            : 'Por avaliar',
+                  ),
+                )
+              else
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 6),
+                  child: Text(
+                    'Sem submissão (upload apenas na web).',
+                    style: TextStyle(color: Color(0xFF8F9BB3)),
+                  ),
+                ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        );
+      },
+      separatorBuilder: (_, __) => const Divider(height: 1),
+      itemCount: avaliacoes.length,
+    );
+  }
+}
+
+class _AvaliacaoFinalTabDetails extends StatelessWidget {
+  final Map<String, dynamic>? avaliacaoFinal;
+  const _AvaliacaoFinalTabDetails({required this.avaliacaoFinal});
+
+  String _fmtDT(dynamic raw) {
+    if (raw == null) return '-';
+    try {
+      final dt = DateTime.tryParse(raw.toString());
+      if (dt == null) return raw.toString();
+      String two(int n) => n.toString().padLeft(2, '0');
+      return '${two(dt.day)}/${two(dt.month)}/${dt.year} ${two(dt.hour)}:${two(dt.minute)}';
+    } catch (_) {
+      return raw.toString();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final data = avaliacaoFinal;
+    if (data == null || data.isEmpty) {
+      return const Center(
+        child: Text(
+          'Sem avaliação final.',
+          style: TextStyle(color: Color(0xFF8F9BB3)),
+        ),
+      );
+    }
+    final titulo =
+        (data['titulo'] ?? data['nome'] ?? 'Avaliação Final').toString();
+    final descricao = (data['descricao'] ?? '').toString();
+    final inicio = _fmtDT(
+      data['inicio'] ?? data['datainicio'] ?? data['abertura'],
+    );
+    final fim = _fmtDT(data['fim'] ?? data['datafim'] ?? data['fecho']);
+    final enunciado =
+        (data['enunciado'] ?? data['enunciadoUrl'] ?? data['enunciadoLink'])
+            ?.toString();
+    final nota =
+        (data['nota'] ?? data['classificacao'] ?? data['valor'])?.toString();
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ListTile(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 8),
+            leading: const Icon(Icons.grade, color: Color(0xFF2E7D32)),
+            title: Text(titulo, maxLines: 2, overflow: TextOverflow.ellipsis),
+            subtitle: Text(
+              [
+                if (descricao.isNotEmpty) descricao,
+                if (inicio != '-' || fim != '-') 'Janela: $inicio → $fim',
+              ].join('\n'),
+            ),
+          ),
+          if (enunciado != null && enunciado.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8.0),
+              child: SubmissionFilePreview(
+                url: enunciado,
+                filename: 'Enunciado',
+                type:
+                    enunciado.toLowerCase().endsWith('.pdf')
+                        ? 'application/pdf'
+                        : null,
+              ),
+            ),
+          if (nota != null && nota.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 12.0,
+                vertical: 6,
+              ),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 8,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.green.withOpacity(0.08),
+                  border: Border.all(color: Colors.green.withOpacity(0.25)),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  'Nota final: $nota',
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+              ),
+            ),
+          const SizedBox(height: 8),
+          const Text(
+            'Nota: Submissões e upload de ficheiros são exclusivos da versão web.',
+            style: TextStyle(color: Color(0xFF8F9BB3)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// _ResourceTile removed in favor of SubmissionFilePreview/SubmissionCard
