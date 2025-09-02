@@ -7,14 +7,17 @@ export default function EditarArea() {
   const { id } = useParams();
   const navigate = useNavigate();
 
+  // Estado do formulário
   const [designacao, setDesignacao] = useState("");
   const [categoriaSelecionada, setCategoriaSelecionada] = useState("");
   const [categoriasDisponiveis, setCategoriasDisponiveis] = useState([]);
 
+  // Estado de carregamento/erros
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
 
+  // Resultado (modal)
   const [operationStatus, setOperationStatus] = useState(null);
   const [operationMessage, setOperationMessage] = useState("");
   const [isResultModalOpen, setIsResultModalOpen] = useState(false);
@@ -59,6 +62,7 @@ export default function EditarArea() {
     }
   };
 
+  // Carrega dados da área + lista de categorias
   useEffect(() => {
     const fetchAreaData = async () => {
       setLoading(true);
@@ -86,14 +90,14 @@ export default function EditarArea() {
     fetchAreaData();
   }, [id]);
 
+  // Submeter atualização
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
     try {
       const payload = {
         designacao: designacao,
-        // A categoria é opcional na atualização se o campo for vazio,
-        // mas se for selecionada, deve ser um número.
+        // Categoria é opcional; se existir, enviar número
         categoria: categoriaSelecionada
           ? parseInt(categoriaSelecionada, 10)
           : null,
