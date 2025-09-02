@@ -23,6 +23,8 @@ class _CourseDetailsPageState extends State<CourseDetailsPage> {
   bool _isSubmittingAction = false;
   int? _inscritosCountRemote;
   bool _loadingInscritosCount = false;
+  String? _currentUserId;
+  String? _currentUserEmail;
 
   final AppMiddleware _middleware = AppMiddleware();
   final NotificationService _notificationService = NotificationService();
@@ -31,6 +33,20 @@ class _CourseDetailsPageState extends State<CourseDetailsPage> {
   void initState() {
     super.initState();
     _fetchCourseDetails();
+    _loadIdentity();
+  }
+
+  Future<void> _loadIdentity() async {
+    try {
+      final user = await my_prefs.getUser();
+      if (!mounted) return;
+      setState(() {
+        _currentUserId =
+            (user?['idutilizador'] ?? user?['utilizador'] ?? user?['id'])
+                ?.toString();
+        _currentUserEmail = user?['email']?.toString();
+      });
+    } catch (_) {}
   }
 
   Future<void> _fetchCourseDetails() async {
@@ -457,6 +473,232 @@ class _CourseDetailsPageState extends State<CourseDetailsPage> {
   }
 
   // --- Síncrono tabs helpers ---
+  String? _resolveStudentFinalNota(Map<String, dynamic> d) {
+    try {
+      // 0) Direct mine fields
+      final mine = d['minhaAvaliacaoFinal'] ?? d['minhaavaliacaofinal'];
+      if (mine != null) {
+        if (mine is Map) {
+          final n = mine['nota'] ?? mine['classificacao'];
+          if (n != null && n.toString().isNotEmpty) return n.toString();
+        } else if (mine is num || mine is String) {
+          final s = mine.toString();
+          if (s.isNotEmpty) return s;
+        }
+      }
+      // 1) Top-level grade
+      final top = d['notaFinal'] ?? d['classificacaoFinal'];
+      if (top != null && top.toString().isNotEmpty) return top.toString();
+
+      final String? uid = _currentUserId;
+      final String? email = _currentUserEmail?.toLowerCase();
+
+      // Try to resolve current formando id from inscritos list
+      String? formingId;
+      for (final listKey in const [
+        'inscritos',
+        'inscricoes',
+        'participantes',
+        'alunos',
+        'formandos',
+      ]) {
+        final v = d[listKey];
+        if (v is List) {
+          for (final it in v) {
+            if (it is Map) {
+              final ids = [
+                it['idutilizador'],
+                it['utilizador'],
+                it['userId'],
+                it['id'],
+              ];
+              final em = it['email']?.toString().toLowerCase();
+              if ((uid != null && ids.any((x) => x?.toString() == uid)) ||
+                  (email != null && em == email)) {
+                formingId =
+                    (it['idformando'] ?? it['formando'] ?? it['id'])
+                        ?.toString();
+                break;
+              }
+            }
+          }
+        }
+        if (formingId != null) break;
+      }
+
+      bool _matchesUid(dynamic v) {
+        if ((uid == null || uid.isEmpty) &&
+            (formingId == null || formingId.isEmpty))
+          return false;
+        try {
+          final s = v?.toString();
+          if (s == null || s.isEmpty) return false;
+          return (uid != null && s == uid) ||
+              (formingId != null && s == formingId);
+        } catch (_) {
+          return false;
+        }
+      }
+
+      bool _matchesEmail(dynamic v) {
+        if (email == null || email.isEmpty) return false;
+        try {
+          final s = v?.toString().toLowerCase();
+          return s != null && s.isNotEmpty && s == email;
+        } catch (_) {
+          return false;
+        }
+      }
+
+      String? _notaFromObj(Map obj) {
+        final n = obj['nota'] ?? obj['classificacao'] ?? obj['valor'];
+        return (n != null && n.toString().isNotEmpty) ? n.toString() : null;
+      }
+
+      // 2) Object under avaliacaofinal may be map of values or map keyed by id
+      final af = d['avaliacaofinal'] ?? d['avaliacaoFinal'] ?? d['final'];
+      if (af is Map) {
+        // If it itself has a nota, use it
+        final n0 = _notaFromObj(af);
+        if (n0 != null) return n0;
+        // Else check entries keyed by uid
+        if (uid != null && af.containsKey(uid)) {
+          final v = af[uid];
+          if (v is Map) {
+            final n = _notaFromObj(v);
+            if (n != null) return n;
+          } else if (v != null) {
+            final s = v.toString();
+            if (s.isNotEmpty) return s;
+          }
+        }
+        // Or where value references the user id
+        for (final e in af.entries) {
+          final val = e.value;
+          if (val is Map) {
+            final candidateIds = [
+              val['idformando'],
+              val['formando'],
+              val['idutilizador'],
+              val['utilizador'],
+              val['userId'],
+              val['id'],
+            ];
+            if (candidateIds.any(_matchesUid)) {
+              final n = _notaFromObj(val);
+              if (n != null) return n;
+            }
+          }
+        }
+      }
+
+      // 3) Arrays of finals
+      for (final k in const [
+        'avaliacoesFinais',
+        'avaliacoesfinal',
+        'finais',
+        'final',
+      ]) {
+        final v = d[k];
+        if (v is List && v.isNotEmpty) {
+          Map? mineObj;
+          // Prefer match by user id
+          for (final it in v) {
+            if (it is Map) {
+              final candidateIds = [
+                it['idformando'],
+                it['formando'],
+                it['idutilizador'],
+                it['utilizador'],
+                it['userId'],
+                it['id'],
+              ];
+              if (candidateIds.any(_matchesUid) ||
+                  _matchesEmail(it['email']) ||
+                  it['mine'] == true) {
+                mineObj = it;
+                break;
+              }
+            }
+          }
+          if (mineObj != null) {
+            final n = _notaFromObj(mineObj);
+            if (n != null) return n;
+          }
+          // Fallback: first item with nota
+          for (final it in v) {
+            if (it is Map) {
+              final n = _notaFromObj(it);
+              if (n != null) return n;
+            }
+          }
+        }
+      }
+
+      // 4) Derive from my inscrição
+      Map<String, dynamic>? candidate;
+      for (final listKey in const [
+        'inscritos',
+        'inscricoes',
+        'participantes',
+        'alunos',
+        'formandos',
+      ]) {
+        final v = d[listKey];
+        if (v is List) {
+          for (final it in v) {
+            if (it is Map) {
+              final ids = [
+                it['idutilizador'],
+                it['utilizador'],
+                it['userId'],
+                it['id'],
+              ];
+              if (ids.any(_matchesUid)) {
+                candidate = it.cast<String, dynamic>();
+                break;
+              }
+            }
+          }
+        }
+        if (candidate != null) break;
+      }
+      if (candidate != null) {
+        // Direct fields on inscrição
+        final direct =
+            candidate['notaFinal'] ??
+            candidate['nota'] ??
+            candidate['classificacaoFinal'] ??
+            candidate['classificacao'];
+        if (direct != null && direct.toString().isNotEmpty) {
+          return direct.toString();
+        }
+        // Nested objects
+        final nestedObj =
+            candidate['avaliacaofinal'] ??
+            candidate['avaliacaoFinal'] ??
+            candidate['final'];
+        if (nestedObj is Map) {
+          final n = _notaFromObj(nestedObj);
+          if (n != null) return n;
+        }
+        final base =
+            candidate['formando'] ??
+            candidate['user'] ??
+            candidate['utilizador'];
+        if (base is Map) {
+          final n =
+              base['notaFinal'] ??
+              base['classificacaoFinal'] ??
+              base['classificacao'] ??
+              base['nota'];
+          if (n != null && n.toString().isNotEmpty) return n.toString();
+        }
+      }
+    } catch (_) {}
+    return null;
+  }
+
   List<Map<String, dynamic>> _extractSessoes(Map<String, dynamic> d) {
     final raw = d['sessoes'];
     if (raw is List)
@@ -497,6 +739,7 @@ class _CourseDetailsPageState extends State<CourseDetailsPage> {
   }
 
   Map<String, dynamic>? _extractAvaliacaoFinal(Map<String, dynamic> d) {
+    // 1) Direct object under common keys
     const keys = [
       'avaliacaofinal',
       'avaliacaoFinal',
@@ -506,13 +749,60 @@ class _CourseDetailsPageState extends State<CourseDetailsPage> {
     for (final k in keys) {
       final v = d[k];
       if (v is Map) return v.cast<String, dynamic>();
+      if (v is List && v.isNotEmpty) {
+        final first = v.first;
+        if (first is Map) return first.cast<String, dynamic>();
+      }
     }
+    // 2) Nested inside cursoSincrono/cursosincrono
     final nested = d['cursosincrono'] ?? d['cursoSincrono'];
     if (nested is Map) {
       for (final k in keys) {
         final v = nested[k];
         if (v is Map) return v.cast<String, dynamic>();
+        if (v is List && v.isNotEmpty) {
+          final first = v.first;
+          if (first is Map) return first.cast<String, dynamic>();
+        }
       }
+    }
+    // 3) Arrays likely to contain final evaluation
+    const arrayKeys = [
+      'avaliacoesFinais',
+      'avaliacoesfinal',
+      'finais',
+      'finals',
+    ];
+    for (final k in arrayKeys) {
+      final v = d[k];
+      if (v is List && v.isNotEmpty) {
+        final first = v.first;
+        if (first is Map) return first.cast<String, dynamic>();
+      }
+    }
+    // 4) Look inside general 'avaliacoes' for one tagged as final
+    final avals = d['avaliacoes'];
+    if (avals is List) {
+      for (final it in avals) {
+        if (it is Map) {
+          final tipo =
+              (it['tipo'] ?? it['categoria'] ?? '').toString().toLowerCase();
+          final isFinal =
+              tipo.contains('final') ||
+              it['final'] == true ||
+              it['isFinal'] == true;
+          if (isFinal) return it.cast<String, dynamic>();
+        }
+      }
+    }
+    // 5) If nothing found, but student-level grade exists at top-level, synthesize a minimal object
+    final notaTop =
+        (d['notaFinal'] ??
+            d['classificacaoFinal'] ??
+            d['minhaAvaliacaoFinal']?['nota'] ??
+            d['minhaavaliacaofinal']?['nota']);
+    if (notaTop != null) {
+      return {'titulo': 'Avaliação Final', 'nota': notaTop};
     }
     return null;
   }
@@ -984,6 +1274,7 @@ class _CourseDetailsPageState extends State<CourseDetailsPage> {
                         ),
                         _AvaliacaoFinalTabDetails(
                           avaliacaoFinal: _extractAvaliacaoFinal(_courseData!),
+                          alunoNota: _resolveStudentFinalNota(_courseData!),
                         ),
                       ],
                     ),
@@ -1617,7 +1908,11 @@ class _AvaliacoesContinuasTabDetails extends StatelessWidget {
 
 class _AvaliacaoFinalTabDetails extends StatelessWidget {
   final Map<String, dynamic>? avaliacaoFinal;
-  const _AvaliacaoFinalTabDetails({required this.avaliacaoFinal});
+  final String? alunoNota;
+  const _AvaliacaoFinalTabDetails({
+    required this.avaliacaoFinal,
+    this.alunoNota,
+  });
 
   String _fmtDT(dynamic raw) {
     if (raw == null) return '-';
@@ -1634,7 +1929,9 @@ class _AvaliacaoFinalTabDetails extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final data = avaliacaoFinal;
-    if (data == null || data.isEmpty) {
+    // If final object is missing but we have a student grade, still show a small card with the grade
+    if ((data == null || data.isEmpty) &&
+        (alunoNota == null || alunoNota!.isEmpty)) {
       return const Center(
         child: Text(
           'Sem avaliação final.',
@@ -1643,17 +1940,20 @@ class _AvaliacaoFinalTabDetails extends StatelessWidget {
       );
     }
     final titulo =
-        (data['titulo'] ?? data['nome'] ?? 'Avaliação Final').toString();
-    final descricao = (data['descricao'] ?? '').toString();
+        (data?['titulo'] ?? data?['nome'] ?? 'Avaliação Final').toString();
+    final descricao = (data?['descricao'] ?? '').toString();
     final inicio = _fmtDT(
-      data['inicio'] ?? data['datainicio'] ?? data['abertura'],
+      data?['inicio'] ?? data?['datainicio'] ?? data?['abertura'],
     );
-    final fim = _fmtDT(data['fim'] ?? data['datafim'] ?? data['fecho']);
+    final fim = _fmtDT(data?['fim'] ?? data?['datafim'] ?? data?['fecho']);
     final enunciado =
-        (data['enunciado'] ?? data['enunciadoUrl'] ?? data['enunciadoLink'])
+        (data?['enunciado'] ?? data?['enunciadoUrl'] ?? data?['enunciadoLink'])
             ?.toString();
-    final nota =
-        (data['nota'] ?? data['classificacao'] ?? data['valor'])?.toString();
+    final resolvedNota =
+        (alunoNota != null && alunoNota!.isNotEmpty)
+            ? alunoNota
+            : (data?['nota'] ?? data?['classificacao'] ?? data?['valor'])
+                ?.toString();
     return Padding(
       padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
       child: Column(
@@ -1682,7 +1982,7 @@ class _AvaliacaoFinalTabDetails extends StatelessWidget {
                         : null,
               ),
             ),
-          if (nota != null && nota.isNotEmpty)
+          if (resolvedNota != null && resolvedNota.isNotEmpty)
             Padding(
               padding: const EdgeInsets.symmetric(
                 horizontal: 12.0,
@@ -1699,7 +1999,7 @@ class _AvaliacaoFinalTabDetails extends StatelessWidget {
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
-                  'Nota final: $nota',
+                  'Nota final: $resolvedNota',
                   style: const TextStyle(fontWeight: FontWeight.w600),
                 ),
               ),
