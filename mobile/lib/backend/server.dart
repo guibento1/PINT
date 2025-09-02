@@ -6,7 +6,21 @@ import 'shared_preferences.dart' as prefs_utils;
 import 'package:flutter/foundation.dart';
 
 class Servidor {
-  final String urlAPI = 'https://api.thesoftskills.xyz';
+  // Base URL aware of platform:
+  // - Android emulator must use 10.0.2.2 to reach the host machine
+  // - iOS simulator and desktop can use localhost
+  // - For real devices, replace with your machine's LAN IP (e.g., http://192.168.1.50:3000)
+  final String urlAPI =
+      (() {
+        if (kIsWeb) return 'http://localhost:3000';
+        try {
+          if (Platform.isAndroid) return 'http://10.0.2.2:3000';
+          return 'http://localhost:3000';
+        } catch (_) {
+          // Fallback if Platform is not available
+          return 'http://localhost:3000';
+        }
+      })();
 
   Future<Map<String, dynamic>?> login(String email, String password) async {
     try {
@@ -14,16 +28,19 @@ class Servidor {
         Uri.parse('$urlAPI/utilizador/login'),
         headers: <String, String>{
           'Content-Type': 'application/json; charset=UTF-8',
+          'Accept': 'application/json',
         },
-        body: jsonEncode({
-          'email': email,
-          'password': password,
-        }),
+        body: jsonEncode({'email': email, 'password': password}),
       );
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> responseBody = json.decode(response.body);
-        final String? token = responseBody['accessToken'];
+        // Try multiple common token keys
+        final String? token =
+            (responseBody['accessToken'] ??
+                    responseBody['token'] ??
+                    responseBody['access_token'])
+                as String?;
 
         if (token != null) {
           await prefs_utils.setToken(token);
@@ -50,6 +67,7 @@ class Servidor {
     if (token != null) {
       headers['Authorization'] = 'Bearer $token';
     }
+    headers['Accept'] = 'application/json';
     return headers;
   }
 
@@ -57,35 +75,39 @@ class Servidor {
     await prefs_utils.removeToken();
   }
 
-  Future<dynamic> getData(String endpoint, {Map<String, dynamic>? queryParameters}) async {
+  // Small helper to build URIs with query parameters safely
+  Uri _buildUri(String endpoint, {Map<String, dynamic>? queryParameters}) {
+    Uri uri = Uri.parse('$urlAPI/$endpoint');
+    if (queryParameters != null && queryParameters.isNotEmpty) {
+      final Map<String, List<String>> qp = {};
+      queryParameters.forEach((key, value) {
+        if (value == null) return;
+        if (value is List) {
+          qp[key] = value.map((e) => e.toString()).toList();
+        } else {
+          qp[key] = [value.toString()];
+        }
+      });
+      uri = uri.replace(queryParameters: qp);
+    }
+    return uri;
+  }
+
+  Future<dynamic> getData(
+    String endpoint, {
+    Map<String, dynamic>? queryParameters,
+  }) async {
     try {
       final headers = await _getAuthHeaders();
       headers['Content-Type'] = 'application/json; charset=UTF-8';
 
-      Uri uri = Uri.parse('$urlAPI/$endpoint');
-
-      if (queryParameters != null && queryParameters.isNotEmpty) {
-        final Map<String, List<String>> finalEncodedQueryParams = {};
-
-        queryParameters.forEach((key, value) {
-          if (value is List) {
-            finalEncodedQueryParams[key] = value.map((e) => e.toString()).toList();
-          } else {
-            finalEncodedQueryParams[key] = [value.toString()];
-          }
-        });
-
-        uri = uri.replace(queryParameters: finalEncodedQueryParams);
-      }
+      final uri = _buildUri(endpoint, queryParameters: queryParameters);
 
       if (kDebugMode) {
         print('Servidor GET request URL: $uri');
       }
 
-      final response = await http.get(
-        uri,
-        headers: headers,
-      );
+      final response = await http.get(uri, headers: headers);
 
       if (kDebugMode) {
         print('Response Status Code: ${response.statusCode}');
@@ -96,7 +118,10 @@ class Servidor {
         final decodedResponse = json.decode(response.body);
         return decodedResponse;
       } else if (response.statusCode == 401 || response.statusCode == 403) {
-        print('Authentication error: Token might be invalid or expired. Status: ${response.statusCode}');
+        print(
+          'Authentication error: Token might be invalid or expired. Status: ${response.statusCode}',
+        );
+        await clearToken();
         return null;
       } else {
         print('Failed to load data: ${response.statusCode}');
@@ -113,13 +138,15 @@ class Servidor {
   }
 
   Future<Map<String, dynamic>?> postData(
-      String endpoint, Map<String, dynamic> data) async {
+    String endpoint,
+    Map<String, dynamic> data,
+  ) async {
     try {
       final headers = await _getAuthHeaders();
       headers['Content-Type'] = 'application/json; charset=UTF-8';
 
       final response = await http.post(
-        Uri.parse('$urlAPI/$endpoint'),
+        _buildUri(endpoint),
         headers: headers,
         body: jsonEncode(data),
       );
@@ -128,7 +155,9 @@ class Servidor {
         return json.decode(response.body);
       } else if (response.statusCode == 401 || response.statusCode == 403) {
         print(
-            'Authentication error: Token might be invalid or expired. Status: ${response.statusCode}');
+          'Authentication error: Token might be invalid or expired. Status: ${response.statusCode}',
+        );
+        await clearToken();
         return null;
       } else {
         print('Failed to post data: ${response.statusCode}');
@@ -142,13 +171,15 @@ class Servidor {
   }
 
   Future<Map<String, dynamic>?> putData(
-      String endpoint, Map<String, dynamic> data) async {
+    String endpoint,
+    Map<String, dynamic> data,
+  ) async {
     try {
       final headers = await _getAuthHeaders();
       headers['Content-Type'] = 'application/json; charset=UTF-8';
 
       final response = await http.put(
-        Uri.parse('$urlAPI/$endpoint'),
+        _buildUri(endpoint),
         headers: headers,
         body: jsonEncode(data),
       );
@@ -157,7 +188,9 @@ class Servidor {
         return json.decode(response.body);
       } else if (response.statusCode == 401 || response.statusCode == 403) {
         print(
-            'Authentication error: Token might be invalid or expired. Status: ${response.statusCode}');
+          'Authentication error: Token might be invalid or expired. Status: ${response.statusCode}',
+        );
+        await clearToken();
         return null;
       } else {
         print('Failed to update data: ${response.statusCode}');
@@ -174,16 +207,15 @@ class Servidor {
     try {
       final headers = await _getAuthHeaders();
 
-      final response = await http.delete(
-        Uri.parse('$urlAPI/$endpoint'),
-        headers: headers,
-      );
+      final response = await http.delete(_buildUri(endpoint), headers: headers);
 
       if (response.statusCode == 200 || response.statusCode == 204) {
         return true;
       } else if (response.statusCode == 401 || response.statusCode == 403) {
         print(
-            'Authentication error: Token might be invalid or expired. Status: ${response.statusCode}');
+          'Authentication error: Token might be invalid or expired. Status: ${response.statusCode}',
+        );
+        await clearToken();
         return false;
       } else {
         print('Failed to delete data: ${response.statusCode}');
@@ -205,10 +237,7 @@ class Servidor {
     try {
       final headers = await _getAuthHeaders();
 
-      final request = http.MultipartRequest(
-        'POST',
-        Uri.parse('$urlAPI/$endpoint'),
-      );
+      final request = http.MultipartRequest('POST', _buildUri(endpoint));
 
       request.fields.addAll(fields);
 
@@ -223,7 +252,9 @@ class Servidor {
         return json.decode(response.body);
       } else if (response.statusCode == 401 || response.statusCode == 403) {
         print(
-            'Authentication error: Token might be invalid or expired. Status: ${response.statusCode}');
+          'Authentication error: Token might be invalid or expired. Status: ${response.statusCode}',
+        );
+        await clearToken();
         return null;
       } else {
         print('Failed to send multipart data: ${response.statusCode}');
@@ -245,15 +276,14 @@ class Servidor {
     try {
       final headers = await _getAuthHeaders();
 
-      final request = http.MultipartRequest(
-        'PUT',
-        Uri.parse('$urlAPI/$endpoint'),
-      );
+      final request = http.MultipartRequest('PUT', _buildUri(endpoint));
 
       request.fields.addAll(fields);
 
       if (filePath != null && filePath.isNotEmpty) {
-        request.files.add(await http.MultipartFile.fromPath(fileField, filePath));
+        request.files.add(
+          await http.MultipartFile.fromPath(fileField, filePath),
+        );
       }
 
       request.headers.addAll(headers);
@@ -265,7 +295,9 @@ class Servidor {
         return json.decode(response.body);
       } else if (response.statusCode == 401 || response.statusCode == 403) {
         print(
-            'Authentication error: Token might be invalid or expired. Status: ${response.statusCode}');
+          'Authentication error: Token might be invalid or expired. Status: ${response.statusCode}',
+        );
+        await clearToken();
         return null;
       } else {
         print('Failed to send multipart data: ${response.statusCode}');
@@ -276,5 +308,130 @@ class Servidor {
       print('Error during multipart PUT request: $e');
       return null;
     }
+  }
+
+  // ========= High-level helpers (mirror web frontOffice patterns) =========
+  // Catalog hierarchy
+  Future<List<dynamic>> fetchCategorias() async {
+    final res = await getData('categoria/list');
+    return res is List ? res : [];
+  }
+
+  Future<List<dynamic>> fetchAreasByCategoria(String idCategoria) async {
+    final res = await getData('categoria/id/$idCategoria/list');
+    return res is List ? res : [];
+  }
+
+  Future<List<dynamic>> fetchTopicosByArea(String idArea) async {
+    final res = await getData('area/id/$idArea/list');
+    return res is List ? res : [];
+  }
+
+  // Forums
+  Future<List<dynamic>> fetchForumPosts({
+    String? idTopico,
+    String order = 'recent',
+  }) async {
+    final endpoint =
+        (idTopico != null && idTopico.isNotEmpty)
+            ? 'forum/posts/topico/$idTopico'
+            : 'forum/posts';
+    final res = await getData(endpoint, queryParameters: {'order': order});
+    return res is List ? res : [];
+  }
+
+  Future<Map<String, dynamic>?> getForumPost(int idPost) async {
+    final res = await getData('forum/post/$idPost');
+    if (res is Map<String, dynamic>) return res;
+    if (res is Map) return Map<String, dynamic>.from(res);
+    return null;
+  }
+
+  // Comments
+  Future<List<dynamic>> getPostRootComments(int idPost) async {
+    // Matches web: GET /forum/post/:id/comment
+    final res = await getData('forum/post/$idPost/comment');
+    if (res is Map && res.containsKey('comments'))
+      return (res['comments'] as List?) ?? [];
+    if (res is Map && res.containsKey('data'))
+      return (res['data'] as List?) ?? [];
+    return res is List ? res : [];
+  }
+
+  Future<List<dynamic>> getCommentReplies(int idComment) async {
+    final res = await getData('forum/comment/$idComment/replies');
+    if (res is Map && res.containsKey('data'))
+      return (res['data'] as List?) ?? [];
+    return res is List ? res : [];
+  }
+
+  Future<Map<String, dynamic>?> postComment({
+    required int idPost,
+    required String conteudo,
+  }) async {
+    return await postData('forum/post/$idPost/comment', {'conteudo': conteudo});
+  }
+
+  Future<Map<String, dynamic>?> replyToComment({
+    required int idComment,
+    required String conteudo,
+  }) async {
+    return await postData('forum/comment/$idComment/respond', {
+      'conteudo': conteudo,
+    });
+  }
+
+  // Posts creation
+  Future<Map<String, dynamic>?> createForumPost({
+    required String idTopico,
+    required Map<String, dynamic> payload,
+  }) async {
+    // Web uses: POST /forum/post/topico/:idtopico
+    return await postData('forum/post/topico/$idTopico', payload);
+  }
+
+  // Voting on posts
+  Future<bool> votePostUp(int idPost) async {
+    final res = await postData('forum/post/$idPost/upvote', {});
+    return res != null;
+  }
+
+  Future<bool> votePostDown(int idPost) async {
+    final res = await postData('forum/post/$idPost/downvote', {});
+    return res != null;
+  }
+
+  Future<bool> unvotePost(int idPost) async {
+    return await deleteData('forum/post/$idPost/unvote');
+  }
+
+  // Reporting (denúncias)
+  Future<List<dynamic>> fetchReportTypes() async {
+    final res = await getData('forum/denuncias/tipos');
+    return res is List ? res : [];
+  }
+
+  Future<bool> reportPost(
+    int idPost, {
+    required int tipo,
+    String descricao = '',
+  }) async {
+    final res = await postData('forum/post/$idPost/reportar', {
+      'tipo': tipo,
+      'descricao': descricao,
+    });
+    return res != null;
+  }
+
+  Future<bool> reportComment(
+    int idComment, {
+    required int tipo,
+    String descricao = '',
+  }) async {
+    final res = await postData('forum/comment/$idComment/reportar', {
+      'tipo': tipo,
+      'descricao': descricao,
+    });
+    return res != null;
   }
 }

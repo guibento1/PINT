@@ -27,6 +27,13 @@ class _ExploreCoursesPageState extends State<ExploreCoursesPage> {
     _loadSubscribedCoursesAndAllCourses();
   }
 
+  int? _parseIdCurso(dynamic rawIdcurso) {
+    if (rawIdcurso is int) return rawIdcurso;
+    if (rawIdcurso is double) return rawIdcurso.toInt();
+    if (rawIdcurso is String) return int.tryParse(rawIdcurso);
+    return null;
+  }
+
   Future<void> _loadSubscribedCoursesAndAllCourses() async {
     setState(() {
       _isLoading = true;
@@ -38,27 +45,20 @@ class _ExploreCoursesPageState extends State<ExploreCoursesPage> {
       final userId = user?['idutilizador']?.toString();
 
       if (userId == null) {
-        throw Exception('Utilizador não encontrado. Não é possível verificar inscrições.');
+        throw Exception(
+          'Utilizador não encontrado. Não é possível verificar inscrições.',
+        );
       }
 
-      final List<Map<String, dynamic>> subscribedCourses = await _middleware.fetchUserCourses(userId: userId);
+      final List<Map<String, dynamic>> subscribedCourses = await _middleware
+          .fetchUserCourses(userId: userId);
 
-      _subscribedCourseIds = subscribedCourses
-          .map((course) {
-            final dynamic rawIdcurso = course['idcurso'];
-            int? idcurso;
-            if (rawIdcurso is int) {
-              idcurso = rawIdcurso;
-            } else if (rawIdcurso is double) {
-              idcurso = rawIdcurso.toInt();
-            } else if (rawIdcurso is String) {
-              idcurso = int.tryParse(rawIdcurso);
-            }
-            return idcurso;
-          })
-          .where((id) => id != null)
-          .cast<int>()
-          .toSet();
+      _subscribedCourseIds =
+          subscribedCourses
+              .map((course) => _parseIdCurso(course['idcurso']))
+              .where((id) => id != null)
+              .cast<int>()
+              .toSet();
 
       await _fetchCourses(_currentFilters);
     } catch (e) {
@@ -73,7 +73,6 @@ class _ExploreCoursesPageState extends State<ExploreCoursesPage> {
     }
   }
 
-
   Future<void> _fetchCourses(Map<String, dynamic> filters) async {
     setState(() {
       _isLoading = true;
@@ -86,12 +85,13 @@ class _ExploreCoursesPageState extends State<ExploreCoursesPage> {
       final String? areaId = filters['area'] as String?;
       final String? topicoId = filters['topico'] as String?;
 
-      final List<Map<String, dynamic>> courses = await _middleware.fetchAllCourses(
-        searchTerm: searchTerm?.isNotEmpty == true ? searchTerm : null,
-        categoriaId: categoriaId?.isNotEmpty == true ? categoriaId : null,
-        areaId: areaId?.isNotEmpty == true ? areaId : null,
-        topicoId: topicoId?.isNotEmpty == true ? topicoId : null,
-      );
+      final List<Map<String, dynamic>> courses = await _middleware
+          .fetchAllCourses(
+            searchTerm: searchTerm?.isNotEmpty == true ? searchTerm : null,
+            categoriaId: categoriaId?.isNotEmpty == true ? categoriaId : null,
+            areaId: areaId?.isNotEmpty == true ? areaId : null,
+            topicoId: topicoId?.isNotEmpty == true ? topicoId : null,
+          );
 
       setState(() {
         _allCourses = courses;
@@ -110,7 +110,14 @@ class _ExploreCoursesPageState extends State<ExploreCoursesPage> {
   }
 
   void _applyLocalFiltersAndSort() {
-    _filteredCourses = List.from(_allCourses);
+    // Only show courses the user is NOT subscribed to
+    _filteredCourses =
+        _allCourses.where((course) {
+          final int? id = _parseIdCurso(course['idcurso']);
+          if (id == null)
+            return true; // if id missing/unparseable, keep it visible
+          return !_subscribedCourseIds.contains(id);
+        }).toList();
   }
 
   void _handleApplyFilters(Map<String, dynamic> newFilters) {
@@ -188,10 +195,13 @@ class _ExploreCoursesPageState extends State<ExploreCoursesPage> {
                 itemCount: _filteredCourses.length,
                 itemBuilder: (context, index) {
                   final curso = _filteredCourses[index];
-                  final int? courseId = curso['idcurso'] is int
-                      ? curso['idcurso']
-                      : int.tryParse(curso['idcurso']?.toString() ?? '');
-                  final bool isSubscribed = courseId != null && _subscribedCourseIds.contains(courseId);
+                  final int? courseId =
+                      curso['idcurso'] is int
+                          ? curso['idcurso']
+                          : int.tryParse(curso['idcurso']?.toString() ?? '');
+                  final bool isSubscribed =
+                      courseId != null &&
+                      _subscribedCourseIds.contains(courseId);
 
                   return CourseCard(
                     curso: curso,
