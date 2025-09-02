@@ -1713,7 +1713,7 @@ paths:
                   type: string
                   format: binary
       responses:
-        "201": { description: Submetido, retorna submissão com URL }
+  "201": { description: "Submetido, retorna submissão com URL" }
     put:
       tags: [Curso]
       summary: Atualizar submissão (formando)
@@ -1957,7 +1957,7 @@ paths:
                   type: string
                   description: JSON {titulo, conteudo}
       responses:
-        "200": { description: Post criado, retorna objeto Post }
+  "200": { description: "Post criado, retorna objeto Post" }
 
   /forum/post/{id}:
     get:
