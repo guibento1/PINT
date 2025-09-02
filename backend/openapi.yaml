@@ -1,0 +1,2353 @@
+openapi: 3.0.3
+info:
+  title: PINT Backend API
+  description: |
+    Documentação da API do projeto PINT.
+
+    Notas importantes:
+    - Autenticação por JWT Bearer no cabeçalho Authorization: "Bearer <token>".
+    - Algumas rotas exigem papéis específicos (roles) como admin, formador, formando. Estes papéis são codificados no token.
+    - Uploads de ficheiros usam multipart/form-data, com campos de ficheiro específicos (por exemplo, "thumbnail", "ficheiro", "anexo", "enunciado", "foto") e um campo "info" (string) com JSON serializado quando indicado.
+    - Datas seguem o padrão ISO 8601 quando aplicável.
+  version: 1.0.0
+servers:
+  - url: http://localhost:3000
+    description: Servidor local
+tags:
+  - name: Root
+  - name: Utilizador
+  - name: Categoria
+  - name: Area
+  - name: Topico
+  - name: Notificacao
+  - name: Curso
+  - name: Forum
+  - name: Test
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    Role:
+      type: object
+      properties:
+        role:
+          type: string
+          enum: [admin, formador, formando]
+        id:
+          type: integer
+          nullable: true
+    User:
+      type: object
+      properties:
+        idutilizador:
+          type: integer
+        email:
+          type: string
+          format: email
+        nome:
+          type: string
+        morada:
+          type: string
+          nullable: true
+        telefone:
+          type: string
+          nullable: true
+        dataregisto:
+          type: string
+          format: date-time
+          nullable: true
+        foto:
+          type: string
+          format: uri
+          nullable: true
+        ativo:
+          type: boolean
+        roles:
+          type: array
+          items:
+            $ref: '#/components/schemas/Role'
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+    LoginResponse:
+      type: object
+      properties:
+        idutilizador:
+          type: integer
+        email:
+          type: string
+        nome:
+          type: string
+        dataregisto:
+          type: string
+          format: date-time
+          nullable: true
+        ativo:
+          type: boolean
+        foto:
+          type: string
+          nullable: true
+        roles:
+          type: array
+          items:
+            $ref: '#/components/schemas/Role'
+        accessToken:
+          type: string
+    Categoria:
+      type: object
+      properties:
+        idcategoria:
+          type: integer
+        designacao:
+          type: string
+    Area:
+      type: object
+      properties:
+        idarea:
+          type: integer
+        designacao:
+          type: string
+        categoria:
+          type: integer
+    Topico:
+      type: object
+      properties:
+        idtopico:
+          type: integer
+        designacao:
+          type: string
+        areas:
+          type: array
+          items:
+            $ref: '#/components/schemas/Area'
+    Curso:
+      type: object
+      properties:
+        idcurso:
+          type: integer
+        nome:
+          type: string
+        disponivel:
+          type: boolean
+        iniciodeinscricoes:
+          type: string
+          format: date-time
+          nullable: true
+        fimdeinscricoes:
+          type: string
+          format: date-time
+          nullable: true
+        planocurricular:
+          type: string
+          nullable: true
+        thumbnail:
+          type: string
+          format: uri
+          nullable: true
+        sincrono:
+          type: boolean
+        inscrito:
+          type: boolean
+          nullable: true
+        lecionado:
+          type: boolean
+          nullable: true
+        topicos:
+          type: array
+          items:
+            type: object
+            properties:
+              idtopico: { type: integer }
+              designacao: { type: string }
+    Licao:
+      type: object
+      properties:
+        idlicao:
+          type: integer
+        titulo:
+          type: string
+        descricao:
+          type: string
+        materiais:
+          type: array
+          items:
+            $ref: '#/components/schemas/Material'
+    Sessao:
+      type: object
+      properties:
+        idsessao:
+          type: integer
+        licao:
+          type: integer
+        titulo:
+          type: string
+        descricao:
+          type: string
+        curso:
+          type: integer
+        linksessao:
+          type: string
+        datahora:
+          type: string
+          format: date-time
+        plataformavideoconferencia:
+          type: string
+        duracaohoras:
+          type: number
+        materiais:
+          type: array
+          items:
+            $ref: '#/components/schemas/Material'
+    Material:
+      type: object
+      properties:
+        idmaterial:
+          type: integer
+        titulo:
+          type: string
+        tipo:
+          type: string
+        referencia:
+          type: string
+    AvaliacaoContinua:
+      type: object
+      properties:
+        idavaliacaocontinua:
+          type: integer
+        titulo:
+          type: string
+        enunciado:
+          type: string
+        iniciodisponibilidade:
+          type: string
+          format: date-time
+        fimdisponibilidade:
+          type: string
+          format: date-time
+          nullable: true
+        iniciodesubmissoes:
+          type: string
+          format: date-time
+        fimdesubmissoes:
+          type: string
+          format: date-time
+          nullable: true
+    Submissao:
+      type: object
+      properties:
+        idsubmissao:
+          type: integer
+        avaliacaocontinua:
+          type: integer
+        cursosincrono:
+          type: integer
+        formando:
+          type: integer
+        submissao:
+          type: string
+    Certificado:
+      type: object
+      properties:
+        idcertificado:
+          type: integer
+        nome:
+          type: string
+        descricao:
+          type: string
+    Post:
+      type: object
+      properties:
+        idpost:
+          type: integer
+        titulo:
+          type: string
+        conteudo:
+          type: string
+        topico:
+          type: integer
+        utilizador:
+          type: object
+          properties:
+            id: { type: integer }
+            nome: { type: string }
+            foto: { type: string, nullable: true }
+        anexo:
+          type: string
+          nullable: true
+        pontuacao:
+          type: integer
+          nullable: true
+        criado:
+          type: string
+          format: date-time
+          nullable: true
+        iteracao:
+          type: boolean
+          nullable: true
+    Comentario:
+      type: object
+      properties:
+        idcomentario:
+          type: integer
+        conteudo:
+          type: string
+        utilizador:
+          type: object
+          properties:
+            id: { type: integer }
+            nome: { type: string }
+            foto: { type: string, nullable: true }
+        pontuacao:
+          type: integer
+          nullable: true
+        criado:
+          type: string
+          format: date-time
+          nullable: true
+        iteracao:
+          type: boolean
+          nullable: true
+        alvo:
+          type: string
+          enum: [post, comentario]
+          nullable: true
+        idalvo:
+          type: integer
+          nullable: true
+paths:
+  /:
+    get:
+      tags: [Root]
+      summary: Root endpoint
+      responses:
+        '200':
+          description: Texto simples informativo
+          content:
+            text/plain:
+              schema:
+                type: string
+
+  /utilizador:
+    get:
+      tags: [Utilizador]
+      summary: Obter utilizador por email
+      description: Requer role admin.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: email
+          schema: { type: string, format: email }
+          required: true
+      responses:
+        '200':
+          description: Utilizador
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400': { description: Pedido inválido }
+        '403': { description: Proibido }
+        '404': { description: Não encontrado }
+
+  /utilizador/list:
+    get:
+      tags: [Utilizador]
+      summary: Listar utilizadores (exceto o próprio)
+      description: Requer role admin.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Lista de utilizadores
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+        '403': { description: Proibido }
+
+  /utilizador/login:
+    post:
+      tags: [Utilizador]
+      summary: Login de utilizador
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Autenticado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '400': { description: Pedido inválido }
+        '401': { description: Credenciais inválidas }
+        '403': { description: Conta desativada ou email não confirmado }
+        '404': { description: Utilizador não encontrado }
+
+  /utilizador/id/{id}:
+    get:
+      tags: [Utilizador]
+      summary: Obter utilizador por ID
+      description: Requer token; apenas o próprio ou admin.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Utilizador
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '403': { description: Proibido }
+        '404': { description: Não encontrado }
+    put:
+      tags: [Utilizador]
+      summary: Atualizar utilizador
+      description: Multipart; campo 'foto' opcional e 'info' (string JSON com nome, email, password, morada, telefone, roles[]). Apenas o próprio ou admin (para roles exige admin).
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                foto:
+                  type: string
+                  format: binary
+                info:
+                  type: string
+                  description: JSON stringificado com campos a atualizar
+                  example: '{"nome":"Novo Nome","email":"user@dominio.com","password":"nova","morada":"..","telefone":"..","roles":["admin","formando"]}'
+      responses:
+        '200':
+          description: Utilizador atualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '403': { description: Proibido }
+        '404': { description: Não encontrado }
+    delete:
+      tags: [Utilizador]
+      summary: Desativar/remover utilizador
+      description: Apenas o próprio ou admin.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: Utilizador desativado }
+        '403': { description: Proibido }
+        '404': { description: Não encontrado }
+
+  /utilizador/activate/{id}:
+    patch:
+      tags: [Utilizador]
+      summary: Ativar utilizador
+      description: Apenas o próprio ou admin.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: Ativado }
+        '403': { description: Proibido }
+        '404': { description: Não encontrado }
+
+  /utilizador/register:
+    post:
+      tags: [Utilizador]
+      summary: Registar utilizador (convite)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [nome, email]
+              properties:
+                nome: { type: string }
+                email: { type: string, format: email }
+      responses:
+        '200': { description: Email de confirmação enviado }
+        '409': { description: Conflito (utilizador existente) }
+
+  /utilizador/resetpassword:
+    post:
+      tags: [Utilizador]
+      summary: Definir/reset password e ativar
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [password]
+              properties:
+                password: { type: string, format: password }
+      responses:
+        '200':
+          description: Utilizador
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+
+  /utilizador/admin/id/{id}:
+    get:
+      tags: [Utilizador]
+      summary: Obter dados de utilizador a partir de id de admin
+      description: Retorna email, nome e foto do utilizador ligado ao admin. Requer token.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: Utilizador básico }
+        '404': { description: Não encontrado }
+
+  /utilizador/formador/id/{id}:
+    get:
+      tags: [Utilizador]
+      summary: Obter dados de utilizador a partir de id de formador
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: Utilizador básico }
+        '404': { description: Não encontrado }
+
+  /categoria/list:
+    get:
+      tags: [Categoria]
+      summary: Listar categorias
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Lista
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Categoria' }
+
+  /categoria/id/{id}:
+    get:
+      tags: [Categoria]
+      summary: Obter categoria por ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: Categoria }
+        '404': { description: Não encontrado }
+    put:
+      tags: [Categoria]
+      summary: Atualizar categoria
+      description: Requer admin.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [designacao]
+              properties:
+                designacao: { type: string }
+      responses:
+        '200': { description: Atualizado }
+        '400': { description: Pedido inválido }
+        '404': { description: Não encontrado }
+    delete:
+      tags: [Categoria]
+      summary: Remover categoria
+      description: Requer admin. Falha com 409 se existirem áreas associadas.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: Removido }
+        '404': { description: Não encontrado }
+        '409': { description: Dependências existentes }
+
+  /categoria/id/{id}/list:
+    get:
+      tags: [Categoria]
+      summary: Listar áreas de uma categoria
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Lista de áreas
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Area' }
+
+  /categoria:
+    post:
+      tags: [Categoria]
+      summary: Criar categoria
+      description: Requer admin.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [designacao]
+              properties:
+                designacao: { type: string }
+      responses:
+        '201': { description: Criada }
+
+  /area/list:
+    get:
+      tags: [Area]
+      summary: Listar áreas
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Lista
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Area' }
+
+  /area/id/{id}:
+    get:
+      tags: [Area]
+      summary: Obter área por ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: Área }
+        '404': { description: Não encontrado }
+    put:
+      tags: [Area]
+      summary: Atualizar área
+      description: Requer admin.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                designacao: { type: string }
+                categoria: { type: integer }
+      responses:
+        '200': { description: Atualizado }
+        '400': { description: Pedido inválido }
+        '404': { description: Não encontrado }
+    delete:
+      tags: [Area]
+      summary: Remover área
+      description: Requer admin. Falha com 409 se existirem tópicos associados.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: Removida }
+        '404': { description: Não encontrado }
+        '409': { description: Dependências existentes }
+
+  /area/id/{id}/list:
+    get:
+      tags: [Area]
+      summary: Listar tópicos de uma área
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Lista de tópicos
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Topico' }
+
+  /area:
+    post:
+      tags: [Area]
+      summary: Criar área
+      description: Requer admin.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [designacao, categoria]
+              properties:
+                designacao: { type: string }
+                categoria: { type: integer }
+      responses:
+        '201': { description: Criada }
+
+  /topico/list:
+    get:
+      tags: [Topico]
+      summary: Listar tópicos
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Lista
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Topico' }
+
+  /topico/id/{id}:
+    get:
+      tags: [Topico]
+      summary: Obter tópico
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: Tópico }
+        '404': { description: Não encontrado }
+    put:
+      tags: [Topico]
+      summary: Atualizar tópico
+      description: Requer admin. Necessita designacao e/ou areas (não enviar array vazio).
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                designacao: { type: string }
+                areas:
+                  type: array
+                  items: { type: integer }
+      responses:
+        '200': { description: Atualizado }
+        '400': { description: Pedido inválido }
+        '404': { description: Não encontrado }
+    delete:
+      tags: [Topico]
+      summary: Remover tópico
+      description: Requer admin. 409 se existirem dependências (cursos/posts).
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: Removido }
+        '404': { description: Não encontrado }
+        '409': { description: Dependências }
+
+  /topico/id/{id}/nobjetos:
+    get:
+      tags: [Topico]
+      summary: Contar objetos associados
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Contagens
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  nCursos: { type: integer }
+                  nPosts: { type: integer }
+
+  /topico:
+    post:
+      tags: [Topico]
+      summary: Criar tópico
+      description: Requer admin.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [designacao, areas]
+              properties:
+                designacao: { type: string }
+                areas:
+                  type: array
+                  items: { type: integer }
+      responses:
+        '201': { description: Criado }
+
+  /topico/id/{id}/subscribe:
+    post:
+      tags: [Topico]
+      summary: Subscrever tópico
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: Subscrito }
+
+  /topico/id/{id}/unsubscribe:
+    delete:
+      tags: [Topico]
+      summary: Cancelar subscrição do tópico
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: Desinscrito }
+
+  /topico/subscricoes:
+    get:
+      tags: [Topico]
+      summary: Obter tópicos subscritos pelo utilizador autenticado
+      security:
+        - bearerAuth: []
+      responses:
+        '200': { description: Lista de tópicos }
+
+  /notificacao/list:
+    get:
+      tags: [Notificacao]
+      summary: Listar notificações do utilizador autenticado
+      security:
+        - bearerAuth: []
+      responses:
+        '200': { description: Lista de notificações }
+
+  /notificacao/list/canais:
+    get:
+      tags: [Notificacao]
+      summary: Listar canais (admin)
+      security:
+        - bearerAuth: []
+      responses:
+        '200': { description: Lista de canais }
+
+  /notificacao/list/canal/{idCanal}:
+    get:
+      tags: [Notificacao]
+      summary: Listar notificações de um canal (admin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: idCanal
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: Lista de notificações }
+
+  /notificacao/list/subscricoes/{idutilizador}:
+    get:
+      tags: [Notificacao]
+      summary: Obter canais subscritos de um utilizador
+      description: Apenas o próprio ou admin.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: idutilizador
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: Lista de IDs de canais }
+        '403': { description: Proibido }
+
+  /notificacao/create/general:
+    post:
+      tags: [Notificacao]
+      summary: Criar notificação geral (admin)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [titulo, conteudo]
+              properties:
+                titulo: { type: string }
+                conteudo: { type: string }
+      responses:
+        '201': { description: Enviada }
+
+  /notificacao/create/admin:
+    post:
+      tags: [Notificacao]
+      summary: Criar notificação administrativa (admin)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [titulo, conteudo]
+              properties:
+                titulo: { type: string }
+                conteudo: { type: string }
+      responses:
+        '201': { description: Enviada }
+
+  /notificacao/create/course:
+    post:
+      tags: [Notificacao]
+      summary: Criar notificação para curso (admin ou formador)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [idcurso, titulo, conteudo]
+              properties:
+                idcurso: { type: integer }
+                titulo: { type: string }
+                conteudo: { type: string }
+      responses:
+        '201': { description: Enviada }
+
+  /notificacao/create/utilizador/{idutilizador}:
+    post:
+      tags: [Notificacao]
+      summary: Criar notificação privada para utilizador (admin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: idutilizador
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [titulo, conteudo]
+              properties:
+                titulo: { type: string }
+                conteudo: { type: string }
+      responses:
+        '201': { description: Enviada }
+
+  /notificacao/devicesub:
+    post:
+      tags: [Notificacao]
+      summary: Subscrição automática do dispositivo aos canais do utilizador
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [device]
+              properties:
+                device: { type: string, description: Token do dispositivo }
+      responses:
+        '200': { description: Subscrito }
+
+  /notificacao/deviceregister:
+    post:
+      tags: [Notificacao]
+      summary: Registar o dispositivo do utilizador autenticado
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [device]
+              properties:
+                device: { type: string }
+      responses:
+        '200': { description: Registado }
+
+  /curso/list:
+    get:
+      tags: [Curso]
+      summary: Listar cursos
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: area
+          schema: { type: array, items: { type: integer } }
+          style: form
+          explode: true
+        - in: query
+          name: categoria
+          schema: { type: array, items: { type: integer } }
+          style: form
+          explode: true
+        - in: query
+          name: topico
+          schema: { type: array, items: { type: integer } }
+          style: form
+          explode: true
+        - in: query
+          name: search
+          schema: { type: string }
+        - in: query
+          name: sincrono
+          schema: { type: boolean }
+      responses:
+        '200':
+          description: Lista de cursos
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Curso' }
+
+  /curso/{id}:
+    get:
+      tags: [Curso]
+      summary: Obter curso por ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: Curso e conteúdo detalhado }
+        '404': { description: Não encontrado ou não acessível }
+
+  /curso/inscricoes/utilizador/{idutilizador}:
+    get:
+      tags: [Curso]
+      summary: Cursos onde o utilizador está inscrito
+      description: Apenas o próprio ou admin.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: idutilizador
+          required: true
+          schema: { type: integer }
+        - in: query
+          name: search
+          schema: { type: string }
+      responses:
+        '200': { description: Lista de cursos }
+        '403': { description: Proibido }
+
+  /curso/inscricoes/{id}:
+    get:
+      tags: [Curso]
+      summary: Listar utilizadores inscritos num curso (admin ou formador)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: Lista de utilizadores com idformando e nota (se aplicável) }
+        '403': { description: Proibido }
+
+  /curso/{id}/inscrever:
+    post:
+      tags: [Curso]
+      summary: Inscrever no curso (admin ou formando)
+      description: Admin pode inscrever outro utilizador enviando o campo utilizador.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                utilizador: { type: integer }
+      responses:
+        '201': { description: Inscrito }
+        '400': { description: Inválido }
+        '403': { description: Proibido }
+        '404': { description: Não encontrado }
+        '409': { description: Já inscrito ou conflito }
+
+  /curso/{id}/sair:
+    post:
+      tags: [Curso]
+      summary: Sair do curso (admin ou formando)
+      description: Admin pode desinscrever outro utilizador enviando o campo utilizador.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                utilizador: { type: integer }
+      responses:
+        '200': { description: Removido }
+        '404': { description: Inscrição não encontrada }
+
+  /curso/{id}:
+    delete:
+      tags: [Curso]
+      summary: Remover curso (admin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: Removido }
+        '404': { description: Não encontrado }
+
+  /curso/cursoassincrono:
+    post:
+      tags: [Curso]
+      summary: Criar curso assíncrono (admin)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [info]
+              properties:
+                thumbnail:
+                  type: string
+                  format: binary
+                info:
+                  type: string
+                  description: JSON com {nome, disponivel, iniciodeinscricoes, fimdeinscricoes?, planocurricular?, topicos[]}
+      responses:
+        '201': { description: Criado }
+
+  /curso/cursoassincrono/{id}:
+    put:
+      tags: [Curso]
+      summary: Atualizar curso assíncrono (admin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                thumbnail:
+                  type: string
+                  format: binary
+                info:
+                  type: string
+                  description: JSON com campos a atualizar
+      responses:
+        '200': { description: Atualizado }
+
+  /curso/licao/{idcursoassinc}:
+    post:
+      tags: [Curso]
+      summary: Adicionar lição a curso assíncrono (admin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: idcursoassinc
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [titulo, descricao]
+              properties:
+                titulo: { type: string }
+                descricao: { type: string }
+      responses:
+        '201': { description: Criada }
+
+  /curso/licao/{idlicao}:
+    delete:
+      tags: [Curso]
+      summary: Remover lição (admin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: idlicao
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: Removida }
+        '404': { description: Não encontrada }
+    put:
+      tags: [Curso]
+      summary: Atualizar lição (admin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: idlicao
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                titulo: { type: string }
+                descricao: { type: string }
+      responses:
+        '200': { description: Atualizada }
+
+  /curso/licao/{idlicao}/material:
+    post:
+      tags: [Curso]
+      summary: Adicionar material a lição (admin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: idlicao
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [info]
+              properties:
+                ficheiro:
+                  type: string
+                  format: binary
+                info:
+                  type: string
+                  description: JSON com {titulo, tipo, link?}
+      responses:
+        '201': { description: Material criado }
+
+  /curso/licao/{idlicao}/material/{idmaterial}:
+    delete:
+      tags: [Curso]
+      summary: Remover material de lição (admin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: idlicao
+          required: true
+          schema: { type: integer }
+        - in: path
+          name: idmaterial
+          required: true
+          schema: { type: integer }
+      responses:
+        '201': { description: Removido }
+
+  /curso/formador/{idformador}:
+    get:
+      tags: [Curso]
+      summary: Listar cursos lecionados por um formador
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: idformador
+          required: true
+          schema: { type: integer }
+        - in: query
+          name: search
+          schema: { type: string }
+        - in: query
+          name: area
+          schema: { type: array, items: { type: integer } }
+          style: form
+          explode: true
+        - in: query
+          name: categoria
+          schema: { type: array, items: { type: integer } }
+          style: form
+          explode: true
+        - in: query
+          name: topico
+          schema: { type: array, items: { type: integer } }
+          style: form
+          explode: true
+      responses:
+        '200': { description: Lista de cursos }
+
+  /curso/cursosincrono:
+    post:
+      tags: [Curso]
+      summary: Criar curso síncrono (admin)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [info]
+              properties:
+                thumbnail:
+                  type: string
+                  format: binary
+                info:
+                  type: string
+                  description: JSON com {nome, disponivel, iniciodeinscricoes, fimdeinscricoes?, planocurricular?, topicos[], formador, nhoras, inicio, fim, maxinscricoes?}
+      responses:
+        '201': { description: Criado }
+
+  /curso/cursosincrono/{id}:
+    put:
+      tags: [Curso]
+      summary: Atualizar curso síncrono (admin ou formador do curso)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                thumbnail:
+                  type: string
+                  format: binary
+                info:
+                  type: string
+                  description: JSON com campos do curso e do cursosincrono
+      responses:
+        '200': { description: Atualizado }
+
+  /curso/sessao/{idcursosinc}:
+    post:
+      tags: [Curso]
+      summary: Adicionar sessão ao curso síncrono (admin ou formador)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: idcursosinc
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [titulo, descricao, linksessao, datahora, duracaohoras, plataformavideoconferencia]
+              properties:
+                titulo: { type: string }
+                descricao: { type: string }
+                linksessao: { type: string }
+                datahora: { type: string, format: date-time }
+                duracaohoras: { type: number }
+                plataformavideoconferencia: { type: string }
+      responses:
+        '201':
+          description: Sessão criada
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Sessao' }
+
+  /curso/sessao/{idsessao}:
+    delete:
+      tags: [Curso]
+      summary: Remover sessão (admin ou formador)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: idsessao
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: Removida }
+        '404': { description: Não encontrada }
+    put:
+      tags: [Curso]
+      summary: Atualizar sessão (admin ou formador)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: idsessao
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                titulo: { type: string }
+                descricao: { type: string }
+                linksessao: { type: string }
+                datahora: { type: string, format: date-time }
+                duracaohoras: { type: number }
+                plataformavideoconferencia: { type: string }
+      responses:
+        '201': { description: Atualizada }
+
+  /curso/sessao/{idsessao}/material:
+    post:
+      tags: [Curso]
+      summary: Adicionar material a sessão (admin ou formador)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: idsessao
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [info]
+              properties:
+                ficheiro:
+                  type: string
+                  format: binary
+                info:
+                  type: string
+                  description: JSON com {titulo, tipo, link?}
+      responses:
+        '201': { description: Criado }
+
+  /curso/sessao/{idsessao}/material/{idmaterial}:
+    delete:
+      tags: [Curso]
+      summary: Remover material de sessão (admin ou formador)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: idsessao
+          required: true
+          schema: { type: integer }
+        - in: path
+          name: idmaterial
+          required: true
+          schema: { type: integer }
+      responses:
+        '201': { description: Removido }
+
+  /curso/cursosincrono/{id}/avalicaocontinua:
+    post:
+      tags: [Curso]
+      summary: Criar avaliação contínua (admin ou formador)
+      description: Campo de ficheiro 'enunciado' e campo 'info' com JSON {titulo, inicioDisponibilidade, fimDisponibilidade?, inicioDeSubmissoes, fimDeSubmissoes?}
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [info, enunciado]
+              properties:
+                enunciado:
+                  type: string
+                  format: binary
+                info:
+                  type: string
+      responses:
+        '201': { description: Criada }
+
+  /curso/cursosincrono/{id}/avalicaocontinua/{idavalicao}:
+    put:
+      tags: [Curso]
+      summary: Editar avaliação contínua (admin ou formador)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+        - in: path
+          name: idavalicao
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                enunciado:
+                  type: string
+                  format: binary
+                info:
+                  type: string
+      responses:
+        '200': { description: Atualizada }
+    delete:
+      tags: [Curso]
+      summary: Remover avaliação contínua (admin ou formador)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+        - in: path
+          name: idavalicao
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: Removida }
+
+  /curso/cursosincrono/{id}/avalicaocontinua/{idavalicao}/submeter:
+    post:
+      tags: [Curso]
+      summary: Submeter ficheiro para avaliação contínua (formando)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+        - in: path
+          name: idavalicao
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [ficheiro]
+              properties:
+                ficheiro:
+                  type: string
+                  format: binary
+      responses:
+        '201': { description: Submetido, retorna submissão com URL }
+    put:
+      tags: [Curso]
+      summary: Atualizar submissão (formando)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+        - in: path
+          name: idavalicao
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [ficheiro]
+              properties:
+                ficheiro:
+                  type: string
+                  format: binary
+      responses:
+        '200': { description: Atualizada }
+
+  /curso/cursosincrono/{id}/avalicaocontinua/{idavalicao}/submissoes:
+    get:
+      tags: [Curso]
+      summary: Listar submissões (admin ou formador)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+        - in: path
+          name: idavalicao
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: Lista de submissões }
+
+  /curso/cursosincrono/{id}/avalicaocontinua/{idavalicao}/corrigir:
+    put:
+      tags: [Curso]
+      summary: Atribuir nota a uma submissão (admin ou formador)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+        - in: path
+          name: idavalicao
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [idsubmissao, nota]
+              properties:
+                idsubmissao: { type: integer }
+                nota: { type: number }
+      responses:
+        '200': { description: Nota atribuída }
+
+  /curso/cursosincrono/{id}/formando/{formando}/avaliacaofinal:
+    post:
+      tags: [Curso]
+      summary: Criar avaliação final do formando (admin ou formador)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+        - in: path
+          name: formando
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [nota]
+              properties:
+                nota: { type: number }
+      responses:
+        '201': { description: Criada }
+    put:
+      tags: [Curso]
+      summary: Atualizar avaliação final (admin ou formador)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+        - in: path
+          name: formando
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [nota]
+              properties:
+                nota: { type: number }
+      responses:
+        '200': { description: Atualizada }
+    delete:
+      tags: [Curso]
+      summary: Remover avaliação final (admin ou formador)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+        - in: path
+          name: formando
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: Removida }
+
+  /curso/cursosincrono/{id}/certificado:
+    post:
+      tags: [Curso]
+      summary: Criar certificado de curso síncrono (admin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [nome, descricao]
+              properties:
+                nome: { type: string }
+                descricao: { type: string }
+      responses:
+        '201': { description: Criado }
+
+  /curso/certificado/{idcertificado}:
+    put:
+      tags: [Curso]
+      summary: Atualizar certificado (admin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: idcertificado
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                nome: { type: string }
+                descricao: { type: string }
+      responses:
+        '201': { description: Atualizado }
+    delete:
+      tags: [Curso]
+      summary: Remover certificado (admin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: idcertificado
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: Removido }
+        '404': { description: Não encontrado }
+
+  /curso/cursosincrono/{id}/certificados:
+    get:
+      tags: [Curso]
+      summary: Listar certificados de um curso síncrono
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: Lista de certificados }
+        '404': { description: Não encontrado }
+
+  /forum/post/topico/{idtopico}:
+    post:
+      tags: [Forum]
+      summary: Criar post em tópico
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: idtopico
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [info]
+              properties:
+                anexo:
+                  type: string
+                  format: binary
+                info:
+                  type: string
+                  description: JSON {titulo, conteudo}
+      responses:
+        '200': { description: Post criado, retorna objeto Post }
+
+  /forum/post/{id}:
+    get:
+      tags: [Forum]
+      summary: Obter post por ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Post
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Post' }
+        '404': { description: Não encontrado }
+    delete:
+      tags: [Forum]
+      summary: Remover post (autor ou admin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: Removido }
+        '403': { description: Proibido }
+        '404': { description: Não encontrado }
+
+  /forum/post/{id}/comment:
+    post:
+      tags: [Forum]
+      summary: Comentar um post
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [conteudo]
+              properties:
+                conteudo: { type: string }
+      responses:
+        '200': { description: Comentário criado }
+  
+  /forum/post/{id}/comment:
+    get:
+      tags: [Forum]
+      summary: Listar comentários de um post
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+        - in: query
+          name: order
+          schema: { type: string, enum: [recent, popular] }
+      responses:
+        '200': { description: Lista de comentários }
+
+  /forum/comment/{id}/respond:
+    post:
+      tags: [Forum]
+      summary: Responder a um comentário
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [conteudo]
+              properties:
+                conteudo: { type: string }
+      responses:
+        '200': { description: Comentário criado }
+
+  /forum/comment/{id}:
+    get:
+      tags: [Forum]
+      summary: Obter comentário por ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Comentário
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Comentario' }
+    delete:
+      tags: [Forum]
+      summary: Remover comentário (autor ou admin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: Removido }
+        '403': { description: Proibido }
+
+  /forum/comment/{id}/replies:
+    get:
+      tags: [Forum]
+      summary: Listar respostas de um comentário
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+        - in: query
+          name: order
+          schema: { type: string, enum: [recent, popular] }
+      responses:
+        '200': { description: Lista de comentários }
+
+  /forum/posts:
+    get:
+      tags: [Forum]
+      summary: Listar posts
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: order
+          schema: { type: string, enum: [recent, popular] }
+        - in: query
+          name: search
+          schema: { type: string }
+      responses:
+        '200': { description: Lista de posts }
+
+  /forum/posts/topico/{id}:
+    get:
+      tags: [Forum]
+      summary: Listar posts de um tópico
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+        - in: query
+          name: order
+          schema: { type: string, enum: [recent, popular] }
+        - in: query
+          name: search
+          schema: { type: string }
+      responses:
+        '200': { description: Lista de posts }
+
+  /forum/post/{id}/upvote:
+    post:
+      tags: [Forum]
+      summary: Upvote a um post
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: Votado }
+
+  /forum/post/{id}/downvote:
+    post:
+      tags: [Forum]
+      summary: Downvote a um post
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: Votado }
+
+  /forum/post/{id}/unvote:
+    delete:
+      tags: [Forum]
+      summary: Remover voto de um post
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: Desvotado }
+
+  /forum/post/{id}/reportar:
+    post:
+      tags: [Forum]
+      summary: Reportar um post
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [tipo, descricao]
+              properties:
+                tipo: { type: integer }
+                descricao: { type: string }
+      responses:
+        '200': { description: Denúncia criada }
+
+  /forum/comment/{id}/upvote:
+    post:
+      tags: [Forum]
+      summary: Upvote a um comentário
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: Votado }
+
+  /forum/comment/{id}/downvote:
+    post:
+      tags: [Forum]
+      summary: Downvote a um comentário
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: Votado }
+
+  /forum/comment/{id}/unvote:
+    delete:
+      tags: [Forum]
+      summary: Remover voto de um comentário
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: Desvotado }
+
+  /forum/comment/{id}/reportar:
+    post:
+      tags: [Forum]
+      summary: Reportar comentário
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [tipo, descricao]
+              properties:
+                tipo: { type: integer }
+                descricao: { type: string }
+      responses:
+        '200': { description: Denúncia criada }
+
+  /forum/denuncias/tipos:
+    get:
+      tags: [Forum]
+      summary: Listar tipos de denúncia
+      security:
+        - bearerAuth: []
+      responses:
+        '200': { description: Lista de tipos }
+
+  /forum/denuncias/posts:
+    get:
+      tags: [Forum]
+      summary: Listar denúncias de posts (admin)
+      security:
+        - bearerAuth: []
+      responses:
+        '200': { description: Lista de denúncias }
+
+  /forum/denuncias/comentarios:
+    get:
+      tags: [Forum]
+      summary: Listar denúncias de comentários (admin)
+      security:
+        - bearerAuth: []
+      responses:
+        '200': { description: Lista de denúncias }
+
+  /forum/denuncias/{id}:
+    delete:
+      tags: [Forum]
+      summary: Remover denúncia (admin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: Removida }
+
+  /test/jwt:
+    post:
+      tags: [Test]
+      summary: Gerar token de teste
+      responses:
+        '200': { description: Token gerado }
+
+  /test/fileupload:
+    post:
+      tags: [Test]
+      summary: Upload de ficheiro de teste
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200': { description: URL do ficheiro }
+
+  /test/auth:
+    post:
+      tags: [Test]
+      summary: Endpoint protegido (admin ou formando)
+      security:
+        - bearerAuth: []
+      responses:
+        '200': { description: Sucesso }
+        '403': { description: Proibido }
+
+  /test/sendemail:
+    post:
+      tags: [Test]
+      summary: Enviar email de teste
+      responses:
+        '200': { description: Sucesso }
+
+  /test/sendnotification:
+    post:
+      tags: [Test]
+      summary: Enviar notificação de teste
+      responses:
+        '200': { description: Sucesso }
