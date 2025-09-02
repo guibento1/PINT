@@ -830,31 +830,44 @@ class _CourseDetailsPageState extends State<CourseDetailsPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF6F9FB),
-      appBar: AppBar(
+    Future<bool> _onWillPop() async {
+      // Rule: enrolled -> home; not enrolled -> explore
+      final dest = _isInscrito ? '/home' : '/search_courses';
+      if (mounted) context.go(dest);
+      return false; // prevent default pop
+    }
+
+    return WillPopScope(
+      onWillPop: _onWillPop,
+      child: Scaffold(
         backgroundColor: const Color(0xFFF6F9FB),
-        elevation: 0,
-        leading: Container(
-          margin: const EdgeInsets.only(left: 8, top: 6, bottom: 6),
-          decoration: const BoxDecoration(
-            color: Color(0xFF007BFF),
-            shape: BoxShape.circle,
+        appBar: AppBar(
+          backgroundColor: const Color(0xFFF6F9FB),
+          elevation: 0,
+          leading: Container(
+            margin: const EdgeInsets.only(left: 8, top: 6, bottom: 6),
+            decoration: const BoxDecoration(
+              color: Color(0xFF007BFF),
+              shape: BoxShape.circle,
+            ),
+            child: IconButton(
+              icon: const Icon(Icons.arrow_back, color: Colors.white),
+              onPressed: () {
+                final dest = _isInscrito ? '/home' : '/search_courses';
+                context.go(dest);
+              },
+            ),
           ),
-          child: IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.white),
-            onPressed: () => context.go('/home'),
+          title: const Text(
+            'Detalhes do Curso',
+            style: TextStyle(
+              color: Color(0xFF007BFF),
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ),
-        title: const Text(
-          'Detalhes do Curso',
-          style: TextStyle(
-            color: Color(0xFF007BFF),
-            fontWeight: FontWeight.bold,
-          ),
-        ),
+        body: _buildBodyContent(),
       ),
-      body: _buildBodyContent(),
     );
   }
 
