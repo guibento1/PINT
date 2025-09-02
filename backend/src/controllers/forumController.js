@@ -38,6 +38,11 @@ async function formatStuff(stuff, utilizador, iteracaoModel) {
       const queryOptions = { where: { utilizador } };
 
       if (stuffObject.idpost != undefined) {
+
+        if (stuffObject.anexo) {
+          stuffObject.dataValues.anexo = await generateSASUrl(stuffObject.anexo, "anexosposts");
+        }
+
         queryOptions.where.post = stuffObject.idpost;
       } else {
         queryOptions.where.comentario = stuffObject.idcomentario;
