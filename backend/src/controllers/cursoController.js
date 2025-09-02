@@ -608,6 +608,7 @@ controllers.list = async (req, res) => {
       "fimdeinscricoes",
       "thumbnail",
     ],
+    order : [["idcurso", "ASC"]]
   };
   try {
     if (req.query.area) {
@@ -896,6 +897,33 @@ controllers.getCurso = async (req, res) => {
             "duracaohoras",
           ],
         });
+
+
+        try {
+
+
+          let totalHorasDasSessoes = 0;
+
+          sessoes.forEach(sessao => {
+            totalHorasDasSessoes += parseInt(sessao.duracaohoras);
+          });
+
+
+          curso.dataValues.progresso = ((totalHorasDasSessoes / curso.dataValues.nhoras) * 100).toFixed(2);
+          
+        } catch (error) {
+
+
+          logger.error(
+            `Erro interno do servidor ao buscar curso. Detalhes: ${error.message}`,
+            {
+              stack: error.stack,
+            }
+          );
+          
+        }
+
+
 
 
         const avaliacoes = await models.avaliacaocontinua.findAll({
