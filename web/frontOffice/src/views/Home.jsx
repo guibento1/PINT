@@ -225,7 +225,10 @@ export default function Home() {
             <h5 className="mb-3 fw-semibold mb-1 text-center">
               Sabes que dia é hoje?
             </h5>
-            <Calendar onChange={setSelectedDate} value={selectedDate} />
+            <Calendar onChange={setSelectedDate} value={selectedDate} locale="pt-PT"
+                      formatShortWeekday={(locale, date) =>
+                      date.toLocaleDateString(locale, { weekday: "short" }).substring(0, 3).toUpperCase()
+              } />
           </div>
         </div>
       </div>
