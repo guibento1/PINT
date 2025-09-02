@@ -18,6 +18,7 @@ export default function NavbarBack() {
   );
   const [hoverNoti, setHoverNoti] = useState(false);
 
+  // Utilizador da sessão (nome, avatar, id)
   let user = null;
   if (sessionStorage.getItem("user")) {
     try {
@@ -36,6 +37,7 @@ export default function NavbarBack() {
     user?.userId ||
     user?.uid;
 
+  // URL absoluta para imagens/ficheiros
   const buildFullUrl = (v) => {
     const s = String(v || "");
     if (!s) return "";
@@ -47,20 +49,21 @@ export default function NavbarBack() {
 
   const [avatarState, setAvatarState] = useState(buildFullUrl(avatarUrl));
 
-  // Recebe novas notificações
+  // Marca novas notificações
   useEffect(() => {
     const handler = () => setNotificacoesAtivas(true);
     window.addEventListener("novaNotificacao", handler);
     return () => window.removeEventListener("novaNotificacao", handler);
   }, []);
 
+  // Limpa badge ao entrar na página de notificações
   useEffect(() => {
     if (location.pathname === "/notificacoes" && notificacoesAtivas) {
       setNotificacoesAtivas(false);
     }
   }, [location.pathname, notificacoesAtivas]);
 
-  // Fetch fresh user data to ensure avatar photo is available
+  // Atualiza avatar do utilizador
   useEffect(() => {
     let cancelled = false;
     const fetchUser = async () => {
@@ -72,7 +75,7 @@ export default function NavbarBack() {
           setAvatarState(buildFullUrl(foto));
         }
       } catch (_) {
-        // ignore
+        // ignorar
       }
     };
     fetchUser();
@@ -95,18 +98,18 @@ export default function NavbarBack() {
       <nav
         className="navbar navbar-expand-lg bg-white border-bottom"
         style={{
-          position: "fixed", // Torna a navbar fixa
-          top: 0, // Fixa no topo da página
-          width: "100%", // Garante que ocupe toda a largura
-          zIndex: 1050, // Garante que esteja acima de outros elementos
-          padding: "5px 0", // Espaço simétrico no topo e na base
+          position: "fixed", // Navbar fixa no topo
+          top: 0,
+          width: "100%",
+          zIndex: 1050,
+          padding: "5px 0",
         }}
       >
         <div
           className="container-fluid d-flex align-items-center"
           style={{ minHeight: "60px" }}
         >
-          {/* Lado esquerdo: Logo SoftSkills */}
+          {/* Logo SoftSkills (esquerda) */}
           <div
             className="d-flex align-items-center justify-content-start"
             style={{ minWidth: "180px", paddingLeft: "30px" }}
@@ -120,7 +123,7 @@ export default function NavbarBack() {
             </Link>
           </div>
 
-          {/* Lado direito: Itens da navbar */}
+          {/* Itens da navbar (direita) */}
           <div
             className="d-flex align-items-center justify-content-end"
             style={{ minWidth: "260px", paddingRight: "24px" }}

@@ -11,6 +11,7 @@ import FileUpload from "@shared/components/FileUpload";
 const CriarCursoSincrono = () => {
   const navigate = useNavigate();
 
+  // Estado do formulário
   const [formData, setFormData] = useState({
     nome: "",
     planocurricular: "",
@@ -29,6 +30,7 @@ const CriarCursoSincrono = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  // Resultado da operação (modal)
   const [operationStatus, setOperationStatus] = useState(null); // 0 sucesso | 1 erro
   const [operationMessage, setOperationMessage] = useState("");
   const [isResultModalOpen, setIsResultModalOpen] = useState(false);
@@ -60,6 +62,7 @@ const CriarCursoSincrono = () => {
     return <p>Estado desconhecido.</p>;
   };
 
+  // Carrega tópicos e formadores (com cache)
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -77,11 +80,13 @@ const CriarCursoSincrono = () => {
     fetchData();
   }, []);
 
+  // Atualiza campos do formulário
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  // Marcar/desmarcar tópicos
   const handleTopicChange = (e) => {
     const id = parseInt(e.target.value);
     setFormData((prev) => ({
@@ -92,18 +97,22 @@ const CriarCursoSincrono = () => {
     }));
   };
 
+  // Thumbnail + pré-visualização
   const handleThumbnailSelect = (file) => {
     const f = file || null;
     setThumbnailFile(f);
     setPreviewThumbnail(f ? URL.createObjectURL(f) : "");
   };
 
+  // Submeter (validações + envio)
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
     setOperationStatus(null);
     setOperationMessage("");
+
+    // Pelo menos um tópico
     if (!Array.isArray(formData.topicos) || formData.topicos.length === 0) {
       setOperationStatus(1);
       setOperationMessage("Selecione pelo menos um tópico.");
@@ -111,6 +120,8 @@ const CriarCursoSincrono = () => {
       openResultModal();
       return;
     }
+
+    // Exigir data de fim
     if (!formData.fimdeinscricoes) {
       setOperationStatus(1);
       setOperationMessage(
@@ -120,7 +131,9 @@ const CriarCursoSincrono = () => {
       openResultModal();
       return;
     }
+
     try {
+      // Payload: FormData + JSON info
       const fd = new FormData();
       if (thumbnailFile) fd.append("thumbnail", thumbnailFile);
 
@@ -144,7 +157,7 @@ const CriarCursoSincrono = () => {
         res.data?.message || "Curso síncrono criado com sucesso!"
       );
 
-      // Limpar
+      // Limpar estado
       setFormData({
         nome: "",
         planocurricular: "",

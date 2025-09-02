@@ -25,6 +25,7 @@ export default function CriarEstrutura() {
   const [activeTab, setActiveTab] = useState("categoria");
 
   useEffect(() => {
+    /** **Seleciona a aba pelo hash da URL** */
     const hash = location.hash.replace("#", "");
     if (hash === "area" || hash === "topico" || hash === "categoria") {
       setActiveTab(hash);
@@ -44,6 +45,7 @@ export default function CriarEstrutura() {
   }, [location.hash]);
 
   useEffect(() => {
+    /** **Carrega categorias e áreas (inicial)** */
     const fetchInitialData = async () => {
       setDataLoading(true);
       try {
@@ -68,6 +70,7 @@ export default function CriarEstrutura() {
   }, []);
 
   const getResultModalTitle = () => {
+    /** **Título do modal segundo o estado** */
     switch (operationStatus) {
       case 0:
         return "Sucesso";
@@ -79,6 +82,7 @@ export default function CriarEstrutura() {
   };
 
   const getResultModalBody = () => {
+    /** **Conteúdo do modal segundo o estado** */
     switch (operationStatus) {
       case 0:
         return <p>{operationMessage || "Operação realizada com sucesso!"}</p>;
@@ -104,6 +108,7 @@ export default function CriarEstrutura() {
     setOperationStatus(null);
     setOperationMessage("");
     if (operationStatus === 0) {
+      /** **Após sucesso: recarrega listas relevantes** */
       const reloadData = async () => {
         try {
           if (activeTab === "categoria" || activeTab === "area") {
@@ -123,6 +128,7 @@ export default function CriarEstrutura() {
   };
 
   const handleCreateCategoria = async (e) => {
+    /** **Cria categoria** */
     e.preventDefault();
     setLoading(true);
     try {
@@ -143,6 +149,7 @@ export default function CriarEstrutura() {
   };
 
   const handleCreateArea = async (e) => {
+    /** **Cria área (valida categoria selecionada)** */
     e.preventDefault();
     setLoading(true);
     try {
@@ -171,6 +178,7 @@ export default function CriarEstrutura() {
   };
 
   const handleCreateTopico = async (e) => {
+    /** **Cria tópico (exige pelo menos uma área)** */
     e.preventDefault();
     setLoading(true);
     try {
@@ -201,6 +209,7 @@ export default function CriarEstrutura() {
   };
 
   const handleTopicoAreaCheckboxChange = (e) => {
+    /** **Seleciona/Remove áreas do tópico** */
     const value = e.target.value;
     const isChecked = e.target.checked;
     setTopicoAreasSelecionadas((prev) =>

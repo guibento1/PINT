@@ -8,6 +8,7 @@ import FileUpload from "@shared/components/FileUpload";
 const CriarCursoAssincrono = () => {
   const navigate = useNavigate();
 
+  // Estado do formulário
   const [formData, setFormData] = useState({
     nome: "",
     disponivel: false,
@@ -25,6 +26,7 @@ const CriarCursoAssincrono = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  // Estado do resultado (modal)
   const [operationStatus, setOperationStatus] = useState(null);
   const [operationMessage, setOperationMessage] = useState("");
   const [isResultModalOpen, setIsResultModalOpen] = useState(false);
@@ -69,6 +71,7 @@ const CriarCursoAssincrono = () => {
     }
   };
 
+  // Carrega tópicos (com cache)
   useEffect(() => {
     const fetchTopicos = async () => {
       try {
@@ -82,6 +85,7 @@ const CriarCursoAssincrono = () => {
     fetchTopicos();
   }, []);
 
+  // Atualiza campos do formulário
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     setFormData((prev) => ({
@@ -90,12 +94,14 @@ const CriarCursoAssincrono = () => {
     }));
   };
 
+  // Seleção da thumbnail + pré-visualização
   const handleThumbnailSelect = (file) => {
     const f = file || null;
     setThumbnailFile(f);
     setPreviewThumbnail(f ? URL.createObjectURL(f) : "");
   };
 
+  // Marcar/desmarcar tópicos
   const handleTopicChange = (e) => {
     const topicId = parseInt(e.target.value);
     setFormData((prev) => {
@@ -106,6 +112,7 @@ const CriarCursoAssincrono = () => {
     });
   };
 
+  // Submeter formulário (validações + envio)
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -113,6 +120,7 @@ const CriarCursoAssincrono = () => {
     setOperationStatus(null);
     setOperationMessage("");
 
+    // Pelo menos um tópico
     if (!Array.isArray(formData.topicos) || formData.topicos.length === 0) {
       setOperationStatus(1);
       setOperationMessage("Selecione pelo menos um tópico.");
@@ -121,7 +129,7 @@ const CriarCursoAssincrono = () => {
       return;
     }
 
-    // Requer data-limite apenas se estiver marcado como Disponível
+    // Se "disponível", exigir fim das inscrições
     if (formData.disponivel && !formData.fimdeinscricoes) {
       setOperationStatus(1);
       setOperationMessage(
@@ -133,6 +141,7 @@ const CriarCursoAssincrono = () => {
     }
 
     try {
+      // Construção do payload (FormData)
       const data = new FormData();
 
       if (thumbnailFile) {
@@ -185,6 +194,7 @@ const CriarCursoAssincrono = () => {
     }
   };
 
+  // Normaliza ISO para input datetime-local
   const formatDataForInput = (isoString) => {
     if (!isoString) return "";
     try {
