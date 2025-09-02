@@ -25,7 +25,6 @@ async function findRoles(id) {
 }
 
 async function updateRoles(id, roles) {
-
     try {
         const existingRoles = await findRoles(id);
 
@@ -33,18 +32,24 @@ async function updateRoles(id, roles) {
             const hasRole = roles.includes(role);
             const currentlyHas = existingRoles.some(r => r.role === role);
 
-            if (hasRole && !currentlyHas) {
-                await models[role].create({ 
+            if (hasRole) {
+                await models[role].upsert({
                     utilizador: id,
+                    ativo: true
+                }, {
+                    where: { utilizador: id }
                 });
-            } else if (!hasRole && currentlyHas) {
-                await models[role].destroy({ where: { utilizador: id }, force: true });
+            }
+            
+            if (!hasRole && currentlyHas) {
+                await models[role].update({ ativo: false }, {
+                    where: { utilizador: id }
+                });
             }
         }
     } catch (error) {
         throw error;
     }
-
 }
 
 const controllers = {};
