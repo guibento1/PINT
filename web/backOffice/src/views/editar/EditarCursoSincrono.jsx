@@ -23,6 +23,8 @@ const EditarCursoSincrono = () => {
     planocurricular: "",
     iniciodeinscricoes: "",
     fimdeinscricoes: "",
+    fim: "",
+    inicio: "",
     maxinscricoes: "",
     topicos: [],
     formador: "",
@@ -83,19 +85,22 @@ const EditarCursoSincrono = () => {
         ? normalizedFormadores
         : [...normalizedFormadores, { id: cfIdStr, nome: currentFormadorName }];
 
-      setFormData({
-        nome: c.nome || "",
-        planocurricular: c.planocurricular || "",
-        iniciodeinscricoes: c.iniciodeinscricoes
-          ? new Date(c.iniciodeinscricoes).toISOString().slice(0, 16)
-          : "",
-        fimdeinscricoes: c.fimdeinscricoes
-          ? new Date(c.fimdeinscricoes).toISOString().slice(0, 16)
-          : "",
-        maxinscricoes: (c.maxinscricoes ?? c.maxincricoes ?? "").toString(),
-        topicos: (c.topicos || []).map((t) => parseInt(t.idtopico)),
-        formador: cfIdStr,
-      });
+    setFormData({
+      nome: c.nome || "",
+      planocurricular: c.planocurricular || "",
+      iniciodeinscricoes: c.iniciodeinscricoes
+        ? new Date(c.iniciodeinscricoes).toISOString().slice(0, 16)
+        : "",
+      fimdeinscricoes: c.fimdeinscricoes
+        ? new Date(c.fimdeinscricoes).toISOString().slice(0, 16)
+        : "",
+      inicio: c.inicio || "",
+      fim: c.fim || "",
+      nhoras: c.nhoras?.toString() || "",
+      maxinscricoes: (c.maxinscricoes ?? c.maxincricoes ?? "").toString(),
+      topicos: (c.topicos || []).map((t) => parseInt(t.idtopico)),
+      formador: cfIdStr,
+    });
       setCurrentThumbnail(c.thumbnail || "");
       setAllTopicos(topicos);
       setAllFormadores(finalFormadores);
@@ -153,7 +158,10 @@ const EditarCursoSincrono = () => {
         nome: formData.nome,
         planocurricular: formData.planocurricular,
         iniciodeinscricoes: formData.iniciodeinscricoes,
+        inicio: formData.inicio,
+        fim: formData.fim,
         fimdeinscricoes: formData.fimdeinscricoes,
+        nhoras: formData.nhoras ? parseInt(formData.nhoras) : null,
         maxinscricoes: formData.maxinscricoes
           ? parseInt(formData.maxinscricoes)
           : null,
@@ -180,13 +188,12 @@ const EditarCursoSincrono = () => {
 
   const formatDataForInput = (isoString) => {
     if (!isoString) return "";
-    try {
-      const d = new Date(isoString);
-      d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
-      return d.toISOString().slice(0, 16);
-    } catch {
-      return "";
-    }
+    const date = new Date(isoString);
+    return isNaN(date.getTime())
+      ? ""
+      : new Date(date.getTime() - date.getTimezoneOffset() * 60000)
+          .toISOString()
+          .slice(0, 16);
   };
 
   if (loading) {
@@ -303,6 +310,37 @@ const EditarCursoSincrono = () => {
             />
           </div>
 
+
+          <div className="col-md-6">
+            <label htmlFor="inicio" className="form-label">
+              Início do Curso: <span className="text-danger">*</span>
+            </label>
+            <input
+              type="datetime-local"
+              id="inicio"
+              name="inicio"
+              className="form-control"
+              value={formatDataForInput(formData.inicio)}
+              onChange={handleChange}
+              required
+            />
+          </div>
+
+
+          <div className="col-md-6">
+            <label htmlFor="fim" className="form-label">
+              Fim do Curso:
+            </label>
+            <input
+              type="datetime-local"
+              id="fim"
+              name="fim"
+              className="form-control"
+              value={formatDataForInput(formData.fim)}
+              onChange={handleChange}
+            />
+          </div>
+
           <div className="col-md-6">
             <label htmlFor="iniciodeinscricoes" className="form-label">
               Início das Inscrições: <span className="text-danger">*</span>
@@ -317,6 +355,7 @@ const EditarCursoSincrono = () => {
               required
             />
           </div>
+
           <div className="col-md-6">
             <label htmlFor="fimdeinscricoes" className="form-label">
               Fim das Inscrições: <span className="text-danger">*</span>
@@ -353,6 +392,24 @@ const EditarCursoSincrono = () => {
                 vagas.
               </div>
             )}
+          </div>
+
+
+          <div className="col-md-6">
+
+            <label htmlFor="nhoras" className="form-label">
+              N horas: <span className="text-danger">*</span>
+            </label>
+            <input
+              type="number"
+              id="nhoras"
+              name="nhoras"
+              className="form-control"
+              min={1}
+              value={formData.nhoras || ""}
+              onChange={handleChange}
+              required
+            />
           </div>
 
           <div className="col-12">
