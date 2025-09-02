@@ -1,4 +1,4 @@
-openapi: 3.0.3
+openapi: "3.0.3"
 info:
   title: PINT Backend API
   description: |
@@ -1192,9 +1192,7 @@ paths:
           schema: { type: integer }
       responses:
         "200":
-          {
-            description: Lista de utilizadores com idformando e nota (se aplicável),
-          }
+          description: Lista de utilizadores com idformando e nota (se aplicável)
         "403": { description: Proibido }
 
   /curso/{id}/inscrever:
@@ -1713,7 +1711,7 @@ paths:
                   type: string
                   format: binary
       responses:
-  "201": { description: "Submetido, retorna submissão com URL" }
+        "201": { description: "Submetido, retorna submissão com URL" }
     put:
       tags: [Curso]
       summary: Atualizar submissão (formando)
@@ -1957,7 +1955,7 @@ paths:
                   type: string
                   description: JSON {titulo, conteudo}
       responses:
-  "200": { description: "Post criado, retorna objeto Post" }
+        "200": { description: "Post criado, retorna objeto Post" }
 
   /forum/post/{id}:
     get:
