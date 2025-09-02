@@ -705,7 +705,7 @@ class _ForumsPageState extends State<ForumsPage> {
                   final String commentsCount = rawComments.toString();
 
                   return GestureDetector(
-                    onTap: () => context.push('/forum/post/$idpost'),
+                    onTap: () => context.push('/forum_post/$idpost'),
                     child: Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(

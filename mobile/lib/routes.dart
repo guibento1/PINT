@@ -45,9 +45,12 @@ final rotas = GoRouter(
       builder: (context, state, child) {
         final String currentPath = state.uri.path;
 
+        // Hide top header and bottom navigation for specific full-screen pages
         final bool hideTopBar =
             currentPath == '/course_details' ||
-            currentPath.startsWith('/course_details/');
+            currentPath.startsWith('/course_details/') ||
+            currentPath == '/forum_post' ||
+            currentPath.startsWith('/forum_post/');
 
         return WillPopScope(
           onWillPop: () async {
@@ -114,7 +117,7 @@ final rotas = GoRouter(
           builder: (context, state) => const ForumsPage(),
         ),
         GoRoute(
-          path: '/forum/create',
+          path: '/forum_create',
           name: 'forum_create',
           builder: (context, state) {
             final extra = state.extra as Map<String, dynamic>?;
@@ -123,7 +126,7 @@ final rotas = GoRouter(
           },
         ),
         GoRoute(
-          path: '/forum/post/:id',
+          path: '/forum_post/:id',
           name: 'forum_post',
           builder: (context, state) {
             final idStr = state.pathParameters['id'];

@@ -84,6 +84,7 @@ class _ExploreCoursesPageState extends State<ExploreCoursesPage> {
       final String? categoriaId = filters['categoria'] as String?;
       final String? areaId = filters['area'] as String?;
       final String? topicoId = filters['topico'] as String?;
+      final bool? sincrono = filters['sincrono'] as bool?;
 
       final List<Map<String, dynamic>> courses = await _middleware
           .fetchAllCourses(
@@ -91,6 +92,7 @@ class _ExploreCoursesPageState extends State<ExploreCoursesPage> {
             categoriaId: categoriaId?.isNotEmpty == true ? categoriaId : null,
             areaId: areaId?.isNotEmpty == true ? areaId : null,
             topicoId: topicoId?.isNotEmpty == true ? topicoId : null,
+            sincrono: sincrono,
           );
 
       setState(() {

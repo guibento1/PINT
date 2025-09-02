@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:mobile/backend/server.dart';
 import 'package:mobile/backend/shared_preferences.dart' as prefs;
 
@@ -266,6 +267,28 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF6F9FB),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFFF6F9FB),
+        elevation: 0,
+        leading: Container(
+          margin: const EdgeInsets.only(left: 8, top: 6, bottom: 6),
+          decoration: const BoxDecoration(
+            color: Color(0xFF007BFF),
+            shape: BoxShape.circle,
+          ),
+          child: IconButton(
+            icon: const Icon(Icons.arrow_back, color: Colors.white),
+            onPressed: () => context.go('/forums'),
+          ),
+        ),
+        title: const Text(
+          'Detalhes do Post',
+          style: TextStyle(
+            color: Color(0xFF007BFF),
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
       body:
           loading
               ? const Center(child: CircularProgressIndicator())
@@ -289,27 +312,7 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
                     vertical: 20.0,
                   ),
                   children: [
-                    Row(
-                      children: [
-                        IconButton(
-                          icon: const Icon(
-                            Icons.arrow_back,
-                            color: Color(0xFF007BFF),
-                          ),
-                          onPressed: () => Navigator.of(context).maybePop(),
-                        ),
-                        const SizedBox(width: 4),
-                        const Text(
-                          'Detalhe do Post',
-                          style: TextStyle(
-                            fontSize: 25,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF007BFF),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 4),
                     // Post card mirroring forums layout
                     Container(
                       padding: const EdgeInsets.all(16),

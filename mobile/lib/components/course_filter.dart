@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../middleware.dart';
 
 // Componente de Filtros de cursos
@@ -25,6 +26,10 @@ class _CourseFilterWidgetState extends State<CourseFilterWidget> {
   String? _selectedAreaId;
   String? _selectedTopicoId;
 
+  // Tipo de curso toggles
+  bool _showSincronos = false;
+  bool _showAssincronos = false;
+
   List<Map<String, dynamic>> _categorias = [];
   List<Map<String, dynamic>> _areas = [];
   List<Map<String, dynamic>> _topicos = [];
@@ -40,7 +45,20 @@ class _CourseFilterWidgetState extends State<CourseFilterWidget> {
   @override
   void initState() {
     super.initState();
-    _fetchCategories();
+    _restoreToggleState().then((_) => _fetchCategories());
+  }
+
+  Future<void> _restoreToggleState() async {
+    // Reuse shared prefs wrapper to persist UI state
+    // We'll piggyback on generic set/get by saving small flags under custom keys
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      _showSincronos = prefs.getBool('filters_showSincronos') ?? false;
+      _showAssincronos = prefs.getBool('filters_showAssincronos') ?? false;
+      if (mounted) setState(() {});
+    } catch (_) {
+      // ignore
+    }
   }
 
   Future<void> _fetchCategories() async {
@@ -50,7 +68,8 @@ class _CourseFilterWidgetState extends State<CourseFilterWidget> {
     });
     try {
       // Call middleware function
-      final List<Map<String, dynamic>> data = await _middleware.fetchAllCategories();
+      final List<Map<String, dynamic>> data =
+          await _middleware.fetchAllCategories();
       setState(() {
         _categorias = data;
       });
@@ -77,13 +96,16 @@ class _CourseFilterWidgetState extends State<CourseFilterWidget> {
     });
     try {
       // Call middleware function
-      final List<Map<String, dynamic>> data = await _middleware.fetchAreas(categoriaId);
+      final List<Map<String, dynamic>> data = await _middleware.fetchAreas(
+        categoriaId,
+      );
       setState(() {
         _areas = data;
       });
     } catch (e) {
       setState(() {
-        _errorAreas = 'Formato de dados de áreas inválido.'; // Changed from 'Formato de dados de áreas inválido.' to a more generic error
+        _errorAreas =
+            'Formato de dados de áreas inválido.'; // Changed from 'Formato de dados de áreas inválido.' to a more generic error
       });
       print('Error fetching areas: $e');
     } finally {
@@ -102,16 +124,12 @@ class _CourseFilterWidgetState extends State<CourseFilterWidget> {
     });
     try {
       // Call middleware function
-      final List<Map<String, dynamic>> data = await _middleware.fetchTopics(areaId);
-      if (data is List) {
-        setState(() {
-          _topicos = List<Map<String, dynamic>>.from(data.whereType<Map<String, dynamic>>());
-        });
-      } else {
-        setState(() {
-          _errorTopicos = 'Formato de dados de tópicos inválido.';
-        });
-      }
+      final List<Map<String, dynamic>> data = await _middleware.fetchTopics(
+        areaId,
+      );
+      setState(() {
+        _topicos = data;
+      });
     } catch (e) {
       setState(() {
         _errorTopicos = 'Erro ao carregar tópicos.';
@@ -125,11 +143,19 @@ class _CourseFilterWidgetState extends State<CourseFilterWidget> {
   }
 
   void _applyFilters() {
+    bool? sincronoParam;
+    if (_showSincronos && !_showAssincronos) {
+      sincronoParam = true;
+    } else if (!_showSincronos && _showAssincronos) {
+      sincronoParam = false;
+    }
     widget.onApplyFilters({
       'search': _searchController.text,
       'categoria': _selectedCategoriaId,
       'area': _selectedAreaId,
       'topico': _selectedTopicoId,
+      // Tri-state: true (only síncronos), false (only assíncronos), null (both)
+      'sincrono': sincronoParam,
     });
   }
 
@@ -141,7 +167,16 @@ class _CourseFilterWidgetState extends State<CourseFilterWidget> {
       _selectedTopicoId = null;
       _areas = [];
       _topicos = [];
+      _showSincronos = false;
+      _showAssincronos = false;
     });
+    () async {
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setBool('filters_showSincronos', false);
+        await prefs.setBool('filters_showAssincronos', false);
+      } catch (_) {}
+    }();
     widget.onClearFilters();
   }
 
@@ -188,7 +223,9 @@ class _CourseFilterWidgetState extends State<CourseFilterWidget> {
               fillColor: Colors.white,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10.0),
-                borderSide: BorderSide(color: Color(0xFFD3DCE6)), // subtle border
+                borderSide: BorderSide(
+                  color: Color(0xFFD3DCE6),
+                ), // subtle border
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10.0),
@@ -198,8 +235,89 @@ class _CourseFilterWidgetState extends State<CourseFilterWidget> {
                 borderRadius: BorderRadius.circular(10.0),
                 borderSide: BorderSide(color: Color(0xFF007BFF)), // focus color
               ),
-              contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 15),
+              contentPadding: const EdgeInsets.symmetric(
+                vertical: 12,
+                horizontal: 15,
+              ),
             ),
+          ),
+          const SizedBox(height: 20),
+          // Tipo de Curso toggles (Síncronos / Assíncronos)
+          Text('Tipo de Curso:', style: TextStyle(color: Color(0xFF222B45))),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              FilterChip(
+                label: const Text('Síncronos'),
+                selected: _showSincronos,
+                onSelected: (val) async {
+                  setState(() => _showSincronos = val);
+                  try {
+                    final prefs = await SharedPreferences.getInstance();
+                    await prefs.setBool(
+                      'filters_showSincronos',
+                      _showSincronos,
+                    );
+                  } catch (_) {}
+                  _applyFilters();
+                },
+                selectedColor: const Color(0xFFE8F0FE),
+                checkmarkColor: const Color(0xFF007BFF),
+                labelStyle: TextStyle(
+                  color:
+                      _showSincronos
+                          ? const Color(0xFF007BFF)
+                          : const Color(0xFF222B45),
+                  fontWeight: FontWeight.w600,
+                ),
+                side: BorderSide(
+                  color:
+                      _showSincronos
+                          ? const Color(0xFF007BFF)
+                          : const Color(0xFFD3DCE6),
+                ),
+                backgroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
+              ),
+              FilterChip(
+                label: const Text('Assíncronos'),
+                selected: _showAssincronos,
+                onSelected: (val) async {
+                  setState(() => _showAssincronos = val);
+                  try {
+                    final prefs = await SharedPreferences.getInstance();
+                    await prefs.setBool(
+                      'filters_showAssincronos',
+                      _showAssincronos,
+                    );
+                  } catch (_) {}
+                  _applyFilters();
+                },
+                selectedColor: const Color(0xFFE8F0FE),
+                checkmarkColor: const Color(0xFF007BFF),
+                labelStyle: TextStyle(
+                  color:
+                      _showAssincronos
+                          ? const Color(0xFF007BFF)
+                          : const Color(0xFF222B45),
+                  fontWeight: FontWeight.w600,
+                ),
+                side: BorderSide(
+                  color:
+                      _showAssincronos
+                          ? const Color(0xFF007BFF)
+                          : const Color(0xFFD3DCE6),
+                ),
+                backgroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 20),
           Row(
@@ -230,11 +348,21 @@ class _CourseFilterWidgetState extends State<CourseFilterWidget> {
                           borderRadius: BorderRadius.circular(10.0),
                           borderSide: BorderSide(color: Color(0xFF007BFF)),
                         ),
-                        contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 15),
+                        contentPadding: const EdgeInsets.symmetric(
+                          vertical: 12,
+                          horizontal: 15,
+                        ),
                       ),
-                      hint: Text(_loadingCategorias ? 'A carregar...' : 'Todas as Categorias'),
+                      hint: Text(
+                        _loadingCategorias
+                            ? 'A carregar...'
+                            : 'Todas as Categorias',
+                      ),
                       items: [
-                        const DropdownMenuItem(value: null, child: Text('Todas as Categorias')),
+                        const DropdownMenuItem(
+                          value: null,
+                          child: Text('Todas as Categorias'),
+                        ),
                         ..._categorias.map((cat) {
                           return DropdownMenuItem(
                             value: cat['idcategoria']?.toString(),
@@ -242,20 +370,23 @@ class _CourseFilterWidgetState extends State<CourseFilterWidget> {
                           );
                         }).toList(),
                       ],
-                      onChanged: _loadingCategorias
-                          ? null
-                          : (String? newValue) {
-                              setState(() {
-                                _selectedCategoriaId = newValue;
-                                _selectedAreaId = null; // Reset Area when Category changes
-                                _selectedTopicoId = null; // Reset Topic when Category changes
-                                _areas = []; // Clear areas list
-                                _topicos = []; // Clear topics list
-                              });
-                              if (newValue != null) {
-                                _fetchAreas(newValue);
-                              }
-                            },
+                      onChanged:
+                          _loadingCategorias
+                              ? null
+                              : (String? newValue) {
+                                setState(() {
+                                  _selectedCategoriaId = newValue;
+                                  _selectedAreaId =
+                                      null; // Reset Area when Category changes
+                                  _selectedTopicoId =
+                                      null; // Reset Topic when Category changes
+                                  _areas = []; // Clear areas list
+                                  _topicos = []; // Clear topics list
+                                });
+                                if (newValue != null) {
+                                  _fetchAreas(newValue);
+                                }
+                              },
                       // Error message below dropdown if any
                       validator: (_) => _errorCategorias,
                       isExpanded: true,
@@ -268,10 +399,7 @@ class _CourseFilterWidgetState extends State<CourseFilterWidget> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'Área:',
-                      style: TextStyle(color: Color(0xFF222B45)),
-                    ),
+                    Text('Área:', style: TextStyle(color: Color(0xFF222B45))),
                     const SizedBox(height: 8),
                     DropdownButtonFormField<String>(
                       value: _selectedAreaId,
@@ -290,11 +418,19 @@ class _CourseFilterWidgetState extends State<CourseFilterWidget> {
                           borderRadius: BorderRadius.circular(10.0),
                           borderSide: BorderSide(color: Color(0xFF007BFF)),
                         ),
-                        contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 15),
+                        contentPadding: const EdgeInsets.symmetric(
+                          vertical: 12,
+                          horizontal: 15,
+                        ),
                       ),
-                      hint: Text(_loadingAreas ? 'A carregar...' : 'Todas as Áreas'),
+                      hint: Text(
+                        _loadingAreas ? 'A carregar...' : 'Todas as Áreas',
+                      ),
                       items: [
-                        const DropdownMenuItem(value: null, child: Text('Todas as Áreas')),
+                        const DropdownMenuItem(
+                          value: null,
+                          child: Text('Todas as Áreas'),
+                        ),
                         ..._areas.map((area) {
                           return DropdownMenuItem(
                             value: area['idarea']?.toString(),
@@ -302,18 +438,22 @@ class _CourseFilterWidgetState extends State<CourseFilterWidget> {
                           );
                         }).toList(),
                       ],
-                      onChanged: (_selectedCategoriaId == null || _loadingAreas || _areas.isEmpty)
-                          ? null
-                          : (String? newValue) {
-                              setState(() {
-                                _selectedAreaId = newValue;
-                                _selectedTopicoId = null; // Reset Topic when Area changes
-                                _topicos = []; // Clear topics list
-                              });
-                              if (newValue != null) {
-                                _fetchTopics(newValue);
-                              }
-                            },
+                      onChanged:
+                          (_selectedCategoriaId == null ||
+                                  _loadingAreas ||
+                                  _areas.isEmpty)
+                              ? null
+                              : (String? newValue) {
+                                setState(() {
+                                  _selectedAreaId = newValue;
+                                  _selectedTopicoId =
+                                      null; // Reset Topic when Area changes
+                                  _topicos = []; // Clear topics list
+                                });
+                                if (newValue != null) {
+                                  _fetchTopics(newValue);
+                                }
+                              },
                       validator: (_) => _errorAreas,
                       isExpanded: true,
                     ),
@@ -325,10 +465,7 @@ class _CourseFilterWidgetState extends State<CourseFilterWidget> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'Tópico:',
-                      style: TextStyle(color: Color(0xFF222B45)),
-                    ),
+                    Text('Tópico:', style: TextStyle(color: Color(0xFF222B45))),
                     const SizedBox(height: 8),
                     DropdownButtonFormField<String>(
                       value: _selectedTopicoId,
@@ -347,11 +484,19 @@ class _CourseFilterWidgetState extends State<CourseFilterWidget> {
                           borderRadius: BorderRadius.circular(10.0),
                           borderSide: BorderSide(color: Color(0xFF007BFF)),
                         ),
-                        contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 15),
+                        contentPadding: const EdgeInsets.symmetric(
+                          vertical: 12,
+                          horizontal: 15,
+                        ),
                       ),
-                      hint: Text(_loadingTopicos ? 'A carregar...' : 'Todos os Tópicos'),
+                      hint: Text(
+                        _loadingTopicos ? 'A carregar...' : 'Todos os Tópicos',
+                      ),
                       items: [
-                        const DropdownMenuItem(value: null, child: Text('Todos os Tópicos')),
+                        const DropdownMenuItem(
+                          value: null,
+                          child: Text('Todos os Tópicos'),
+                        ),
                         ..._topicos.map((topico) {
                           return DropdownMenuItem(
                             value: topico['idtopico']?.toString(),
@@ -359,13 +504,16 @@ class _CourseFilterWidgetState extends State<CourseFilterWidget> {
                           );
                         }).toList(),
                       ],
-                      onChanged: (_selectedAreaId == null || _loadingTopicos || _topicos.isEmpty)
-                          ? null
-                          : (String? newValue) {
-                              setState(() {
-                                _selectedTopicoId = newValue;
-                              });
-                            },
+                      onChanged:
+                          (_selectedAreaId == null ||
+                                  _loadingTopicos ||
+                                  _topicos.isEmpty)
+                              ? null
+                              : (String? newValue) {
+                                setState(() {
+                                  _selectedTopicoId = newValue;
+                                });
+                              },
                       validator: (_) => _errorTopicos,
                       isExpanded: true,
                     ),
@@ -386,7 +534,10 @@ class _CourseFilterWidgetState extends State<CourseFilterWidget> {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 12,
+                  ),
                 ),
                 child: const Text('Limpar Filtros'),
               ),
@@ -398,7 +549,10 @@ class _CourseFilterWidgetState extends State<CourseFilterWidget> {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 12,
+                  ),
                 ),
                 child: const Text(
                   'Aplicar Filtros',

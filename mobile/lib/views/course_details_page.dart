@@ -20,6 +20,8 @@ class _CourseDetailsPageState extends State<CourseDetailsPage> {
   Map<String, dynamic>? _courseData;
   bool _isInscrito = false;
   bool _isSubmittingAction = false;
+  int? _inscritosCountRemote;
+  bool _loadingInscritosCount = false;
 
   final AppMiddleware _middleware = AppMiddleware();
   final NotificationService _notificationService = NotificationService();
@@ -43,6 +45,8 @@ class _CourseDetailsPageState extends State<CourseDetailsPage> {
           _errorMessage = null;
           _isLoading = false;
         });
+        // Fetch inscritos count from API as source-of-truth if needed
+        _ensureInscritosCount();
       }
     } catch (e) {
       if (mounted) {
@@ -51,6 +55,27 @@ class _CourseDetailsPageState extends State<CourseDetailsPage> {
           _isLoading = false;
         });
       }
+    }
+  }
+
+  Future<void> _ensureInscritosCount() async {
+    if (!mounted || _courseData == null) return;
+    if (!_isSincrono(_courseData!)) return;
+    // If payload already has a number, skip network call
+    final local = _resolveInscritosCount(_courseData!);
+    if (local != '-' && int.tryParse(local) != null) return;
+    if (_loadingInscritosCount) return;
+    setState(() => _loadingInscritosCount = true);
+    try {
+      final v = await _middleware.fetchCourseInscritosCount(widget.id);
+      if (!mounted) return;
+      if (v != null) {
+        setState(() => _inscritosCountRemote = v);
+      }
+    } catch (_) {
+      // ignore
+    } finally {
+      if (mounted) setState(() => _loadingInscritosCount = false);
     }
   }
 
@@ -227,36 +252,7 @@ class _CourseDetailsPageState extends State<CourseDetailsPage> {
   String _tipoLabel(Map<String, dynamic> d) =>
       _isSincrono(d) ? 'Síncrono' : 'Assíncrono';
 
-  String _horasText(Map<String, dynamic> d) {
-    final h = d['numerohoras'] ?? d['horas'] ?? d['duracao'];
-    if (h == null) return '-';
-    final s = h.toString();
-    return s.isEmpty ? '-' : '$s h';
-  }
-
-  int _numSessoes(Map<String, dynamic> d) {
-    final s = d['sessoes'];
-    if (s is List) return s.length;
-    final n = d['numsessoes'] ?? d['numerosessoes'];
-    return int.tryParse(n?.toString() ?? '') ?? 0;
-  }
-
-  int _numLicoes(Map<String, dynamic> d) {
-    final l = d['licoes'];
-    if (l is List) return l.length;
-    return int.tryParse((d['numlicoes'] ?? '').toString()) ?? 0;
-  }
-
-  String _periodoCurso(Map<String, dynamic> d) {
-    final ini = d['datainicio'] ?? d['iniciocurso'] ?? d['inicio'];
-    final fim = d['datafim'] ?? d['fimcurso'] ?? d['fim'];
-    final si = _formatDate(ini?.toString());
-    final sf = _formatDate(fim?.toString());
-    if (si == '-' && sf == '-') return '-';
-    if (sf == '-') return si;
-    if (si == '-') return sf;
-    return '$si — $sf';
-  }
+  // Removed old chips helpers (horasText/numSessoes/numLicoes/periodoCurso)
 
   String _inscricoesPeriodoDT(Map<String, dynamic> d) {
     final ini =
@@ -282,6 +278,145 @@ class _CourseDetailsPageState extends State<CourseDetailsPage> {
     if (sf == '-') return si;
     if (si == '-') return sf;
     return '$si até $sf';
+  }
+
+  // Resolve total hours, inscritos count, and max inscrições from flexible payloads
+  String _resolveNumeroHoras(Map<String, dynamic> d) {
+    final nested = (d['cursosincrono'] ?? d['cursoSincrono']) as Map?;
+    final raw =
+        d['numerohoras'] ??
+        d['nhoras'] ??
+        d['nHoras'] ??
+        d['horas'] ??
+        d['duracaohoras'] ??
+        d['duracao_horas'] ??
+        d['duracao'] ??
+        (nested is Map
+            ? (nested['numerohoras'] ??
+                nested['nhoras'] ??
+                nested['nHoras'] ??
+                nested['horas'] ??
+                nested['duracaohoras'] ??
+                nested['duracao_horas'] ??
+                nested['duracao'])
+            : null);
+    if (raw != null) {
+      final s = raw.toString();
+      if (s.isEmpty) return '-';
+      // Try to extract numeric part if string like "10h" or "10 horas"
+      final match = RegExp(r"(\d+(?:[\.,]\d+)?)").firstMatch(s);
+      if (match != null) return match.group(1)!.replaceAll(',', '.');
+      return s;
+    }
+    // Fallback: sum sessions durations
+    final sessoes = d['sessoes'];
+    if (sessoes is List && sessoes.isNotEmpty) {
+      double totalHours = 0;
+      for (final s in sessoes) {
+        try {
+          final m = Map<String, dynamic>.from(s as Map);
+          final siStr = (m['inicio'] ?? m['datainicio'])?.toString();
+          final sfStr = (m['fim'] ?? m['datafim'])?.toString();
+          if (siStr != null && sfStr != null) {
+            final si = DateTime.parse(siStr);
+            final sf = DateTime.parse(sfStr);
+            final diff = sf.difference(si).inMinutes / 60.0;
+            if (diff > 0) totalHours += diff;
+          }
+        } catch (_) {}
+      }
+      if (totalHours > 0) {
+        final rounded1 = double.parse(totalHours.toStringAsFixed(1));
+        final rounded0 = totalHours.round();
+        return (rounded1 - rounded0).abs() < 0.05
+            ? rounded0.toString()
+            : rounded1.toString();
+      }
+    }
+    return '-';
+  }
+
+  String _resolveInscritosCount(Map<String, dynamic> d) {
+    const intKeys = [
+      'inscritosCount',
+      'inscricoesCount',
+      'numeroinscritos',
+      'inscritos_numero',
+      'inscritoscount',
+      'inscritos_total',
+      'totalInscritos',
+      'ninscritos',
+      'numinscritos',
+      'inscricoes',
+    ];
+    for (final k in intKeys) {
+      final v = d[k];
+      if (v != null && v.toString().isNotEmpty) {
+        final n = int.tryParse(v.toString());
+        if (n != null) return n.toString();
+      }
+    }
+    const listKeys = [
+      'inscritos',
+      'inscricoes',
+      'participantes',
+      'alunos',
+      'formandos',
+    ];
+    for (final k in listKeys) {
+      final v = d[k];
+      if (v is List) return v.length.toString();
+    }
+    return '-';
+  }
+
+  String _resolveMaxInscricoes(Map<String, dynamic> d) {
+    final nested = (d['cursosincrono'] ?? d['cursoSincrono']) as Map?;
+    const keys = [
+      'maxinscricoes',
+      'maxincricoes',
+      'maxInscricoes',
+      'maxIncricoes',
+      'maximoinscricoes',
+      'maximoInscricoes',
+      'limite',
+      'lotacao',
+      'vagas',
+      'capacidade',
+      'capMax',
+      'inscricoesmaximas',
+      'inscricoesMaximas',
+    ];
+    for (final k in keys) {
+      final v = d[k];
+      if (v != null && v.toString().isNotEmpty) {
+        final n = int.tryParse(v.toString());
+        return (n != null) ? n.toString() : v.toString();
+      }
+    }
+    if (nested is Map) {
+      for (final k in keys) {
+        final v = nested[k];
+        if (v != null && v.toString().isNotEmpty) {
+          final n = int.tryParse(v.toString());
+          return (n != null) ? n.toString() : v.toString();
+        }
+      }
+    }
+    if (d['regras'] is Map) {
+      final m = Map<String, dynamic>.from(d['regras']);
+      for (final k in [
+        'maxinscricoes',
+        'maxincricoes',
+        'limite',
+        'lotacao',
+        'vagas',
+      ]) {
+        final v = m[k];
+        if (v != null) return v.toString();
+      }
+    }
+    return '-';
   }
 
   @override
@@ -376,9 +511,13 @@ class _CourseDetailsPageState extends State<CourseDetailsPage> {
                 ),
               ),
               const SizedBox(height: 10),
-              // Tipo chip + disponibilidade
-              Row(
+              // Tipo chip + disponibilidade (responsive)
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
+                  // Tipo chip
                   Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 10,
@@ -392,6 +531,7 @@ class _CourseDetailsPageState extends State<CourseDetailsPage> {
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(
                           _isSincrono(_courseData!)
@@ -417,133 +557,89 @@ class _CourseDetailsPageState extends State<CourseDetailsPage> {
                       ],
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  Row(
-                    children: [
-                      Icon(
-                        _courseData!['disponivel'] == true
-                            ? Icons.check_circle
-                            : Icons.cancel,
-                        color:
-                            _courseData!['disponivel'] == true
-                                ? Colors.lightGreenAccent.shade700
-                                : Colors.deepOrange.shade800,
-                        size: 22,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        _courseData!['disponivel'] == true
-                            ? 'Disponível'
-                            : 'Indisponível',
-                        style: TextStyle(
+                  // Disponibilidade chip
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: (_courseData!['disponivel'] == true
+                              ? Colors.lightGreenAccent.shade700
+                              : Colors.deepOrange.shade800)
+                          .withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          _courseData!['disponivel'] == true
+                              ? Icons.check_circle
+                              : Icons.cancel,
                           color:
                               _courseData!['disponivel'] == true
                                   ? Colors.lightGreenAccent.shade700
                                   : Colors.deepOrange.shade800,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 16,
+                          size: 18,
                         ),
-                      ),
-                    ],
+                        const SizedBox(width: 6),
+                        Text(
+                          _courseData!['disponivel'] == true
+                              ? 'Disponível'
+                              : 'Indisponível',
+                          style: TextStyle(
+                            color:
+                                _courseData!['disponivel'] == true
+                                    ? Colors.lightGreenAccent.shade700
+                                    : Colors.deepOrange.shade800,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
               const SizedBox(height: 14),
-              // Facts chips
+              // Details chips (deduplicated: tipo/estado já estão acima)
               Wrap(
                 spacing: 10,
                 runSpacing: 10,
                 children: [
                   _FactChip(
-                    icon: Icons.access_time,
-                    label: 'Duração',
-                    value: _horasText(_courseData!),
+                    icon: Icons.app_registration,
+                    label: 'Inscrições',
+                    value: _inscricoesPeriodoDT(_courseData!),
                   ),
-                  if (_isSincrono(_courseData!))
+                  if (_isSincrono(_courseData!)) ...[
                     _FactChip(
                       icon: Icons.event,
-                      label: 'Período',
-                      value: _periodoCurso(_courseData!),
+                      label: 'Duração do Curso',
+                      value: _cursoPeriodoDT(_courseData!),
                     ),
-                  if (_isSincrono(_courseData!))
                     _FactChip(
-                      icon: Icons.video_camera_front,
-                      label: 'Sessões',
-                      value: _numSessoes(_courseData!).toString(),
-                    )
-                  else
-                    _FactChip(
-                      icon: Icons.menu_book,
-                      label: 'Lições',
-                      value: _numLicoes(_courseData!).toString(),
+                      icon: Icons.access_time,
+                      label: 'Nº de horas',
+                      value: _resolveNumeroHoras(_courseData!),
                     ),
+                    // Swap order: show Max inscrições before Inscritos
+                    _FactChip(
+                      icon: Icons.people_alt,
+                      label: 'Máx. inscrições',
+                      value: _resolveMaxInscricoes(_courseData!),
+                    ),
+                    _FactChip(
+                      icon: Icons.group,
+                      label: 'Inscritos',
+                      value:
+                          (_inscritosCountRemote?.toString() ??
+                              _resolveInscritosCount(_courseData!)),
+                    ),
+                  ],
                 ],
               ),
               const SizedBox(height: 16),
-              // Detailed info per type (exactly as requested)
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF9FBFE),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFE6ECF2)),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _DetailRow(
-                      label: 'Tipo de curso',
-                      value: _tipoLabel(_courseData!),
-                    ),
-                    const SizedBox(height: 6),
-                    _DetailRow(
-                      label: 'Estado',
-                      value:
-                          _courseData!['disponivel'] == true
-                              ? 'Disponível'
-                              : 'Indisponível',
-                    ),
-                    const SizedBox(height: 6),
-                    _DetailRow(
-                      label: 'Inscrições',
-                      value: _inscricoesPeriodoDT(_courseData!),
-                    ),
-                    if (_isSincrono(_courseData!)) ...[
-                      const SizedBox(height: 6),
-                      _DetailRow(
-                        label: 'Duração do Curso',
-                        value: _cursoPeriodoDT(_courseData!),
-                      ),
-                      const SizedBox(height: 6),
-                      _DetailRow(
-                        label: 'Nº de horas',
-                        value:
-                            (_courseData!['numerohoras'] ??
-                                    _courseData!['horas'] ??
-                                    '-')
-                                .toString(),
-                      ),
-                      const SizedBox(height: 6),
-                      _DetailRow(
-                        label: 'Inscritos',
-                        value:
-                            (() {
-                              if (_courseData!['inscritosCount'] != null)
-                                return _courseData!['inscritosCount']
-                                    .toString();
-                              if (_courseData!['inscritos'] is List)
-                                return (_courseData!['inscritos'] as List)
-                                    .length
-                                    .toString();
-                              return '-';
-                            })(),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-              const SizedBox(height: 12),
               if (!_isInscrito)
                 ElevatedButton(
                   onPressed: _isSubmittingAction ? null : _subscribeToCourse,
@@ -601,21 +697,71 @@ class _CourseDetailsPageState extends State<CourseDetailsPage> {
                             style: TextStyle(fontSize: 16, color: Colors.white),
                           ),
                 ),
-                const SizedBox(height: 14),
-                Text(
-                  _courseData!['planocurricular'] ?? 'Sem plano curricular.',
-                  style: const TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.w500,
-                    color: Color(0xFF007BFF),
-                  ),
-                ),
               ],
             ],
           ),
         ),
         const SizedBox(height: 16),
-        // Descrição / Plano Curricular
+        // Tópicos (antes do Plano Curricular)
+        if (_courseData!['topicos'] != null &&
+            (_courseData!['topicos'] as List).isNotEmpty)
+          Container(
+            margin: const EdgeInsets.only(bottom: 18),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(18),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.grey.withOpacity(0.10),
+                  blurRadius: 6,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Tópicos',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF007BFF),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Wrap(
+                  spacing: 8.0,
+                  runSpacing: 8.0,
+                  children: List<Widget>.from(
+                    (_courseData!['topicos'] as List).map(
+                      (topico) => Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF007BFF).withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          topico['designacao'] ?? '',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: Color(0xFF007BFF),
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        const SizedBox(height: 16),
+        // Descrição / Plano Curricular (após os Tópicos)
         if ((_courseData!['descricao'] ?? '').toString().isNotEmpty ||
             (_courseData!['planocurricular'] ?? '').toString().isNotEmpty)
           Container(
@@ -680,64 +826,6 @@ class _CourseDetailsPageState extends State<CourseDetailsPage> {
             ),
           ),
         const SizedBox(height: 24),
-        if (_courseData!['topicos'] != null &&
-            (_courseData!['topicos'] as List).isNotEmpty)
-          Container(
-            margin: const EdgeInsets.only(bottom: 18),
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(18),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.grey.withOpacity(0.10),
-                  blurRadius: 6,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Tópicos',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF007BFF),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Wrap(
-                  spacing: 8.0,
-                  runSpacing: 8.0,
-                  children: List<Widget>.from(
-                    (_courseData!['topicos'] as List).map(
-                      (topico) => Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF007BFF).withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          topico['designacao'] ?? '',
-                          style: const TextStyle(
-                            fontSize: 14,
-                            color: Color(0xFF007BFF),
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        const SizedBox(height: 16),
         // Sessões (apenas para cursos síncronos)
         if (_isSincrono(_courseData!) &&
             _courseData!['sessoes'] is List &&
@@ -961,6 +1049,7 @@ class _FactChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
+      constraints: const BoxConstraints(maxWidth: 600),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
         color: const Color(0xFFF5F7FA),
@@ -969,48 +1058,34 @@ class _FactChip extends StatelessWidget {
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(icon, size: 16, color: const Color(0xFF007BFF)),
           const SizedBox(width: 6),
-          Text(
-            '$label: ',
-            style: const TextStyle(
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF222B45),
+          Flexible(
+            child: RichText(
+              text: TextSpan(
+                style: const TextStyle(fontSize: 14, color: Color(0xFF49454F)),
+                children: [
+                  TextSpan(
+                    text: '$label: ',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF222B45),
+                    ),
+                  ),
+                  TextSpan(text: value),
+                ],
+              ),
+              softWrap: true,
+              maxLines: 3,
+              overflow: TextOverflow.visible,
             ),
           ),
-          Text(value, style: const TextStyle(color: Color(0xFF49454F))),
         ],
       ),
     );
   }
 }
 
-class _DetailRow extends StatelessWidget {
-  final String label;
-  final String value;
-
-  const _DetailRow({required this.label, required this.value});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(
-          width: 160,
-          child: Text(
-            '$label:',
-            style: const TextStyle(
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF222B45),
-            ),
-          ),
-        ),
-        Expanded(
-          child: Text(value, style: const TextStyle(color: Color(0xFF49454F))),
-        ),
-      ],
-    );
-  }
-}
+// Removed old _DetailRow as details are now presented as chips
