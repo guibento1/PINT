@@ -177,40 +177,6 @@ CREATE TABLE UtilizadorDispositivos (
 );
 
 
--- CREATE TABLE Notificacao (
---
---     idNotificacao BIGINT GENERATED ALWAYS AS IDENTITY,
---     conteudo VARCHAR(300),
---     instante TIMESTAMP NOT NULL,
---
---     CONSTRAINT NOTIFICACAO_PK PRIMARY KEY(idNotificacao)
--- );
---
---
--- CREATE TABLE NotificacaoPessoal (
---
---     idNotificacao BIGINT,
---     utilizador BIGINT,
---
---     CONSTRAINT NOTIFICACAOPESSOAL_PK PRIMARY KEY(idNotificacao,utilizador),
---     CONSTRAINT UTILIZADOR_NOTIFICACAOPESSOAL_FK FOREIGN KEY (utilizador) REFERENCES Utilizadores(idUtilizador),
---     CONSTRAINT NOTIFICACAO_NOTIFICACAOPESSOAL_FK FOREIGN KEY (idNotificacao) REFERENCES Notificacao(idNotificacao)
---
---
--- );
---
--- CREATE TABLE NotificacaoGeral (
---
---     idNotificacao BIGINT,
---     canal BIGINT,
---
---     CONSTRAINT NOTIFICAOGERAL_PK PRIMARY KEY(idNotificacao,canal),
---     CONSTRAINT CANAL_NOTIFICACAOPESSOAL_FK FOREIGN KEY (canal) REFERENCES CanalNotificacoes(idCanalNotificacoes),
---     CONSTRAINT NOTIFICACAO_NOTIFICACAOPESSOAL_FK FOREIGN KEY (idNotificacao) REFERENCES Notificacao(idNotificacao)
--- );
-
-
-
 -- CURSOS
 
 
@@ -261,7 +227,33 @@ CREATE TABLE CursoSincrono (
 
 );
 
--- Conteudo Do Curso
+
+CREATE TABLE Certificados (
+
+    idCertificado BIGINT UNIQUE GENERATED ALWAYS AS IDENTITY,
+    cursoSinc BIGINT, -- Pode ser null pois caso o curso seja eleminado o utilizador continua com o certificado 
+    nome VARCHAR(60) NOT NULL,
+    descricao VARCHAR(300) NOT NULL,
+
+
+    CONSTRAINT CERTIFICADO_PK PRIMARY KEY(idCertificado),
+    CONSTRAINT CERTIFICADO_CURSOSINCRONO_FK FOREIGN KEY (cursoSinc) REFERENCES CursoSincrono(idCursoSincrono) ON DELETE SET NULL
+
+);
+
+
+
+CREATE TABLE CertificadosUtilizadores (
+
+    certificado BIGINT,
+    utilizador BIGINT,
+    chave VARCHAR(128) UNIQUE DEFAULT gen_random_uuid(),
+
+    CONSTRAINT CERTIFICADOSUTILIZADORES_PK PRIMARY KEY(certificado, utilizador),
+    
+    CONSTRAINT CERTIFICADOSUTILIZADORES_CERTIFICADO_FK FOREIGN KEY (certificado) REFERENCES Certificados(idCertificado) ON DELETE CASCADE,
+    CONSTRAINT CERTIFICADOSUTILIZADORES_UTILIZADOR_FK FOREIGN KEY (utilizador) REFERENCES Utilizadores(idUtilizador) ON DELETE CASCADE
+);
 
 
 CREATE TABLE Licao (

@@ -571,6 +571,10 @@ controllers.getComentario = async (req, res) => {
   try {
     const comentario = await models.comentario.findByPk(id);
 
+
+    comentario.dataValues.utilizador = await getUserInfo(comentario.utilizador);
+
+
     if (comentario) {
       let context = await models.respostapost.findOne({
         where: { idcomentario: id },
