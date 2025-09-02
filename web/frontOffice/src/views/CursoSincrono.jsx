@@ -151,6 +151,25 @@ const CursoSincrono = () => {
     );
   }, [curso]);
 
+  // Estado do curso: "Em curso", "Terminado", "Pendente"
+  const courseStatus = useMemo(() => {
+    const c = curso || {};
+    const nested = c?.cursosincrono || c?.cursoSincrono || {};
+    const startRaw =
+      c?.inicio || c?.datainicio || nested?.inicio || nested?.datainicio;
+    const endRaw = c?.fim || c?.datafim || nested?.fim || nested?.datafim;
+    const now = new Date();
+    const start = startRaw ? new Date(startRaw) : null;
+    const end = endRaw ? new Date(endRaw) : null;
+    const validStart = start && !isNaN(start.getTime()) ? start : null;
+    const validEnd = end && !isNaN(end.getTime()) ? end : null;
+    if (validEnd && now > validEnd) return "Terminado";
+    if (validStart && now < validStart) return "Pendente";
+    if (validStart && (!validEnd || now <= validEnd)) return "Em curso";
+    if (c?.disponivel === false) return "Pendente";
+    return "Em curso";
+  }, [curso]);
+
   const topicosList = useMemo(() => {
     const c = curso || {};
     const nested = c?.cursosincrono || c?.cursoSincrono || {};
@@ -661,30 +680,8 @@ const CursoSincrono = () => {
           </div>
           <div className="col-md-8">
             <h1 className="h3">{curso?.nome}</h1>
-            {(() => {
-              const ended = inscricoesPeriod?.fim
-                ? new Date(inscricoesPeriod.fim) <= new Date()
-                : false;
-              if (ended) {
-                return (
-                  <>
-                    <div className="btn btn-dark static-button">Terminado</div>
-                    <br />
-                  </>
-                );
-              }
-              if (curso?.disponivel === false) {
-                return (
-                  <>
-                    <div className="btn btn-primary static-button">
-                      Arquivado
-                    </div>
-                    <br />
-                  </>
-                );
-              }
-              return null;
-            })()}
+            <div className="btn btn-dark static-button">{courseStatus}</div>
+            <br />
 
             {/* Always-visible course details (for inscritos and não inscritos) */}
             <div className="mt-2">
@@ -693,16 +690,8 @@ const CursoSincrono = () => {
                 <strong>Tipo de curso:</strong>{" "}
                 {curso?.sincrono === false ? "Assíncrono" : "Síncrono"}
                 <br />
-                {curso?.disponivel !== null &&
-                  curso?.disponivel !== undefined && (
-                    <>
-                      <strong>Estado:</strong>{" "}
-                      {curso.disponivel
-                        ? "Disponível"
-                        : "Indisponível/Arquivado"}
-                      <br />
-                    </>
-                  )}
+                <strong>Estado:</strong> {courseStatus}
+                <br />
                 {(inscricoesPeriod?.inicio || inscricoesPeriod?.fim) && (
                   <>
                     <strong>Inscrições:</strong>{" "}
@@ -937,28 +926,24 @@ const CursoSincrono = () => {
             {activeTab === "overview" && sessoesList?.length > 0 && (
               <>
                 <h2 className="h4 mb-3">Sessões e Materiais:</h2>
-          <div className="my-4">
-            <div className="d-flex justify-content-between align-items-center mb-1">
-              <span className="fw-bold">
-                Progresso no Curso:
-              </span>
-              <span className="text-muted">
-                {curso?.nhoras}h 
-              </span>
-            </div>
-            <div className="progress" style={{ height: "25px" }}>
-              <div
-                className="progress-bar"
-                role="progressbar"
-                style={{ width: `${curso?.progresso}%` }}
-                aria-valuenow={curso?.progresso}
-                aria-valuemin="0"
-                aria-valuemax="100"
-              >
-                {curso?.progresso}%
-              </div>
-            </div>
-          </div>
+                <div className="my-4">
+                  <div className="d-flex justify-content-between align-items-center mb-1">
+                    <span className="fw-bold">Progresso no Curso:</span>
+                    <span className="text-muted">{curso?.nhoras}h</span>
+                  </div>
+                  <div className="progress" style={{ height: "25px" }}>
+                    <div
+                      className="progress-bar"
+                      role="progressbar"
+                      style={{ width: `${curso?.progresso}%` }}
+                      aria-valuenow={curso?.progresso}
+                      aria-valuemin="0"
+                      aria-valuemax="100"
+                    >
+                      {curso?.progresso}%
+                    </div>
+                  </div>
+                </div>
                 <ul className="list-group small">
                   {sessoesList.map((s) => (
                     <li key={s.idsessao} className="list-group-item">

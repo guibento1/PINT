@@ -250,6 +250,31 @@ const CursoAssincrono = () => {
     );
   }, [curso]);
 
+  // Estado do curso: "Em curso", "Terminado", "Pendente"
+  const courseStatus = useMemo(() => {
+    const c = curso || {};
+    const nested = c?.cursosincrono || c?.cursoSincrono || {};
+    const startRaw =
+      c?.inicio ||
+      c?.datainicio ||
+      c?.inicioCurso ||
+      nested?.inicio ||
+      nested?.datainicio;
+    const endRaw =
+      c?.fim || c?.datafim || c?.fimCurso || nested?.fim || nested?.datafim;
+    const now = new Date();
+    const start = startRaw ? new Date(startRaw) : null;
+    const end = endRaw ? new Date(endRaw) : null;
+    const validStart = start && !isNaN(start.getTime()) ? start : null;
+    const validEnd = end && !isNaN(end.getTime()) ? end : null;
+    if (validEnd && now > validEnd) return "Terminado";
+    if (validStart && now < validStart) return "Pendente";
+    if (validStart && (!validEnd || now <= validEnd)) return "Em curso";
+    // Fallback quando não há datas claras
+    if (c?.disponivel === false) return "Pendente";
+    return "Em curso";
+  }, [curso]);
+
   // Substituído por SubmissionCard
 
   if (loading) {
@@ -332,21 +357,8 @@ const CursoAssincrono = () => {
           <div className="col-md-8">
             <h1 className="h3">{curso?.nome}</h1>
 
-            {hasEnded ? (
-              <>
-                <div className="btn btn-dark static-button">Terminado</div>
-                <br />
-              </>
-            ) : (
-              curso?.disponivel !== null &&
-              curso?.disponivel !== undefined &&
-              !curso?.disponivel && (
-                <>
-                  <div className="btn btn-primary static-button">Arquivado</div>
-                  <br />
-                </>
-              )
-            )}
+            <div className="btn btn-dark static-button">{courseStatus}</div>
+            <br />
 
             {/* Detalhes do curso — sempre visíveis (para inscritos e não inscritos) */}
             <div className="mt-2">
@@ -355,16 +367,8 @@ const CursoAssincrono = () => {
                 <strong>Tipo de curso:</strong>{" "}
                 {curso?.sincrono === true ? "Síncrono" : "Assíncrono"}
                 <br />
-                {curso?.disponivel !== null &&
-                  curso?.disponivel !== undefined && (
-                    <>
-                      <strong>Estado:</strong>{" "}
-                      {curso.disponivel
-                        ? "Disponível"
-                        : "Indisponível/Arquivado"}
-                      <br />
-                    </>
-                  )}
+                <strong>Estado:</strong> {courseStatus}
+                <br />
                 {(curso?.iniciodeinscricoes || curso?.fimdeinscricoes) && (
                   <>
                     <strong>Inscrições:</strong>{" "}
