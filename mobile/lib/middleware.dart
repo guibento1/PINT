@@ -130,11 +130,51 @@ class AppMiddleware {
       return {};
     }
     try {
-      final dynamic courseDetailsResp = await _servidor.getData(
-        'curso/$courseId',
-      );
-      if (courseDetailsResp is Map<String, dynamic>) {
-        return courseDetailsResp;
+      dynamic courseDetailsResp = await _servidor.getData('curso/$courseId');
+
+      // Fallback to alternate endpoint if needed
+      if (courseDetailsResp == null) {
+        courseDetailsResp = await _servidor.getData('curso/id/$courseId');
+      }
+
+      // Unwrap common response wrappers to match web's res.data shape
+      Map<String, dynamic>? unwrapToMap(dynamic v) {
+        if (v is Map<String, dynamic>) return v;
+        if (v is Map) return Map<String, dynamic>.from(v);
+        return null;
+      }
+
+      Map<String, dynamic>? normalized;
+      final asMap = unwrapToMap(courseDetailsResp);
+      if (asMap != null) {
+        // Try keys used by various backends: curso, data, result, payload
+        final dataKey =
+            asMap['curso'] ??
+            asMap['data'] ??
+            asMap['result'] ??
+            asMap['payload'];
+        if (dataKey != null) {
+          final inner = unwrapToMap(dataKey);
+          if (inner != null) {
+            // Some APIs nest again: { data: { curso: {...} } }
+            final inner2 = unwrapToMap(
+              inner['curso'] ??
+                  inner['data'] ??
+                  inner['result'] ??
+                  inner['payload'],
+            );
+            normalized = inner2 ?? inner;
+          } else {
+            // Sometimes the top-level already is the course object
+            normalized = asMap;
+          }
+        } else {
+          normalized = asMap;
+        }
+      }
+
+      if (normalized != null) {
+        return normalized;
       }
       throw Exception('Formato de dados de detalhes do curso inválido.');
     } on SocketException catch (e) {

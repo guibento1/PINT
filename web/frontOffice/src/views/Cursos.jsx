@@ -99,10 +99,11 @@ export default function CursosPage() {
       <div className="row g-4">
         {(() => {
           if (loading || error) return null;
-          // Show all courses except those that are asynchronous AND not available
           const visibleCursos = cursos.filter((c) => {
             const isAsync = c.sincrono === false;
             const notAvailable = c.disponivel === false;
+            const isEnrolled = c.inscrito === true;
+            if (isEnrolled) return false;
             return !(isAsync && notAvailable);
           });
           return visibleCursos.map((curso) => (

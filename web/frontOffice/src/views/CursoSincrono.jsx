@@ -152,18 +152,21 @@ const CursoSincrono = () => {
     );
   }, [curso]);
 
-  // Only for color mapping (same as backoffice)
+  // Only for status mapping (same rules as backoffice)
   const statusColor = useMemo(() => {
     return getCursoStatus(
       {
+        sincrono: true,
         iniciodeinscricoes:
           inscricoesPeriod?.inicio || curso?.iniciodeinscricoes,
         fimdeinscricoes: inscricoesPeriod?.fim || curso?.fimdeinscricoes,
+        inicio: cursoPeriod?.inicio || curso?.inicio,
+        fim: cursoPeriod?.fim || curso?.fim,
         disponivel: curso?.disponivel,
       },
       new Date()
     );
-  }, [curso, inscricoesPeriod]);
+  }, [curso, inscricoesPeriod, cursoPeriod]);
 
   const topicosList = useMemo(() => {
     const c = curso || {};
@@ -675,32 +678,12 @@ const CursoSincrono = () => {
           </div>
           <div className="col-md-8">
             <h1 className="h3">{curso?.nome}</h1>
-            {(() => {
-              const ended = inscricoesPeriod?.fim
-                ? new Date(inscricoesPeriod.fim) <= new Date()
-                : false;
-              if (ended) {
-                return (
-                  <>
-                    <span className="badge bg-dark static-button">
-                      Terminado
-                    </span>
-                    <br />
-                  </>
-                );
-              }
-              if (curso?.disponivel === false) {
-                return (
-                  <>
-                    <span className="badge bg-secondary static-button">
-                      Arquivado
-                    </span>
-                    <br />
-                  </>
-                );
-              }
-              return null;
-            })()}
+            {statusColor?.key === "terminado" && (
+              <>
+                <span className="badge bg-dark static-button">Terminado</span>
+                <br />
+              </>
+            )}
 
             {/* Always-visible course details (for inscritos and não inscritos) */}
             <div className="mt-2">
@@ -823,15 +806,23 @@ const CursoSincrono = () => {
                 caso alguma vez tivesse o papel e estivesse incrito.
               </div>
             ) : !inscrito ? (
-              <div className="mt-3">
-                <button
-                  onClick={handleClickInscrever}
-                  className="btn btn-sm btn-primary"
-                  disabled={loading}
-                >
-                  {loading ? "A inscrever..." : "Inscrever"}
-                </button>
-              </div>
+              <>
+                {statusColor?.key !== "terminado" && curso?.disponivel !== false ? (
+                  <div className="mt-3">
+                    <button
+                      onClick={handleClickInscrever}
+                      className="btn btn-sm btn-primary"
+                      disabled={loading}
+                    >
+                      {loading ? "A inscrever..." : "Inscrever"}
+                    </button>
+                  </div>
+                ) : (
+                  <div className="alert alert-warning p-2 small mt-3">
+                    Curso terminado ou indisponível. Inscrições encerradas.
+                  </div>
+                )}
+              </>
             ) : (
               <div className="mt-3 d-flex flex-column gap-3">
                 <div className="d-flex align-items-center gap-2 flex-wrap">

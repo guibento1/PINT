@@ -1,18 +1,12 @@
 import { useParams } from "react-router-dom";
-import React, {
-  useEffect,
-  useState,
-  useCallback,
-  useMemo,
-  useContext,
-} from "react";
+import React, { useEffect, useState, useContext } from "react";
 import api from "@shared/services/axios";
 import SubmissionCard from "@shared/components/SubmissionCard";
 import "@shared/styles/curso.css";
 import Modal from "@shared/components/Modal";
 import useUserRole from "@shared/hooks/useUserRole";
 import { SidebarContext } from "../context/SidebarContext";
-import { getCursoStatus } from "@shared/utils/cursoStatus";
+// Removido getCursoStatus: não é necessário para assíncronos nesta vista
 
 const CursoAssincrono = () => {
   const { id } = useParams();
@@ -231,49 +225,9 @@ const CursoAssincrono = () => {
     });
   };
 
-  // Helpers para detalhes sempre visíveis
-  const getMaxInscricoes = useCallback(() => {
-    const c = curso || {};
-    const raw = c?.maxinscricoes ?? c?.maxInscricoes ?? c?.maxincricoes;
-    if (raw == null || raw === "") return null;
-    const n = typeof raw === "string" ? parseInt(raw, 10) : raw;
-    return Number.isFinite(n) ? n : null;
-  }, [curso]);
+  // Helpers removidos: max inscrições e lista de inscritos não são mostrados aqui
 
-  const inscritosList = useMemo(() => {
-    const d = curso || {};
-    return (
-      (Array.isArray(d.inscritos) && d.inscritos) ||
-      (Array.isArray(d.participantes) && d.participantes) ||
-      (Array.isArray(d.alunos) && d.alunos) ||
-      (Array.isArray(d.formandos) && d.formandos) ||
-      []
-    );
-  }, [curso]);
-
-  // Only use for colors (match backoffice badges)
-  const statusColor = useMemo(() => {
-    const c = curso || {};
-    const nested = c?.cursosincrono || c?.cursoSincrono || {};
-    const inicio =
-      c?.iniciodeinscricoes ||
-      c?.inicioDeInscricoes ||
-      nested?.iniciodeinscricoes ||
-      nested?.inicioDeInscricoes;
-    const fim =
-      c?.fimdeinscricoes ||
-      c?.fimDeInscricoes ||
-      nested?.fimdeinscricoes ||
-      nested?.fimDeInscricoes;
-    return getCursoStatus(
-      {
-        iniciodeinscricoes: inicio,
-        fimdeinscricoes: fim,
-        disponivel: c?.disponivel,
-      },
-      new Date()
-    );
-  }, [curso]);
+  // statusColor removido: cores de estado não são usadas nesta página
 
   // Substituído por SubmissionCard
 
@@ -296,10 +250,20 @@ const CursoAssincrono = () => {
     );
   }
 
-  const now = new Date();
-  const hasEnded = curso?.fimdeinscricoes
-    ? new Date(curso.fimdeinscricoes) < now
-    : false;
+  // Para cursos assíncronos, consideramos "Terminado" quando o curso está indisponível
+  const hasEnded = curso?.disponivel === false;
+
+  // Datas de inscrições (mostrar apenas este período para assíncronos)
+  const inicioInscricoes =
+    curso?.iniciodeinscricoes ??
+    curso?.inicioDeInscricoes ??
+    curso?.cursosincrono?.iniciodeinscricoes ??
+    curso?.cursosincrono?.inicioDeInscricoes;
+  const fimInscricoes =
+    curso?.fimdeinscricoes ??
+    curso?.fimDeInscricoes ??
+    curso?.cursosincrono?.fimdeinscricoes ??
+    curso?.cursosincrono?.fimDeInscricoes;
 
   return (
     <>
@@ -375,7 +339,7 @@ const CursoAssincrono = () => {
               )
             )}
 
-            {/* Detalhes do curso — sempre visíveis (para inscritos e não inscritos) */}
+            {/* Detalhes do curso — limitar para assíncronos: Tipo, Disponível, Inscrições */}
             <div className="mt-2">
               <p className="mb-2">
                 {/* Tipo de curso e Estado */}
@@ -394,32 +358,18 @@ const CursoAssincrono = () => {
                       <br />
                     </>
                   )}
-                {(curso?.inicio || curso?.fim) && (
+                {(inicioInscricoes || fimInscricoes) && (
                   <>
-                    <strong>Duração do Curso:</strong>{" "}
-                    {formatDataDetalhe(curso?.inicio)} até{" "}
-                    {formatDataDetalhe(curso?.fim)}
+                    <strong>Inscrições:</strong>{" "}
+                    {inicioInscricoes
+                      ? formatDataDetalhe(inicioInscricoes)
+                      : "—"}
+                    {fimInscricoes
+                      ? ` até ${formatDataDetalhe(fimInscricoes)}`
+                      : ""}
                     <br />
                   </>
                 )}
-                {curso?.nhoras != null && curso?.nhoras !== "" && (
-                  <>
-                    <strong>Nº de horas:</strong> {curso.nhoras}
-                    <br />
-                  </>
-                )}
-                {(() => {
-                  const max = getMaxInscricoes();
-                  if (max != null) {
-                    return (
-                      <>
-                        <strong>Máx. inscrições:</strong> {max}
-                        <br />
-                      </>
-                    );
-                  }
-                  return null;
-                })()}
               </p>
             </div>
 
