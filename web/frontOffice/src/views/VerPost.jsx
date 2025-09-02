@@ -32,6 +32,8 @@ export default function VerPost() {
   const [connectors, setConnectors] = useState([]); // svg paths entre avatares
   const [layoutTick, setLayoutTick] = useState(0); // gatilho de recomputar conectores
   const [votingComments, setVotingComments] = useState({}); // { [commentId]: boolean }
+  // Collapse map: when true for a comment id, its replies are hidden
+  const [collapsed, setCollapsed] = useState({}); // { [commentId]: bool }
   // Avatar do utilizador atual para decorar comentários/respostas imediatamente
   const [myAvatar, setMyAvatar] = useState(null);
 
@@ -122,6 +124,12 @@ export default function VerPost() {
   const closeAllReplies = () => {
     setReplyOpen({});
     setReplyText({});
+    setLayoutTick((t) => t + 1);
+  };
+
+  // Alternar recolha/expansão de uma thread de comentários
+  const toggleCollapse = (commentId) => {
+    setCollapsed((prev) => ({ ...prev, [commentId]: !prev[commentId] }));
     setLayoutTick((t) => t + 1);
   };
 
@@ -377,6 +385,50 @@ export default function VerPost() {
     </svg>
   );
 
+  // Collapse/Expand icons (round add/minus)
+  const MinusIcon = ({ size = 22, color = "#6c757d" }) => (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      style={{ color }}
+    >
+      <path
+        d="M15 12.75C15.4142 12.75 15.75 12.4142 15.75 12C15.75 11.5858 15.4142 11.25 15 11.25H9C8.58579 11.25 8.25 11.5858 8.25 12C8.25 12.4142 8.58579 12.75 9 12.75H15Z"
+        fill="currentColor"
+      />
+      <path
+        fillRule="evenodd"
+        clipRule="evenodd"
+        d="M12 1.25C6.06294 1.25 1.25 6.06294 1.25 12C1.25 17.9371 6.06294 22.75 12 22.75C17.9371 22.75 22.75 17.9371 22.75 12C22.75 6.06294 17.9371 1.25 12 1.25ZM2.75 12C2.75 6.89137 6.89137 2.75 12 2.75C17.1086 2.75 21.25 6.89137 21.25 12C21.25 17.1086 17.1086 21.25 12 21.25C6.89137 21.25 2.75 17.1086 2.75 12Z"
+        fill="currentColor"
+      />
+    </svg>
+  );
+  const AddIcon = ({ size = 22, color = "#6c757d" }) => (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      style={{ color }}
+    >
+      <path
+        d="M12.75 9C12.75 8.58579 12.4142 8.25 12 8.25C11.5858 8.25 11.25 8.58579 11.25 9L11.25 11.25H9C8.58579 11.25 8.25 11.5858 8.25 12C8.25 12.4142 8.58579 12.75 9 12.75H11.25V15C11.25 15.4142 11.5858 15.75 12 15.75C12.4142 15.75 12.75 15.4142 12.75 15L12.75 12.75H15C15.4142 12.75 15.75 12.4142 15.75 12C15.75 11.5858 15.4142 11.25 15 11.25H12.75V9Z"
+        fill="currentColor"
+      />
+      <path
+        fillRule="evenodd"
+        clipRule="evenodd"
+        d="M12 1.25C6.06294 1.25 1.25 6.06294 1.25 12C1.25 17.9371 6.06294 22.75 12 22.75C17.9371 22.75 22.75 17.9371 22.75 12C22.75 6.06294 17.9371 1.25 12 1.25ZM2.75 12C2.75 6.89137 6.89137 2.75 12 2.75C17.1086 2.75 21.25 6.89137 21.25 12C21.25 17.1086 17.1086 21.25 12 21.25C6.89137 21.25 2.75 17.1086 2.75 12Z"
+        fill="currentColor"
+      />
+    </svg>
+  );
+
   const {
     categorias,
     areas,
@@ -433,6 +485,19 @@ export default function VerPost() {
       // 1) Fetch top-level comments quickly
       const root = await fetchPostRootCommentsCached(id);
       setComments(root);
+      // Collapse all root comments by default for better initial performance
+      try {
+        setCollapsed((prev) => {
+          const next = { ...prev };
+          if (Array.isArray(root)) {
+            root.forEach((c) => {
+              const cid = c.idcomentario || c.id;
+              if (cid != null) next[cid] = true;
+            });
+          }
+          return next;
+        });
+      } catch {}
       setCommentsLoading(false); // show roots immediately
 
       // 2) In background, hydrate replies per root with small concurrency
@@ -447,6 +512,20 @@ export default function VerPost() {
           try {
             const hydrated = await fetchCommentWithReplies(c);
             nextStateMap.set(c.idcomentario || c.id, hydrated);
+            // Ensure newly hydrated comment and its subtree are collapsed by default
+            try {
+              setCollapsed((prev) => {
+                const map = { ...prev };
+                const mark = (node) => {
+                  if (!node) return;
+                  const nid = node.idcomentario || node.id;
+                  if (nid != null) map[nid] = true;
+                  if (Array.isArray(node.children)) node.children.forEach(mark);
+                };
+                mark(hydrated);
+                return map;
+              });
+            } catch {}
             // apply incrementally
             setComments((prev) => {
               const replaceById = (list) =>
@@ -486,6 +565,17 @@ export default function VerPost() {
     // Adiar carregamento de comentários até a página realmente necessitar (primeira visita ao VerPost)
     // Aqui carregamos assim que a página monta, mas via cache e com indicador visual.
     loadCommentsTree();
+    // Garantir que a página abre no topo ao carregar/navegar entre posts
+    try {
+      if (typeof window !== "undefined") {
+        window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+        const el =
+          document.scrollingElement ||
+          document.documentElement ||
+          document.body;
+        if (el) el.scrollTop = 0;
+      }
+    } catch {}
   }, [id]);
 
   // Carrega tipos de denúncia
@@ -505,12 +595,14 @@ export default function VerPost() {
     };
   }, []);
 
-  // Edges dos conectores (mantido igual)
+  // Edges dos conectores
   useEffect(() => {
     const buildEdges = (items, parentId = null, acc = []) => {
       if (!Array.isArray(items)) return acc;
       items.forEach((c) => {
         const cid = c.idcomentario || c.id;
+        // Se o pai está colapsado, não criar arestas nem descer nesta subárvore
+        if (parentId && collapsed[parentId]) return;
         if (parentId) acc.push({ from: parentId, to: cid });
         if (c.children?.length) buildEdges(c.children, cid, acc);
       });
@@ -566,7 +658,7 @@ export default function VerPost() {
       clearTimeout(t2);
       window.removeEventListener("resize", onResize);
     };
-  }, [comments, layoutTick]);
+  }, [comments, layoutTick, collapsed]);
 
   const handleCommentSubmit = async () => {
     if (!newComment.trim()) return;
@@ -963,10 +1055,31 @@ export default function VerPost() {
                   <span className="text-muted">
                     • {timeAgo(comment.criado)}
                   </span>
-                  <div className="ms-auto" />
                 </div>
                 <div className="comment-body">{content}</div>
                 <div className="comment-actions-row d-flex align-items-center gap-2 mt-2">
+                  {hasChildren && (
+                    <button
+                      className="icon-btn"
+                      title={
+                        collapsed[cid]
+                          ? "Expandir respostas"
+                          : "Recolher respostas"
+                      }
+                      onClick={() => toggleCollapse(cid)}
+                      aria-label={
+                        collapsed[cid]
+                          ? "Expandir respostas"
+                          : "Recolher respostas"
+                      }
+                    >
+                      {collapsed[cid] ? (
+                        <AddIcon size={22} />
+                      ) : (
+                        <MinusIcon size={22} />
+                      )}
+                    </button>
+                  )}
                   <button
                     className={`icon-btn ${userVote === true ? "active" : ""}`}
                     title="Upvote"
@@ -1056,7 +1169,7 @@ export default function VerPost() {
               </div>
             </div>
           </div>
-          {hasChildren && (
+          {hasChildren && !collapsed[cid] && (
             <div className="comment-children">{renderComments(children)}</div>
           )}
         </div>
@@ -1294,7 +1407,7 @@ export default function VerPost() {
                           String(denunciaTarget?.id) ===
                             String(post?.idpost || post?.id)
                         }
-                        size={22}
+                        size={32}
                       />
                     </button>
                   </div>

@@ -22,6 +22,8 @@ const CursoSincrono = () => {
   const [curso, setCurso] = useState(null);
   const [loading, setLoading] = useState(true);
   const [inscrito, setInscrito] = useState(false);
+  const [inscritosCount, setInscritosCount] = useState(null);
+  const [fetchingInscritos, setFetchingInscritos] = useState(false);
 
   const [operationStatus, setOperationStatus] = useState(null);
   const [operationMessage, setOperationMessage] = useState("");
@@ -73,9 +75,28 @@ const CursoSincrono = () => {
     }
   }, [id]);
 
+  // Carregar contagem de inscritos (fonte de verdade)
+  const fetchInscritosCount = useCallback(async () => {
+    setFetchingInscritos(true);
+    try {
+      const resp = await api.get(`/curso/inscricoes/${id}`);
+      const list = Array.isArray(resp.data)
+        ? resp.data
+        : Array.isArray(resp?.data?.data)
+        ? resp.data.data
+        : [];
+      setInscritosCount(list.length);
+    } catch (e) {
+      setInscritosCount(null);
+    } finally {
+      setFetchingInscritos(false);
+    }
+  }, [id]);
+
   useEffect(() => {
     fetchCurso();
-  }, [fetchCurso]);
+    fetchInscritosCount();
+  }, [fetchCurso, fetchInscritosCount]);
 
   // Resolve Máx. Inscrições from multiple possible keys/structures
   const getMaxInscricoes = useCallback(() => {
@@ -161,6 +182,7 @@ const CursoSincrono = () => {
       setOperationMessage(res.data.message || "Inscrição realizada.");
       setInscrito(true);
       await fetchCurso();
+      await fetchInscritosCount();
     } catch (err) {
       setOperationStatus(1);
       setOperationMessage(err?.response?.data?.error || "Falha na inscrição.");
@@ -179,6 +201,7 @@ const CursoSincrono = () => {
       setOperationMessage(res.data.message || "Saída realizada.");
       setInscrito(false);
       await fetchCurso();
+      await fetchInscritosCount();
     } catch (err) {
       setOperationStatus(1);
       setOperationMessage(err?.response?.data?.error || "Falha ao sair.");
@@ -328,6 +351,21 @@ const CursoSincrono = () => {
       resolveUserId
     );
   }, [myInscricao, user, resolveUserId]);
+
+  // Fallback numérico a partir do payload do curso (/curso/:id)
+  const inscritosCountFromCurso = useMemo(() => {
+    const c = curso || {};
+    const raw =
+      c?.inscricoes ??
+      c?.ninscritos ??
+      c?.numinscritos ??
+      c?.numeroinscritos ??
+      c?.numeroInscritos ??
+      null;
+    if (raw == null || raw === "") return null;
+    const n = typeof raw === "string" ? parseInt(raw, 10) : raw;
+    return Number.isFinite(n) ? n : null;
+  }, [curso]);
 
   // Nota final do formando (só leitura)
   const studentFinal = useMemo(() => {
@@ -699,12 +737,29 @@ const CursoSincrono = () => {
                   }
                   return null;
                 })()}
-                {Array.isArray(inscritosList) && (
-                  <>
-                    <strong>Inscritos:</strong> {inscritosList.length}
-                    <br />
-                  </>
-                )}
+                <>
+                  <strong>Inscritos:</strong>{" "}
+                  {fetchingInscritos
+                    ? "..."
+                    : (() => {
+                        const fromApi =
+                          inscritosCount != null &&
+                          Number.isFinite(Number(inscritosCount))
+                            ? Number(inscritosCount)
+                            : null;
+                        const fromPayloadList = Array.isArray(inscritosList)
+                          ? inscritosList.length
+                          : 0;
+                        const fromCurso = inscritosCountFromCurso ?? null;
+                        const candidates = [
+                          fromApi,
+                          fromCurso,
+                          fromPayloadList,
+                        ].filter((v) => v != null);
+                        return candidates.length ? Math.max(...candidates) : 0;
+                      })()}
+                  <br />
+                </>
               </p>
             </div>
 

@@ -1050,9 +1050,9 @@ main::-webkit-scrollbar-track {
 
 /* Tornar a caixa de resposta mais larga dentro de comentários (compensa avatar + gap) */
 .comment-item .reply-box {
-  /* avatar-col min-width: 36px + gap de 10px */
-  margin-left: -46px;
-  width: calc(100% + 46px);
+  /* empurrar ligeiramente para a direita (sem sobrepor linhas em L) */
+  margin-left: 10px;
+  width: calc(100% - 10px);
 }
 
 .reply-box textarea {

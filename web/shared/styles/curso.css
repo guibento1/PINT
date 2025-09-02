@@ -30,3 +30,14 @@
 .licao {
   margin-bottom: 20px;
 }
+
+.hover-lift {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.hover-lift:hover,
+.hover-lift:focus,
+.hover-lift:focus-within {
+  transform: scale(1.02);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2) !important;
+}
