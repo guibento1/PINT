@@ -49,9 +49,6 @@ router.put('/cursosincrono/:id/avalicaocontinua/:idavalicao/submeter', authentic
 router.get('/cursosincrono/:id/avalicaocontinua/:idavalicao/submissoes', authenticateJWT, authorizeRoles('admin','formador'), cursoController.listSubmissoes);
 router.put('/cursosincrono/:id/avalicaocontinua/:idavalicao/corrigir', authenticateJWT, authorizeRoles('admin','formador'), cursoController.gradeSubmissao);
 
-
-// TODO editar estes 3 para dar/retirar certificados
-
 router.post('/cursosincrono/:id/formando/:formando/avaliacaofinal', authenticateJWT, authorizeRoles('admin','formador'), cursoController.addAvaliacaoFinal);
 router.put('/cursosincrono/:id/formando/:formando/avaliacaofinal', authenticateJWT, authorizeRoles('admin','formador'), cursoController.editAvaliacaoFinal);
 router.delete('/cursosincrono/:id/formando/:formando/avaliacaofinal', authenticateJWT, authorizeRoles('admin','formador'), cursoController.rmAvaliacaoFinal);
@@ -62,6 +59,5 @@ router.post('/cursosincrono/:id/certificado', authenticateJWT, authorizeRoles('a
 router.put('/certificado/:idcertificado', authenticateJWT, authorizeRoles('admin'), cursoController.updateCertificado );
 router.delete('/certificado/:idcertificado', authenticateJWT, authorizeRoles('admin'), cursoController.deleteCertificado );
 router.get('/cursosincrono/:id/certificados', authenticateJWT, cursoController.getCertificados );
-// router.get('/certificado/:id/chave', cursoController. );
 
 module.exports = router;

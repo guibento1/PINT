@@ -2359,10 +2359,25 @@ controllers.addAvaliacaoFinal = async (req, res) => {
   logger.debug(`Recebida requisição para adicionar nota final ao formando ${formando} no curso ${id}.`);
 
   try {
+
     const cursoSincrono = await models.cursosincrono.findOne({ where: { curso: id } });
 
     if (!admin && (!cursoSincrono || cursoSincrono.formador !== formadorId)) {
       return res.status(403).json({ error: "Acesso negado." });
+    }
+
+    if (cursoSincrono.fim) {
+      const dataFimCurso = new Date(cursoSincrono.fim);
+      const dataLimite = new Date(dataFimCurso);
+      dataLimite.setDate(dataLimite.getDate() + 30);
+
+      const dataAtual = new Date();
+
+      if (dataAtual > dataLimite) {
+        return res.status(403).json({
+          error: "Não é possível fazer operações com avaliações finais. O prazo de 30 dias após o término do curso expirou.",
+        });
+      }
     }
 
     const exists = await models.avaliacaofinal.findOne({
@@ -2381,6 +2396,34 @@ controllers.addAvaliacaoFinal = async (req, res) => {
       formando,
       nota,
     });
+
+    try {
+
+      if(nota > 9.5){
+
+        const formandoObject = await models.formando.findByPk(formando);
+        const utilizador = formandoObject.utilizador;
+        const certificados = await models.certificados.findAll({where : { cursosinc : cursoSincrono.idcursosincrono } });
+
+        const certificadosUtilizador = [];
+
+        certificados.forEach(certificadoObject => {
+          certificadosUtilizador.push({
+              certificado : certificadoObject.idcertificado,
+              utilizador
+          });
+        });
+
+        await models.certificadosutilizadores.bulkCreate(certificadosUtilizador);
+
+      }
+      
+    } catch (error) {
+
+      logger.error("Erro ao adicionar certificados ao utilizador:", error);
+      
+    }
+
 
     return res.status(201).json(created);
 
@@ -2411,6 +2454,22 @@ controllers.editAvaliacaoFinal = async (req, res) => {
       return res.status(403).json({ error: "Acesso negado." });
     }
 
+
+    if (cursoSincrono.fim) {
+      const dataFimCurso = new Date(cursoSincrono.fim);
+      const dataLimite = new Date(dataFimCurso);
+      dataLimite.setDate(dataLimite.getDate() + 30);
+
+      const dataAtual = new Date();
+
+      if (dataAtual > dataLimite) {
+        return res.status(403).json({
+          error: "Não é possível fazer operações com avaliações finais. O prazo de 30 dias após o término do curso expirou.",
+        });
+      }
+    }
+
+
     const avaliacao = await models.avaliacaofinal.findOne({
       where: {
         cursosincrono: cursoSincrono.idcursosincrono,
@@ -2424,6 +2483,45 @@ controllers.editAvaliacaoFinal = async (req, res) => {
 
     avaliacao.nota = nota;
     await avaliacao.save();
+
+    try {
+
+
+      const certificados = await models.certificados.findAll({where : { cursosinc : cursoSincrono.idcursosincrono } });
+      const formandoObject = await models.formando.findByPk(formando);
+      const utilizador = formandoObject.utilizador;
+
+      if(avaliacao.nota < 0 && nota > 9.5){
+
+
+        const certificadosUtilizador = [];
+
+        certificados.forEach(certificadoObject => {
+          certificadosUtilizador.push({
+              certificado : certificadoObject.idcertificado,
+              utilizador
+          });
+        });
+
+        await models.certificadosutilizadores.bulkCreate(certificadosUtilizador,{ignoreDuplicates: true});
+
+      } else {
+
+        const idCertificadosDoCurso = certificados.map((certificado) => certificado.idcertificado );
+        await models.certificadosutilizadores.destroy({
+          where : {
+            utilizador, 
+            certificado : { [Sequelize.Op.in]: idCertificadosDoCurso } 
+          } 
+        });
+
+      }
+      
+    } catch (error) {
+
+      logger.error("Erro ao atualizar certificados:", error);
+      
+    }
 
     return res.status(200).json({ message: "Nota atualizada com sucesso.", nota });
 
@@ -2455,6 +2553,21 @@ controllers.rmAvaliacaoFinal = async (req, res) => {
       return res.status(403).json({ error: "Acesso negado." });
     }
 
+
+    if (cursoSincrono.fim) {
+      const dataFimCurso = new Date(cursoSincrono.fim);
+      const dataLimite = new Date(dataFimCurso);
+      dataLimite.setDate(dataLimite.getDate() + 30);
+
+      const dataAtual = new Date();
+
+      if (dataAtual > dataLimite) {
+        return res.status(403).json({
+          error: "Não é possível fazer operações com avaliações finais. O prazo de 30 dias após o término do curso expirou.",
+        });
+      }
+    }
+
     const avaliacao = await models.avaliacaofinal.findOne({
       where: {
         cursosincrono: cursoSincrono.idcursosincrono,
@@ -2467,6 +2580,25 @@ controllers.rmAvaliacaoFinal = async (req, res) => {
     }
 
     await avaliacao.destroy();
+
+    try {
+
+      const certificados = await models.certificados.findAll({where : { cursosinc : cursoSincrono.idcursosincrono } });
+      const formandoObject = await models.formando.findByPk(formando);
+      const utilizador = formandoObject.utilizador;
+
+
+      const idCertificadosDoCurso = certificados.map((certificado) => certificado.idcertificado );
+      await models.certificadosutilizadores.destroy({
+        where : {
+          utilizador, 
+          certificado : { [Sequelize.Op.in]: idCertificadosDoCurso } 
+        } 
+      });
+      
+    } catch (error) {
+      logger.error("Erro ao remover certificados:", error);
+    }
 
     return res.status(200).json({ message: "Avaliação final removida com sucesso." });
 
@@ -3089,5 +3221,6 @@ controllers.getCertificados = async (req, res) => {
 
 
 };
+
 
 module.exports = controllers;

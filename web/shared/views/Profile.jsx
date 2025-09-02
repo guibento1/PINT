@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import api from "../services/axios.js";
 import Modal from "../components/Modal.jsx";
 import "../styles/curso.css";
@@ -9,12 +9,27 @@ const Profile = () => {
   const user = JSON.parse(sessionStorage.getItem("user"));
   const id = user?.idutilizador || user?.id;
 
+  const roles = Array.isArray(user?.roles)
+    ? user.roles.map((r) =>
+        typeof r === "string"
+          ? { role: r.toLowerCase() }
+          : {
+              role: (r.role || r.nome || "").toLowerCase(),
+              id: r.id,
+            }
+      )
+    : [];
+
+  const formandoRole = roles.find((r) => r.role === "formando");
+  const isFormando = Boolean(formandoRole);
+  const idFormando = formandoRole?.id || null;
+
   const navigate = useNavigate();
   const [userData, setUserData] = useState(null);
+  const [certificados, setCertificados] = useState([]); // ✅ Novo estado
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
-
   const [editData, setEditData] = useState({
     nome: "",
     email: "",
@@ -24,7 +39,6 @@ const Profile = () => {
   });
   const [previewFoto, setPreviewFoto] = useState(null);
   const fileInputRef = useRef(null);
-
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalTitle, setModalTitle] = useState("");
   const [modalBody, setModalBody] = useState("");
@@ -44,9 +58,7 @@ const Profile = () => {
 
   useEffect(() => {
     if (!id) {
-      setError(
-        "ID do utilizador não encontrado. Por favor, faça login novamente."
-      );
+      setError("ID do utilizador não encontrado. Por favor, faça login novamente.");
       setLoading(false);
       return;
     }
@@ -65,6 +77,12 @@ const Profile = () => {
           foto: null,
         });
         setPreviewFoto(response.data.foto);
+
+        // ✅ Buscar certificados se for formando
+        if (idFormando) {
+          const respFormando = await api.get(`/utilizador/formando/id/${idFormando}`);
+          setCertificados(respFormando.data?.certificados || []);
+        }
       } catch (err) {
         console.error("Erro ao carregar dados do utilizador:", err);
         const errorMessage =
@@ -77,7 +95,12 @@ const Profile = () => {
     };
 
     fetchUserData();
-  }, [id, navigate]);
+  }, [id, idFormando]);
+
+
+  useEffect(() => {
+    console.log(isFormando);
+  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -90,16 +113,10 @@ const Profile = () => {
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      setEditData((prevData) => ({
-        ...prevData,
-        foto: file,
-      }));
+      setEditData((prevData) => ({ ...prevData, foto: file }));
       setPreviewFoto(URL.createObjectURL(file));
     } else {
-      setEditData((prevData) => ({
-        ...prevData,
-        foto: null,
-      }));
+      setEditData((prevData) => ({ ...prevData, foto: null }));
       setPreviewFoto(userData?.foto || null);
     }
   };
@@ -123,11 +140,9 @@ const Profile = () => {
     if (nomeTrim !== (userData.nome || "")) info.nome = nomeTrim;
     if (emailTrim !== (userData.email || "")) info.email = emailTrim;
     if ((userData.morada ?? null) !== moradaVal) info.morada = moradaVal;
-    if ((userData.telefone ?? null) !== telefoneVal)
-      info.telefone = telefoneVal;
+    if ((userData.telefone ?? null) !== telefoneVal) info.telefone = telefoneVal;
 
     formData.append("info", JSON.stringify(info));
-
     if (editData.foto) {
       formData.append("foto", editData.foto);
     }
@@ -141,7 +156,6 @@ const Profile = () => {
 
     try {
       const response = await api.put(`/utilizador/id/${id}`, formData);
-
       if (user) {
         const updatedUser = { ...user, ...response.data };
         sessionStorage.setItem("user", JSON.stringify(updatedUser));
@@ -151,10 +165,7 @@ const Profile = () => {
       setIsEditing(false);
       openModal("Sucesso", "Perfil atualizado com sucesso!");
 
-      setEditData((prevData) => ({
-        ...prevData,
-        foto: null,
-      }));
+      setEditData((prevData) => ({ ...prevData, foto: null }));
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
@@ -180,9 +191,7 @@ const Profile = () => {
       foto: null,
     });
     setPreviewFoto(userData.foto);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   const handleResetPasswordClick = () => {
@@ -192,20 +201,16 @@ const Profile = () => {
   if (!id) {
     return (
       <div className="container mt-5">
-        <p className="text-danger">
-          ID do utilizador não disponível. Por favor, verifique se está logado.
-        </p>
+        <p className="text-danger">ID do utilizador não disponível. Por favor, verifique se está logado.</p>
       </div>
     );
   }
 
   if (loading) {
     return (
-      <div className="container mt-5">
-        <div className="text-center my-5">
-          <div className="spinner-border text-primary" />
-          <p className="mt-2 text-muted">A carregar o perfil...</p>
-        </div>
+      <div className="container mt-5 text-center">
+        <div className="spinner-border text-primary" />
+        <p className="mt-2 text-muted">A carregar o perfil...</p>
       </div>
     );
   }
@@ -240,12 +245,10 @@ const Profile = () => {
                 {isEditing ? "Editar Perfil" : "Perfil do Utilizador"}
               </h2>
 
+              {/* Foto de perfil */}
               <div style={{ textAlign: "center", marginBottom: "1.5rem" }}>
                 <img
-                  src={
-                    previewFoto ||
-                    "https://placehold.co/150x150.png?text=Sem+Foto"
-                  }
+                  src={previewFoto || "https://placehold.co/150x150.png?text=Sem+Foto"}
                   alt="Foto de Perfil"
                   style={{
                     width: "150px",
@@ -305,25 +308,53 @@ const Profile = () => {
                     {new Date(userData.dataregisto).toLocaleDateString("pt-PT")}
                   </p>
 
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      gap: "0.5rem",
-                      marginTop: "1rem",
-                    }}
-                  >
+                  {/* ✅ Lista de certificados se for formando */}
+                  {isFormando && (
+                    <div className="mt-4">
+                      <h5>Certificados</h5>
+                      {certificados.length === 0 ? (
+                        <p className="text-muted">Nenhum certificado disponível.</p>
+                      ) : (
+                        <ul className="list-group">
+                          {certificados.map((cert) => (
+                            <li
+                              key={cert.idcertificado}
+                              className="list-group-item"
+                            >
+                              <strong>{cert.nome}</strong>
+                              <br />
+                              <span className="text-muted">{cert.descricao}</span>
+                              <br />
+                              <small className="text-muted">
+                                Emitido em:{" "}
+                                {new Date(cert.criado).toLocaleDateString("pt-PT")}
+                              </small>
+                              <br />
+                              <a
+                                href={`/certificado/${cert.chave}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="btn btn-sm btn-outline-primary mt-2"
+                              >
+                                Ver certificado
+                              </a>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="d-flex justify-content-between mt-4">
                     <button
                       onClick={() => setIsEditing(true)}
                       className="btn btn-primary"
-                      style={{ flexGrow: 1 }}
                     >
                       Editar Perfil
                     </button>
                     <button
                       onClick={handleResetPasswordClick}
                       className="btn btn-info"
-                      style={{ flexGrow: 1 }}
                     >
                       Redefinir Password
                     </button>
@@ -385,14 +416,7 @@ const Profile = () => {
                       onChange={handleChange}
                     />
                   </div>
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "flex-end",
-                      gap: "0.5rem",
-                      marginTop: "1.5rem",
-                    }}
-                  >
+                  <div className="d-flex justify-content-end gap-2">
                     <button
                       type="button"
                       onClick={handleCancelEdit}

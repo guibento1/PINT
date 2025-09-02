@@ -17,7 +17,7 @@ router.get('/id/:id', authenticateJWT, utilizadorController.byID);
 router.get('/admin/id/:id', authenticateJWT, utilizadorController.getAdmin);
 router.get('/formador/id/:id', authenticateJWT, utilizadorController.getFormador);
 // Criar o enpoint abaixo para ir buscar incrições, notas e certificados
-//router.get('/formando/id/:id', authenticateJWT, utilizadorController.getFormador);
+router.get('/formando/id/:id', authenticateJWT, utilizadorController.getFormando);
 router.put('/id/:id', authenticateJWT, upload.single('foto'), utilizadorController.update);
 router.delete('/id/:id', authenticateJWT, utilizadorController.delete);
 router.patch('/activate/:id', authenticateJWT, utilizadorController.activate);

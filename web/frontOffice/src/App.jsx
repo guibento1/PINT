@@ -8,6 +8,7 @@ import { SidebarProvider } from "./context/SidebarContext";
 import Index from "./views/Index";
 import RegisterPage from "./views/RegisterPage";
 import LoginPage from "@shared/views/LoginPage.jsx";
+import Certificado from "@shared/views/Certificado.jsx";
 import ResetPassword from "./views/ResetPassword";
 import Cursos from "./views/Cursos";
 import CursoAssincrono from "./views/CursoAssincrono";
@@ -31,6 +32,7 @@ function App() {
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/certificado/:chave" element={<Certificado />} />
             <Route path="/registar" element={<RegisterPage />} />
             <Route path="/resetpassword" element={<ResetPassword />} />
 

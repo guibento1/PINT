@@ -1,0 +1,103 @@
+.certificado-container {
+  font-family: 'Georgia', serif;
+  padding: 40px;
+  background: #f9f9f9;
+  min-height: 100vh;
+}
+
+.certificado {
+  background: white;
+  border: 6px solid #e0e0e0;
+  padding: 60px 40px;
+  max-width: 900px;
+  margin: 0 auto;
+  text-align: center;
+  box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}
+
+.certificado-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 40px;
+}
+
+.logo {
+  height: 60px;
+}
+
+.cert-title {
+  font-size: 36px;
+  margin-bottom: 20px;
+}
+
+.cert-body {
+  font-size: 20px;
+  margin: 10px 0;
+}
+
+.cert-name {
+  font-size: 28px;
+  font-weight: bold;
+  margin: 10px 0;
+}
+
+.cert-course {
+  font-size: 24px;
+  margin: 10px 0;
+  font-style: italic;
+}
+
+.cert-description {
+  margin-top: 30px;
+  font-size: 16px;
+  color: #666;
+}
+
+.cert-footer {
+  margin-top: 60px;
+  font-size: 14px;
+  color: #999;
+}
+
+.cert-footer code {
+  background: #f0f0f0;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 13px;
+  font-family: monospace;
+}
+
+.print-button-container {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.print-button {
+  background-color: #007bff;
+  color: white;
+  padding: 10px 25px;
+  font-size: 16px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+@media print {
+  .print-button-container {
+    display: none;
+  }
+
+  body {
+    background: white;
+    margin: 0;
+  }
+
+  .certificado-container {
+    padding: 0;
+  }
+
+  .certificado {
+    border: none;
+    box-shadow: none;
+  }
+}

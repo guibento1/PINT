@@ -19,6 +19,11 @@ module.exports = function(sequelize, DataTypes) {
         key: 'idutilizador'
       }
     },
+    criado: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      defaultValue: Sequelize.Sequelize.literal('CURRENT_TIMESTAMP')
+    },
     chave: {
       type: DataTypes.STRING(128),
       allowNull: true,

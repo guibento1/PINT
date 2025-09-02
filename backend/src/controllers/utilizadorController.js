@@ -118,14 +118,16 @@ controllers.getByEmail = async (req, res) => {
 
 controllers.getAdmin = async (req, res) => {
 
-    const { id } = req.query; 
+    const { id } = req.params; 
 
     logger.debug(`Requisição para procurar admin'}.`);
 
     try {
-        const idutilizador = await models.admin.findOne({
+        const adminObject = await models.admin.findOne({
             where : { idadmin : id, ativo : true }
-        })?.utilizador;
+        });
+
+        const idutilizador = adminObject.utilizador;
 
         if(idutilizador && idutilizador != undefined){
 
@@ -149,7 +151,6 @@ controllers.getAdmin = async (req, res) => {
 
     } catch (error) {
         logger.error(`Erro interno ao procurar admin. Detalhes: ${error.message}`, {
-            email,
             stack: error.stack,
             method: 'controllers.utilizadores.getAdmin',
             query: req.query 
@@ -163,14 +164,16 @@ controllers.getAdmin = async (req, res) => {
 
 controllers.getFormador = async (req, res) => {
 
-    const { id } = req.query; 
+    const { id } = req.params; 
 
     logger.debug(`Requisição para procurar formador'}.`);
 
     try {
-        const idutilizador = await models.formador.findOne({
+        const formadorObject = await models.formador.findOne({
             where : { idformador : id, ativo : true }
-        })?.utilizador;
+        });
+
+        const idutilizador = formadorObject.utilizador;
 
         if(idutilizador && idutilizador != undefined){
 
@@ -194,7 +197,6 @@ controllers.getFormador = async (req, res) => {
 
     } catch (error) {
         logger.error(`Erro interno ao procurar admin. Detalhes: ${error.message}`, {
-            email,
             stack: error.stack,
             method: 'controllers.utilizadores.getFormador',
             query: req.query 
@@ -693,11 +695,7 @@ controllers.delete = async (req, res) => {
                   );
                 }
 
-
             }
-
-
-
 
 
             logger.info(`Utilizador ID ${id} desativado com sucesso.`);
@@ -747,6 +745,89 @@ controllers.activate = async (req, res) => {
 
     logger.warn(`Utilizador ID ${id} não tem permissões para ativar ou não é um administrador.`);
     return res.status(403).json({ message: 'Utilizador não tem permissões para ativar outro utilizador' });
+};
+
+
+controllers.getFormando = async (req, res) => {
+
+    const { id } = req.params; 
+
+
+    const formando =
+        req.user.roles.find((roleEntry) => roleEntry.role === "formando")?.id || 0;
+
+    const isAdmin = req.user.roles?.some(role => role.role === "admin");
+    const isSelf = formando == id;
+
+    logger.debug(`Pedido de dados do utilizador ID ${id}.`);
+
+    if (!isSelf && !isAdmin) {
+        logger.warn(`Acesso negado: utilizador ${req.user.idutilizador} tentou aceder aos dados do formando ${id} sem permissões suficientes.`);
+        return res.status(403).json({ message: 'Acesso negado: sem permissões suficientes' });
+    }
+
+    logger.debug(`Requisição para procurar formando'}.`);
+
+    try {
+        const formandoObject = await models.formando.findOne({
+            where : { idformando : id, ativo : true }
+        });
+
+        const idutilizador = formandoObject.utilizador;
+
+        console.log(idutilizador);
+
+        if(idutilizador && idutilizador != undefined){
+
+            const utilizador = await models.utilizadores.findByPk(idutilizador,{
+                attributes: ["email", "nome", "foto"]
+            });
+
+            if (utilizador.dataValues.foto) 
+                utilizador.dataValues.foto = await generateSASUrl(utilizador.dataValues.foto, 'userprofiles');
+
+
+            const certificadosObjects = await models.certificadosutilizadores.findAll({ 
+                where : { utilizador : idutilizador },
+                include: [{ model: models.certificados, as: "certificado_certificado" }]
+            });
+
+            let certificados = certificadosObjects.map((cert) => {
+
+                return {
+                    criado : cert.criado,
+                    chave : cert.chave,
+                    idcertificado : cert.certificado,
+                    nome : cert.certificado_certificado.nome,
+                    descricao : cert.certificado_certificado.descricao
+                }
+                
+            })
+
+            utilizador.dataValues.certificados = certificados;
+
+
+            return res.status(200).json(utilizador);
+
+        } else {
+
+            logger.info(`Tentativa de acesso a formando não encontrado para o id: ${id}.`);
+            return res.status(404).json({
+                error: 'Utilizador não encontrado.'
+            });
+
+        }
+
+    } catch (error) {
+        logger.error(`Erro interno ao procurar formando. Detalhes: ${error.message}`, {
+            stack: error.stack,
+            method: 'controllers.utilizadores.getFormador',
+            query: req.query 
+        });
+        return res.status(500).json({
+            error: 'Ocorreu um erro interno no servidor.'
+        });
+    }
 };
 
 module.exports = controllers;
