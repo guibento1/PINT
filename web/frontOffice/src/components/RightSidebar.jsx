@@ -1,6 +1,8 @@
 import React from "react";
 
+// componente
 const RightSidebar = () => {
+  // render
   return (
     <aside
       className="bg-light border-start"
@@ -18,7 +20,6 @@ const RightSidebar = () => {
     >
       <div className="p-3">
         <h6>Posts Recentes</h6>
-        {/* Add logic to display recent posts */}
       </div>
     </aside>
   );

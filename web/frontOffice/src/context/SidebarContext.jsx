@@ -2,9 +2,11 @@ import React, { createContext, useEffect, useMemo, useState } from "react";
 import api from "@shared/services/axios";
 import { fetchTopicosCached } from "@shared/services/dataCache";
 
+// Contexto da sidebar
 const SidebarContext = createContext();
 
 const SidebarProvider = ({ children }) => {
+  // Estados principais
   const [categorias, setCategorias] = useState([]);
   const [areas, setAreas] = useState([]);
   const [topicos, setTopicos] = useState([]);
@@ -12,11 +14,9 @@ const SidebarProvider = ({ children }) => {
   const [selectedArea, setSelectedArea] = useState("");
   const [selectedTopico, setSelectedTopico] = useState("");
   const [topicSearch, setTopicSearch] = useState("");
-
-  // Subscriptions
-  // Array of { idtopico, designacao, courseLinked?: boolean }
   const [subscribedTopics, setSubscribedTopics] = useState([]);
 
+  // Utilizador em sessão
   const user = useMemo(() => {
     try {
       return JSON.parse(
@@ -27,6 +27,7 @@ const SidebarProvider = ({ children }) => {
     }
   }, []);
 
+  // Inserir ou atualizar tópicos subscritos
   const upsertSubscribed = (items) => {
     if (!Array.isArray(items) || items.length === 0) return;
     setSubscribedTopics((prev) => {
@@ -40,21 +41,22 @@ const SidebarProvider = ({ children }) => {
     });
   };
 
+  // Remover tópico subscrito
   const removeSubscribed = (id) => {
     setSubscribedTopics((prev) =>
       prev.filter((t) => String(t.idtopico) !== String(id))
     );
   };
 
+  // Carregar tópicos subscritos
   const loadSubscribedTopics = async () => {
     try {
-      // Try API first (shape may be either ids or topic objects)
       const res = await api.get("/topico/subscricoes");
       const data = res.data || [];
       if (data.length === 0) return;
+
       let normalized = [];
       if (typeof data[0] === "number" || typeof data[0] === "string") {
-        // ids -> resolve names using cached topics
         const all = await fetchTopicosCached();
         const mapById = new Map(all.map((t) => [String(t.idtopico), t]));
         normalized = data
@@ -73,7 +75,6 @@ const SidebarProvider = ({ children }) => {
       }
       upsertSubscribed(normalized);
     } catch (e) {
-      // Fallback to localStorage
       try {
         const raw = localStorage.getItem("subscribedTopics");
         if (raw) {
@@ -84,10 +85,11 @@ const SidebarProvider = ({ children }) => {
     }
   };
 
-  // Auto-subscribe topics from enrolled courses (best-effort)
+  // Subscrição automática a partir dos cursos do utilizador
   const autoSubscribeFromCourses = async () => {
     try {
       if (!user?.id) return;
+
       const coursesRes = await api.get(
         `/curso/inscricoes/utilizador/${user.id}`
       );
@@ -98,6 +100,7 @@ const SidebarProvider = ({ children }) => {
       const byId = new Map(allTopicos.map((t) => [String(t.idtopico), t]));
 
       const toMark = new Map();
+
       for (const curso of courses) {
         const list = Array.isArray(curso.topicos) ? curso.topicos : [];
         if (list.length > 0) {
@@ -114,7 +117,7 @@ const SidebarProvider = ({ children }) => {
           });
           continue;
         }
-        // Fallback: fetch course details to get topicos
+
         try {
           const det = await api.get(`/curso/${curso.idcurso || curso.id}`);
           const dataCurso = det.data?.[0] || det.data || {};
@@ -131,10 +134,10 @@ const SidebarProvider = ({ children }) => {
           });
         } catch {}
       }
+
       if (toMark.size > 0) {
         const items = Array.from(toMark.values());
         upsertSubscribed(items);
-        // Best-effort server-side subscribe; ignore failures
         await Promise.all(
           items.map((t) =>
             api.post(`/topico/id/${t.idtopico}/subscribe`).catch(() => {})
@@ -144,15 +147,18 @@ const SidebarProvider = ({ children }) => {
     } catch {}
   };
 
+  // Alternar subscrição de tópico
   const toggleSubscribeTopic = async (topic) => {
     const id =
       typeof topic === "number" || typeof topic === "string"
         ? topic
         : topic?.idtopico;
     if (!id) return;
+
     const exists = subscribedTopics.find(
       (t) => String(t.idtopico) === String(id)
     );
+
     try {
       if (exists) {
         await api.delete(`/topico/id/${id}/unsubscribe`).catch(() => {});
@@ -163,6 +169,7 @@ const SidebarProvider = ({ children }) => {
           (Array.isArray(topicos) &&
             topicos.find((t) => String(t.idtopico) === String(id))) ||
           null;
+
         upsertSubscribed([
           {
             idtopico: parseInt(id),
@@ -173,7 +180,7 @@ const SidebarProvider = ({ children }) => {
           },
         ]);
       }
-      // Persist locally as fallback
+
       setSubscribedTopics((next) => {
         try {
           localStorage.setItem("subscribedTopics", JSON.stringify(next));
@@ -183,19 +190,19 @@ const SidebarProvider = ({ children }) => {
     } catch {}
   };
 
-  // Expose a manual refresh to update subscriptions on-demand (e.g., after course enroll/leave)
+  // Atualizar manualmente as subscrições
   const refreshSubscribedTopics = async () => {
     await loadSubscribedTopics();
     await autoSubscribeFromCourses();
   };
 
+  // Efeito inicial
   useEffect(() => {
-    // Initial load: subscriptions + auto-subscribe from enrolled courses
     (async () => {
       await loadSubscribedTopics();
       await autoSubscribeFromCourses();
     })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    
   }, []);
 
   return (
