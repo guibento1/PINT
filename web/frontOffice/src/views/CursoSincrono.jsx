@@ -955,6 +955,28 @@ const CursoSincrono = () => {
             {activeTab === "overview" && sessoesList?.length > 0 && (
               <>
                 <h2 className="h4 mb-3">Sessões e Materiais:</h2>
+
+                <div className="my-4">
+
+                  <div className="d-flex justify-content-between align-items-center mb-1">
+                    <span className="fw-bold">Progresso no Curso:</span>
+                    <span className="text-muted">{curso?.nhoras}h</span>
+                  </div>
+
+
+                  <div className="progress" style={{ height: "25px" }}>
+                    <div
+                      className="progress-bar"
+                      role="progressbar"
+                      style={{ width: `${curso?.progresso}%` }}
+                      aria-valuenow={curso?.progresso}
+                      aria-valuemin="0"
+                      aria-valuemax="100"
+                    >
+                      {curso?.progresso}%
+                    </div>
+                  </div>
+                </div>
                 <ul className="list-group small">
                   {sessoesList.map((s) => (
                     <li key={s.idsessao} className="list-group-item">

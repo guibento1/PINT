@@ -17,9 +17,12 @@ const CriarCursoSincrono = () => {
     planocurricular: "",
     iniciodeinscricoes: "",
     fimdeinscricoes: "",
+    inicio: "",
+    fim: "",
+    nhoras: "",
     maxinscricoes: "",
     topicos: [],
-    formador: "", // id do papel "formador"
+    formador: "",
   });
   const [thumbnailFile, setThumbnailFile] = useState(null);
   const [previewThumbnail, setPreviewThumbnail] = useState("");
@@ -80,15 +83,13 @@ const CriarCursoSincrono = () => {
     fetchData();
   }, []);
 
-  // Atualiza campos do formulário
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  // Marcar/desmarcar tópicos
   const handleTopicChange = (e) => {
-    const id = parseInt(e.target.value);
+    const id = parseInt(e.target.value, 10);
     setFormData((prev) => ({
       ...prev,
       topicos: prev.topicos.includes(id)
@@ -97,14 +98,12 @@ const CriarCursoSincrono = () => {
     }));
   };
 
-  // Thumbnail + pré-visualização
   const handleThumbnailSelect = (file) => {
     const f = file || null;
     setThumbnailFile(f);
     setPreviewThumbnail(f ? URL.createObjectURL(f) : "");
   };
 
-  // Submeter (validações + envio)
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -112,7 +111,6 @@ const CriarCursoSincrono = () => {
     setOperationStatus(null);
     setOperationMessage("");
 
-    // Pelo menos um tópico
     if (!Array.isArray(formData.topicos) || formData.topicos.length === 0) {
       setOperationStatus(1);
       setOperationMessage("Selecione pelo menos um tópico.");
@@ -121,7 +119,6 @@ const CriarCursoSincrono = () => {
       return;
     }
 
-    // Exigir data de fim
     if (!formData.fimdeinscricoes) {
       setOperationStatus(1);
       setOperationMessage(
@@ -132,8 +129,15 @@ const CriarCursoSincrono = () => {
       return;
     }
 
+    if (!formData.nhoras) {
+      setOperationStatus(1);
+      setOperationMessage("Indique o número de horas do curso.");
+      setLoading(false);
+      openResultModal();
+      return;
+    }
+
     try {
-      // Payload: FormData + JSON info
       const fd = new FormData();
       if (thumbnailFile) fd.append("thumbnail", thumbnailFile);
 
@@ -142,12 +146,15 @@ const CriarCursoSincrono = () => {
         planocurricular: formData.planocurricular,
         iniciodeinscricoes: formData.iniciodeinscricoes,
         fimdeinscricoes: formData.fimdeinscricoes || null,
+        inicio: formData.inicio || null,
+        fim: formData.fim || null,
+        nhoras: parseInt(formData.nhoras, 10),
         maxinscricoes: formData.maxinscricoes
-          ? parseInt(formData.maxinscricoes)
+          ? parseInt(formData.maxinscricoes, 10)
           : null,
         topicos: formData.topicos,
       };
-      if (formData.formador) info.formador = parseInt(formData.formador);
+      if (formData.formador) info.formador = parseInt(formData.formador, 10);
 
       fd.append("info", JSON.stringify(info));
 
@@ -157,12 +164,14 @@ const CriarCursoSincrono = () => {
         res.data?.message || "Curso síncrono criado com sucesso!"
       );
 
-      // Limpar estado
       setFormData({
         nome: "",
         planocurricular: "",
         iniciodeinscricoes: "",
         fimdeinscricoes: "",
+        inicio: "",
+        fim: "",
+        nhoras: "",
         maxinscricoes: "",
         topicos: [],
         formador: "",
@@ -199,21 +208,23 @@ const CriarCursoSincrono = () => {
         className="p-4 border rounded shadow-sm mb-5"
       >
         <div className="row g-3">
+          {/* Nome do Curso */}
           <div className="col-md-6">
             <label htmlFor="nome" className="form-label">
               Nome do Curso: <span className="text-danger">*</span>
             </label>
             <input
               type="text"
-              className="form-control"
               id="nome"
               name="nome"
+              className="form-control"
               value={formData.nome}
               onChange={handleChange}
               required
             />
           </div>
 
+          {/* Formador */}
           <div className="col-md-6">
             <label htmlFor="formador" className="form-label">
               Atribuir Formador:
@@ -234,59 +245,111 @@ const CriarCursoSincrono = () => {
             </select>
           </div>
 
+          {/* Plano Curricular */}
           <div className="col-12">
             <label htmlFor="planocurricular" className="form-label">
               Descrição / Plano Curricular:
             </label>
             <textarea
-              className="form-control"
               id="planocurricular"
               name="planocurricular"
+              className="form-control"
               rows={4}
               value={formData.planocurricular}
               onChange={handleChange}
             />
           </div>
 
+          {/* Início do Curso */}
+          <div className="col-md-6">
+            <label htmlFor="inicio" className="form-label">
+              Início do Curso: <span className="text-danger">*</span>
+            </label>
+            <input
+              type="datetime-local"
+              id="inicio"
+              name="inicio"
+              className="form-control"
+              value={formData.inicio}
+              onChange={handleChange}
+              required
+            />
+          </div>
+
+          {/* Fim do Curso */}
+          <div className="col-md-6">
+            <label htmlFor="fim" className="form-label">
+              Fim do Curso:
+            </label>
+            <input
+              type="datetime-local"
+              id="fim"
+              name="fim"
+              className="form-control"
+              value={formData.fim}
+              onChange={handleChange}
+            />
+          </div>
+
+          {/* Número de Horas (N horas) */}
+          <div className="col-md-6">
+            <label htmlFor="nhoras" className="form-label">
+              N horas: <span className="text-danger">*</span>
+            </label>
+            <input
+              type="number"
+              id="nhoras"
+              name="nhoras"
+              className="form-control"
+              min={1}
+              value={formData.nhoras}
+              onChange={handleChange}
+              required
+            />
+          </div>
+
+          {/* Início das Inscrições */}
           <div className="col-md-6">
             <label htmlFor="iniciodeinscricoes" className="form-label">
               Início das Inscrições: <span className="text-danger">*</span>
             </label>
             <input
               type="datetime-local"
-              className="form-control"
               id="iniciodeinscricoes"
               name="iniciodeinscricoes"
+              className="form-control"
               value={formData.iniciodeinscricoes}
               onChange={handleChange}
               required
             />
           </div>
 
+          {/* Fim das Inscrições */}
           <div className="col-md-6">
             <label htmlFor="fimdeinscricoes" className="form-label">
               Fim das Inscrições: <span className="text-danger">*</span>
             </label>
             <input
               type="datetime-local"
-              className="form-control"
               id="fimdeinscricoes"
               name="fimdeinscricoes"
+              className="form-control"
               value={formData.fimdeinscricoes}
               onChange={handleChange}
               required
             />
           </div>
 
+          {/* Máx. Vagas */}
           <div className="col-md-6">
             <label htmlFor="maxinscricoes" className="form-label">
               Máx. Vagas:
             </label>
             <input
               type="number"
-              className="form-control"
               id="maxinscricoes"
               name="maxinscricoes"
+              className="form-control"
               min={1}
               value={formData.maxinscricoes}
               onChange={handleChange}
@@ -294,14 +357,14 @@ const CriarCursoSincrono = () => {
             />
             {!formData.fimdeinscricoes && (
               <div className="form-text">
-                Defina primeiro a data-limite de inscrições para poder definir
-                vagas.
+                Defina primeiro a data-limite de inscrições para poder definir vagas.
               </div>
             )}
           </div>
 
+          {/* Thumbnail */}
           <div className="col-12">
-            <label className="form-label d-block">Thumbnail:</label>
+            <label className="form-label">Thumbnail:</label>
             <div className="d-flex align-items-start gap-3 flex-wrap">
               <FileUpload
                 id="thumbnail-upload"
@@ -327,6 +390,7 @@ const CriarCursoSincrono = () => {
             </div>
           </div>
 
+          {/* Tópicos */}
           <div className="col-12">
             <label className="form-label">
               Tópicos: <span className="text-danger">*</span>
@@ -334,10 +398,7 @@ const CriarCursoSincrono = () => {
             <div className="border p-3 rounded d-flex flex-wrap gap-2">
               {allTopicos.length > 0 ? (
                 allTopicos.map((topico) => (
-                  <div
-                    key={topico.idtopico}
-                    className="form-check form-check-inline"
-                  >
+                  <div key={topico.idtopico} className="form-check form-check-inline">
                     <input
                       className="form-check-input"
                       type="checkbox"
@@ -365,12 +426,9 @@ const CriarCursoSincrono = () => {
             </div>
           </div>
 
+          {/* Ações */}
           <div className="col-12 text-end">
-            <button
-              type="submit"
-              className="btn btn-primary"
-              disabled={loading}
-            >
+            <button type="submit" className="btn btn-primary" disabled={loading}>
               {loading ? "A Criar..." : "Criar Curso"}
             </button>
             <button
@@ -384,6 +442,7 @@ const CriarCursoSincrono = () => {
         </div>
       </form>
 
+      {/* Modal de Resultado */}
       <Modal
         isOpen={isResultModalOpen}
         onClose={closeResultModal}
@@ -391,11 +450,7 @@ const CriarCursoSincrono = () => {
       >
         {getResultModalBody()}
         <div className="d-flex justify-content-end mt-3">
-          <button
-            type="button"
-            className="btn btn-primary"
-            onClick={closeResultModal}
-          >
+          <button type="button" className="btn btn-primary" onClick={closeResultModal}>
             Fechar
           </button>
         </div>
