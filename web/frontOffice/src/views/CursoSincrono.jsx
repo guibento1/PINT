@@ -957,12 +957,10 @@ const CursoSincrono = () => {
                 <h2 className="h4 mb-3">Sessões e Materiais:</h2>
 
                 <div className="my-4">
-
                   <div className="d-flex justify-content-between align-items-center mb-1">
                     <span className="fw-bold">Progresso no Curso:</span>
                     <span className="text-muted">{curso?.nhoras}h</span>
                   </div>
-
 
                   <div className="progress" style={{ height: "25px" }}>
                     <div
