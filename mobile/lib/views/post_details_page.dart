@@ -180,35 +180,7 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
     return null; // unknown
   }
 
-  // Explicit negative: return true only when we have clear evidence there are no children
-  bool _explicitlyNoChildren(Map<String, dynamic> m) {
-    // boolean hints
-    final b = m['temRespostas'] ?? m['temFilhos'];
-    if (b is bool && b == false) return true;
-    if (b is String) {
-      final s = b.toLowerCase();
-      if (s == 'false' || s == 'no' || s == 'nao' || s == 'não') return true;
-    }
-    // count hints
-    final countKeys = [
-      'repliesCount',
-      'replyCount',
-      'numRespostas',
-      'qtdRespostas',
-      'countRespostas',
-      'childrenCount',
-      'numeroRespostas',
-    ];
-    for (final k in countKeys) {
-      final v = m[k];
-      if (v is int && v == 0) return true;
-      if (v is String) {
-        final n = int.tryParse(v);
-        if (n != null && n == 0) return true;
-      }
-    }
-    return false;
-  }
+  // Note: we infer presence/absence via _inferHasChildren and cached flags.
 
   bool _shouldShowToggle(Map<String, dynamic> item, int id) {
     // If already expanded, always show (to allow collapse)
@@ -218,10 +190,13 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
       final list = _replies[id];
       return (list != null && list.isNotEmpty);
     }
-    // If cache says it has children, show
+    // Respect cached knowledge
     if (_hasChildren[id] == true) return true;
-    // If we have explicit evidence of no children, hide
-    if (_explicitlyNoChildren(item)) return false;
+    if (_hasChildren[id] == false) return false;
+    // Try infer directly from the item (lists, counts, booleans)
+    final inferred = _inferHasChildren(item);
+    if (inferred == true) return true;
+    if (inferred == false) return false;
     // Unknown: show to allow fetching
     return true;
   }

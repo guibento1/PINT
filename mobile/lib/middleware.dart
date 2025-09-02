@@ -132,12 +132,10 @@ class AppMiddleware {
     try {
       dynamic courseDetailsResp = await _servidor.getData('curso/$courseId');
 
-      // Fallback to alternate endpoint if needed
       if (courseDetailsResp == null) {
         courseDetailsResp = await _servidor.getData('curso/id/$courseId');
       }
 
-      // Unwrap common response wrappers to match web's res.data shape
       Map<String, dynamic>? unwrapToMap(dynamic v) {
         if (v is Map<String, dynamic>) return v;
         if (v is Map) return Map<String, dynamic>.from(v);
@@ -147,7 +145,6 @@ class AppMiddleware {
       Map<String, dynamic>? normalized;
       final asMap = unwrapToMap(courseDetailsResp);
       if (asMap != null) {
-        // Try keys used by various backends: curso, data, result, payload
         final dataKey =
             asMap['curso'] ??
             asMap['data'] ??
@@ -156,7 +153,6 @@ class AppMiddleware {
         if (dataKey != null) {
           final inner = unwrapToMap(dataKey);
           if (inner != null) {
-            // Some APIs nest again: { data: { curso: {...} } }
             final inner2 = unwrapToMap(
               inner['curso'] ??
                   inner['data'] ??
@@ -165,7 +161,6 @@ class AppMiddleware {
             );
             normalized = inner2 ?? inner;
           } else {
-            // Sometimes the top-level already is the course object
             normalized = asMap;
           }
         } else {
@@ -453,7 +448,6 @@ class AppMiddleware {
     }
   }
 
-  // Source-of-truth inscritos count for a course (tries a few common endpoints)
   Future<int?> fetchCourseInscritosCount(int courseId) async {
     if (!await _isOnline()) {
       print('Offline: inscritos count not available.');
@@ -461,7 +455,6 @@ class AppMiddleware {
     }
     try {
       dynamic res;
-      // Try explicit count endpoint if available
       res = await _servidor.getData('curso/$courseId/inscritos/count');
       if (res is Map<String, dynamic>) {
         final v =
@@ -475,13 +468,11 @@ class AppMiddleware {
         return res;
       }
 
-      // Try the endpoint used on the web app
       res = await _servidor.getData('curso/inscricoes/$courseId');
       if (res is List) return res.length;
       if (res is Map && res['data'] is List)
         return (res['data'] as List).length;
 
-      // Fallback to other list endpoints: take length
       res = await _servidor.getData('curso/$courseId/inscritos');
       if (res is List) return res.length;
       if (res is Map && res['data'] is List)

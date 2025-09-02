@@ -211,29 +211,7 @@ class _CourseDetailsPageState extends State<CourseDetailsPage> {
     );
   }
 
-  IconData _getMaterialIcon(String? tipo) {
-    switch (tipo) {
-      case '1':
-        return Icons.slideshow;
-      case '2':
-        return Icons.insert_drive_file;
-      case '3':
-        return Icons.link;
-      case '4':
-        return Icons.insert_chart;
-      default:
-        return Icons.folder_open;
-    }
-  }
-
-  Future<void> _launchURL(String url) async {
-    final uri = Uri.parse(url);
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri);
-    } else {
-      _showSnackBar('Não foi possível abrir: $url', Colors.red);
-    }
-  }
+  // Removed legacy material icon resolver and URL launcher for lessons; unified on SubmissionFilePreview
 
   String _formatDate(String? dateString) {
     if (dateString == null || dateString.isEmpty) return '-';
@@ -472,10 +450,37 @@ class _CourseDetailsPageState extends State<CourseDetailsPage> {
     return '-';
   }
 
-  // --- Síncrono tabs helpers ---
+  // Resolve overall course progress percentage (0-100) from flexible payloads
+  double? _resolveProgresso(Map<String, dynamic> d) {
+    final nested = (d['cursosincrono'] ?? d['cursoSincrono']) as Map?;
+    final candidates = [
+      d['progresso'],
+      d['progress'],
+      d['percent'],
+      d['percentagem'],
+      d['percentage'],
+      if (nested is Map) nested['progresso'],
+      if (nested is Map) nested['progress'],
+      if (nested is Map) nested['percent'],
+      if (nested is Map) nested['percentagem'],
+      if (nested is Map) nested['percentage'],
+    ];
+    for (final v in candidates) {
+      if (v == null) continue;
+      final s = v.toString().trim();
+      if (s.isEmpty) continue;
+      final n = double.tryParse(s);
+      if (n == null) continue;
+      // Accept 0..1 as fraction or 0..100 as percentage
+      final pct = n <= 1.0 ? (n * 100.0) : n;
+      final clamped = pct.clamp(0.0, 100.0);
+      return clamped.toDouble();
+    }
+    return null;
+  }
+
   String? _resolveStudentFinalNota(Map<String, dynamic> d) {
     try {
-      // 0) Direct mine fields
       final mine = d['minhaAvaliacaoFinal'] ?? d['minhaavaliacaofinal'];
       if (mine != null) {
         if (mine is Map) {
@@ -486,7 +491,16 @@ class _CourseDetailsPageState extends State<CourseDetailsPage> {
           if (s.isNotEmpty) return s;
         }
       }
-      // 1) Top-level grade
+      // Server may return the final grade directly as a number under these keys
+      final directFinalRaw = d['avaliacaofinal'] ?? d['avaliacaoFinal'];
+      if (directFinalRaw is num ||
+          (directFinalRaw is String && directFinalRaw.trim().isNotEmpty)) {
+        final s = directFinalRaw.toString();
+        // Accept numeric strings too
+        final isNumeric = num.tryParse(s) != null;
+        if (isNumeric) return s;
+      }
+
       final top = d['notaFinal'] ?? d['classificacaoFinal'];
       if (top != null && top.toString().isNotEmpty) return top.toString();
 
@@ -752,6 +766,13 @@ class _CourseDetailsPageState extends State<CourseDetailsPage> {
       if (v is List && v.isNotEmpty) {
         final first = v.first;
         if (first is Map) return first.cast<String, dynamic>();
+      }
+      // If server returns a plain number as the final at top-level
+      if (k != 'final' && (v is num || (v is String && v.trim().isNotEmpty))) {
+        final s = v.toString();
+        if (num.tryParse(s) != null) {
+          return {'titulo': 'Avaliação Final', 'nota': s};
+        }
       }
     }
     // 2) Nested inside cursoSincrono/cursosincrono
@@ -1219,6 +1240,80 @@ class _CourseDetailsPageState extends State<CourseDetailsPage> {
             ),
           ),
         const SizedBox(height: 24),
+        // Progresso no Curso (entre "Sobre o Curso" e "Conteúdos do Curso")
+        if (_isSincrono(_courseData!) &&
+            _resolveProgresso(_courseData!) != null)
+          Container(
+            margin: const EdgeInsets.only(bottom: 16),
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(18),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.grey.withOpacity(0.10),
+                  blurRadius: 6,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Progresso no Curso',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 15,
+                      ),
+                    ),
+                    if (_resolveNumeroHoras(_courseData!) != '-')
+                      Text(
+                        '${_resolveNumeroHoras(_courseData!)}h',
+                        style: const TextStyle(
+                          color: Color(0xFF8F9BB3),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Stack(
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: LinearProgressIndicator(
+                        minHeight: 14,
+                        value: (_resolveProgresso(_courseData!)! / 100.0).clamp(
+                          0.0,
+                          1.0,
+                        ),
+                        backgroundColor: const Color(0xFFE6ECF2),
+                        valueColor: const AlwaysStoppedAnimation<Color>(
+                          Color(0xFF007BFF),
+                        ),
+                      ),
+                    ),
+                    Positioned.fill(
+                      child: Center(
+                        child: Text(
+                          '${_resolveProgresso(_courseData!)!.round()}%',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF1D1B20),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
         if (_isSincrono(_courseData!))
           Container(
             decoration: BoxDecoration(
@@ -1254,12 +1349,9 @@ class _CourseDetailsPageState extends State<CourseDetailsPage> {
                     unselectedLabelColor: Color(0xFF8F9BB3),
                     indicatorColor: Color(0xFF007BFF),
                     tabs: [
-                      Tab(text: 'Sessões', icon: Icon(Icons.event)),
-                      Tab(
-                        text: 'Avaliações Contínuas',
-                        icon: Icon(Icons.assignment),
-                      ),
-                      Tab(text: 'Avaliação Final', icon: Icon(Icons.grade)),
+                      Tab(text: 'Sessões e materiais', icon: Icon(Icons.event)),
+                      Tab(text: 'Av. Contínuas', icon: Icon(Icons.assignment)),
+                      Tab(text: 'Av. Final', icon: Icon(Icons.grade)),
                     ],
                   ),
                   SizedBox(
@@ -1318,91 +1410,113 @@ class _CourseDetailsPageState extends State<CourseDetailsPage> {
                     return Card(
                       margin: const EdgeInsets.only(bottom: 8),
                       elevation: 0,
+                      clipBehavior: Clip.antiAlias,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                         side: BorderSide(color: Colors.grey.shade200, width: 1),
                       ),
-                      child: ExpansionTile(
-                        title: Text(
-                          licao['titulo'] ?? '',
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 16,
+                      child: Theme(
+                        data: Theme.of(
+                          context,
+                        ).copyWith(dividerColor: Colors.transparent),
+                        child: ExpansionTile(
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
                           ),
-                        ),
-                        subtitle:
-                            licao['descricao'] != null
-                                ? Text(
-                                  licao['descricao'],
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    color: Colors.black54,
-                                  ),
-                                )
-                                : null,
-                        childrenPadding: const EdgeInsets.symmetric(
-                          horizontal: 16.0,
-                          vertical: 8.0,
-                        ),
-                        children: [
-                          if (materiais.isNotEmpty)
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  'Materiais:',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 15,
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                ...materiais.map(
-                                  (material) => Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 4,
-                                    ),
-                                    child: InkWell(
-                                      onTap:
-                                          () => _launchURL(
-                                            material['referencia'] ?? '',
-                                          ),
-                                      child: Row(
-                                        children: [
-                                          Icon(
-                                            _getMaterialIcon(material['tipo']),
-                                            size: 20,
-                                            color: const Color(0xFF007BFF),
-                                          ),
-                                          const SizedBox(width: 8),
-                                          Expanded(
-                                            child: Text(
-                                              material['titulo'] ?? '',
-                                              style: const TextStyle(
-                                                fontSize: 15,
-                                                color: Color(0xFF007BFF),
-                                                decoration:
-                                                    TextDecoration.underline,
-                                              ),
-                                              overflow: TextOverflow.ellipsis,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            )
-                          else
-                            const Text(
-                              'Nenhum material disponível para esta lição.',
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Colors.black54,
-                              ),
+                          collapsedShape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          collapsedBackgroundColor: Colors.transparent,
+                          backgroundColor: Colors.transparent,
+                          tilePadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                          ),
+                          title: Text(
+                            licao['titulo'] ?? '',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 16,
                             ),
-                        ],
+                          ),
+                          subtitle:
+                              licao['descricao'] != null
+                                  ? Text(
+                                    licao['descricao'],
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.black54,
+                                    ),
+                                  )
+                                  : null,
+                          childrenPadding: const EdgeInsets.symmetric(
+                            horizontal: 16.0,
+                            vertical: 8.0,
+                          ),
+                          children: [
+                            if (materiais.isNotEmpty)
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'Materiais:',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 15,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  ...materiais.map((material) {
+                                    final mname =
+                                        (material['nome'] ??
+                                                material['filename'] ??
+                                                material['titulo'] ??
+                                                material['designacao'] ??
+                                                'Material')
+                                            .toString();
+                                    final murl =
+                                        (material['url'] ??
+                                                material['link'] ??
+                                                material['referencia'] ??
+                                                material['ficheiro'] ??
+                                                material['file'] ??
+                                                material['path'])
+                                            ?.toString();
+                                    final mdate =
+                                        (material['data'] ??
+                                                material['createdAt'] ??
+                                                material['updatedAt'] ??
+                                                material['at'])
+                                            ?.toString();
+                                    final isPdf =
+                                        murl != null &&
+                                        murl.toLowerCase().endsWith('.pdf');
+                                    return Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 4,
+                                      ),
+                                      child: SubmissionFilePreview(
+                                        url: murl ?? '',
+                                        filename: mname,
+                                        type: isPdf ? 'application/pdf' : null,
+                                        date:
+                                            mdate != null
+                                                ? DateTime.tryParse(mdate)
+                                                : null,
+                                      ),
+                                    );
+                                  }),
+                                ],
+                              )
+                            else
+                              const Text(
+                                'Nenhum material disponível para esta lição.',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.black54,
+                                ),
+                              ),
+                          ],
+                        ),
                       ),
                     );
                   }),
@@ -1487,46 +1601,7 @@ class _SessoesTabDetails extends StatelessWidget {
     }
   }
 
-  DateTime? _parseDT(dynamic raw) {
-    if (raw == null) return null;
-    try {
-      return DateTime.tryParse(raw.toString());
-    } catch (_) {
-      return null;
-    }
-  }
-
-  (double? progress, String status) _progressFor(
-    dynamic siRaw,
-    dynamic sfRaw,
-    String? duracaoHoras,
-  ) {
-    final now = DateTime.now();
-    DateTime? si = _parseDT(siRaw);
-    DateTime? sf = _parseDT(sfRaw);
-    // If only duration is available, derive end from start
-    if (sf == null &&
-        si != null &&
-        duracaoHoras != null &&
-        duracaoHoras.isNotEmpty) {
-      final h = double.tryParse(duracaoHoras.replaceAll(',', '.'));
-      if (h != null && h > 0) {
-        final minutes = (h * 60).round();
-        sf = si.add(Duration(minutes: minutes));
-      }
-    }
-    if (si == null && sf == null) return (null, '');
-    if (si != null && now.isBefore(si)) return (0.0, 'Pendente');
-    if (sf != null && now.isAfter(sf)) return (1.0, 'Terminada');
-    if (si != null && sf != null) {
-      final total = sf.difference(si).inSeconds;
-      if (total <= 0) return (null, '');
-      final elapsed = now.difference(si).inSeconds.clamp(0, total);
-      final p = (elapsed / total).clamp(0.0, 1.0);
-      return (p, 'Em curso');
-    }
-    return (null, '');
-  }
+  // Progress bar and status removed per request
 
   @override
   Widget build(BuildContext context) {
@@ -1573,11 +1648,7 @@ class _SessoesTabDetails extends StatelessWidget {
                     .cast<Map<String, dynamic>>()
                     .toList()
                 : const [];
-        final (p, status) = _progressFor(
-          s['inicio'] ?? s['datainicio'] ?? datahora,
-          s['fim'] ?? s['datafim'],
-          duracaoHoras,
-        );
+        // Progress removed
         return Padding(
           padding: const EdgeInsets.symmetric(vertical: 6.0),
           child: Column(
@@ -1651,49 +1722,7 @@ class _SessoesTabDetails extends StatelessWidget {
                   ],
                 ),
               ),
-              if (p != null) ...[
-                const SizedBox(height: 6),
-                Row(
-                  children: [
-                    Expanded(
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(4),
-                        child: LinearProgressIndicator(
-                          minHeight: 6,
-                          value: p.isNaN ? null : p,
-                          backgroundColor: const Color(0xFFE6ECF2),
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            status == 'Terminada'
-                                ? Colors.green
-                                : status == 'Pendente'
-                                ? const Color(0xFF8F9BB3)
-                                : const Color(0xFF007BFF),
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade200,
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                      child: Text(
-                        status,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey.shade800,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
+              // Progress indicator removed
               if (mats.isNotEmpty) ...[
                 const SizedBox(height: 8),
                 const Text(
@@ -1955,64 +1984,143 @@ class _AvaliacaoFinalTabDetails extends StatelessWidget {
             : (data?['nota'] ?? data?['classificacao'] ?? data?['valor'])
                 ?.toString();
     return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+      padding: const EdgeInsets.fromLTRB(12, 16, 12, 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          ListTile(
-            contentPadding: const EdgeInsets.symmetric(horizontal: 8),
-            leading: const Icon(Icons.grade, color: Color(0xFF2E7D32)),
-            title: Text(titulo, maxLines: 2, overflow: TextOverflow.ellipsis),
-            subtitle: Text(
-              [
-                if (descricao.isNotEmpty) descricao,
-                if (inicio != '-' || fim != '-') 'Janela: $inicio → $fim',
-              ].join('\n'),
-            ),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Padding(
+                padding: EdgeInsets.only(top: 2.0, right: 6.0),
+                child: Icon(Icons.grade, color: Color(0xFF2E7D32)),
+              ),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      titulo,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 16,
+                      ),
+                    ),
+                    if (descricao.isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        descricao,
+                        style: const TextStyle(color: Color(0xFF49454F)),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              if (resolvedNota != null && resolvedNota.isNotEmpty)
+                Container(
+                  margin: const EdgeInsets.only(left: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.green.withOpacity(0.10),
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(color: Colors.green.withOpacity(0.20)),
+                  ),
+                  child: Text(
+                    'Nota: $resolvedNota',
+                    style: TextStyle(
+                      color: Colors.green.shade800,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+            ],
           ),
-          if (enunciado != null && enunciado.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8.0),
-              child: SubmissionFilePreview(
-                url: enunciado,
-                filename: 'Enunciado',
-                type:
-                    enunciado.toLowerCase().endsWith('.pdf')
-                        ? 'application/pdf'
-                        : null,
-              ),
-            ),
-          if (resolvedNota != null && resolvedNota.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 12.0,
-                vertical: 6,
-              ),
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 8,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.green.withOpacity(0.08),
-                  border: Border.all(color: Colors.green.withOpacity(0.25)),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  'Nota final: $resolvedNota',
-                  style: const TextStyle(fontWeight: FontWeight.w600),
-                ),
-              ),
-            ),
           const SizedBox(height: 8),
-          const Text(
-            'Nota: Submissões e upload de ficheiros são exclusivos da versão web.',
-            style: TextStyle(color: Color(0xFF8F9BB3)),
-          ),
+          if (inicio != '-' || fim != '-')
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                if (inicio != '-')
+                  _InfoChip(
+                    icon: Icons.play_circle_fill,
+                    label: 'Início',
+                    value: inicio,
+                  ),
+                if (fim != '-')
+                  _InfoChip(icon: Icons.flag, label: 'Fim', value: fim),
+              ],
+            ),
+          if (enunciado != null && enunciado.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            const Text(
+              'Enunciado',
+              style: TextStyle(fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 6),
+            SubmissionFilePreview(
+              url: enunciado,
+              filename: 'Enunciado',
+              type:
+                  enunciado.toLowerCase().endsWith('.pdf')
+                      ? 'application/pdf'
+                      : null,
+            ),
+          ],
+          const SizedBox(height: 10),
         ],
       ),
     );
   }
 }
 
-// _ResourceTile removed in favor of SubmissionFilePreview/SubmissionCard
+class _InfoChip extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+
+  const _InfoChip({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF5F7FA),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE6ECF2)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: const Color(0xFF007BFF)),
+          const SizedBox(width: 6),
+          Text(
+            '$label: ',
+            style: const TextStyle(
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF222B45),
+            ),
+          ),
+          Flexible(
+            child: Text(
+              value,
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
+              style: const TextStyle(color: Color(0xFF49454F)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

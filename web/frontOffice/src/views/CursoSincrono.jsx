@@ -678,9 +678,13 @@ const CursoSincrono = () => {
           </div>
           <div className="col-md-8">
             <h1 className="h3">{curso?.nome}</h1>
-            {statusColor?.key === "terminado" && (
+            {statusColor && (
               <>
-                <span className="badge bg-dark static-button">Terminado</span>
+                <span
+                  className={`badge ${statusColor.badgeClass} static-button`}
+                >
+                  {statusColor.label}
+                </span>
                 <br />
               </>
             )}
@@ -807,7 +811,8 @@ const CursoSincrono = () => {
               </div>
             ) : !inscrito ? (
               <>
-                {statusColor?.key !== "terminado" && curso?.disponivel !== false ? (
+                {statusColor?.key !== "terminado" &&
+                curso?.disponivel !== false ? (
                   <div className="mt-3">
                     <button
                       onClick={handleClickInscrever}

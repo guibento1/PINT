@@ -6,7 +6,7 @@ import "@shared/styles/curso.css";
 import Modal from "@shared/components/Modal";
 import useUserRole from "@shared/hooks/useUserRole";
 import { SidebarContext } from "../context/SidebarContext";
-// Removido getCursoStatus: não é necessário para assíncronos nesta vista
+import { getCursoStatus } from "@shared/utils/cursoStatus";
 
 const CursoAssincrono = () => {
   const { id } = useParams();
@@ -250,8 +250,12 @@ const CursoAssincrono = () => {
     );
   }
 
-  // Para cursos assíncronos, consideramos "Terminado" quando o curso está indisponível
-  const hasEnded = curso?.disponivel === false;
+  // Status badge (Pendente/Em curso/Terminado) — mesmo para assíncronos
+  const statusColor = getCursoStatus(
+    { sincrono: false, disponivel: curso?.disponivel },
+    new Date()
+  );
+  const hasEnded = statusColor?.key === "terminado";
 
   // Datas de inscrições (mostrar apenas este período para assíncronos)
   const inicioInscricoes =
@@ -320,23 +324,15 @@ const CursoAssincrono = () => {
           {/* Informações do curso */}
           <div className="col-md-8">
             <h1 className="h3">{curso?.nome}</h1>
-
-            {hasEnded ? (
+            {statusColor && (
               <>
-                <span className="badge bg-dark static-button">Terminado</span>
+                <span
+                  className={`badge ${statusColor.badgeClass} static-button`}
+                >
+                  {statusColor.label}
+                </span>
                 <br />
               </>
-            ) : (
-              curso?.disponivel !== null &&
-              curso?.disponivel !== undefined &&
-              !curso?.disponivel && (
-                <>
-                  <span className="badge bg-secondary static-button">
-                    Arquivado
-                  </span>
-                  <br />
-                </>
-              )
             )}
 
             {/* Detalhes do curso — limitar para assíncronos: Tipo, Disponível, Inscrições */}

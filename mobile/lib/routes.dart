@@ -13,6 +13,7 @@ import 'backend/shared_preferences.dart' as my_prefs;
 import 'components/navigation_bar.dart';
 import 'components/top_headr_bar.dart';
 import 'components/offline_warning_wrapper.dart';
+import 'views/certificates_page.dart';
 
 final rotas = GoRouter(
   initialLocation: '/',
@@ -46,12 +47,15 @@ final rotas = GoRouter(
         final String currentPath = state.uri.path;
 
         // Hide top header and bottom navigation for specific full-screen pages
-        final bool hideTopBar =
+        final bool hideBars =
             currentPath == '/course_details' ||
             currentPath.startsWith('/course_details/') ||
             currentPath == '/forum_post' ||
             currentPath.startsWith('/forum_post/') ||
-            currentPath == '/forum_create';
+            currentPath == '/forum_create' ||
+            currentPath.startsWith('/certificates/') ||
+            currentPath == '/certificates';
+
 
         return WillPopScope(
           onWillPop: () async {
@@ -68,7 +72,7 @@ final rotas = GoRouter(
                 color: const Color(0xFFF6F9FB),
                 child: Column(
                   children: [
-                    if (!hideTopBar) const TopHeaderBar(),
+                    if (!hideBars) const TopHeaderBar(),
                     Expanded(
                       child: OfflineWarningWrapper(
                         offlineMessage:
@@ -87,7 +91,7 @@ final rotas = GoRouter(
               ),
             ),
             bottomNavigationBar:
-                !hideTopBar ? SafeArea(child: NavigationBarClass()) : null,
+                !hideBars ? SafeArea(child: NavigationBarClass()) : null,
           ),
         );
       },
@@ -103,9 +107,9 @@ final rotas = GoRouter(
           builder: (context, state) => ExploreCoursesPage(),
         ),
         GoRoute(
-          path: '/settings',
-          name: 'settings',
-          builder: (context, state) => HomePage(),
+          path: '/certificates',
+          name: 'certificates',
+          builder: (context, state) => CertificatesPage(),
         ),
         GoRoute(
           path: '/notifications',
