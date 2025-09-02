@@ -6,6 +6,8 @@ var _avaliacaofinal = require("./avaliacaofinal");
 var _canaisutilizadores = require("./canaisutilizadores");
 var _canalnotificacoes = require("./canalnotificacoes");
 var _categoria = require("./categoria");
+var _certificados = require("./certificados");
+var _certificadosutilizadores = require("./certificadosutilizadores");
 var _comentario = require("./comentario");
 var _curso = require("./curso");
 var _cursoassincrono = require("./cursoassincrono");
@@ -45,6 +47,8 @@ function initModels(sequelize) {
   var canaisutilizadores = _canaisutilizadores(sequelize, DataTypes);
   var canalnotificacoes = _canalnotificacoes(sequelize, DataTypes);
   var categoria = _categoria(sequelize, DataTypes);
+  var certificados = _certificados(sequelize, DataTypes);
+  var certificadosutilizadores = _certificadosutilizadores(sequelize, DataTypes);
   var comentario = _comentario(sequelize, DataTypes);
   var curso = _curso(sequelize, DataTypes);
   var cursoassincrono = _cursoassincrono(sequelize, DataTypes);
@@ -79,10 +83,11 @@ function initModels(sequelize) {
   area.belongsToMany(topico, { as: 'topico_topico_topicoareas', through: topicoarea, foreignKey: "area", otherKey: "topico" });
   avaliacaocontinua.belongsToMany(avaliacaocontinua, { as: 'cursosincrono_avaliacaocontinuas', through: submissao, foreignKey: "avaliacaocontinua", otherKey: "cursosincrono" });
   avaliacaocontinua.belongsToMany(avaliacaocontinua, { as: 'avaliacaocontinua_avaliacaocontinuas', through: submissao, foreignKey: "cursosincrono", otherKey: "avaliacaocontinua" });
+  certificados.belongsToMany(utilizadores, { as: 'utilizador_utilizadores', through: certificadosutilizadores, foreignKey: "certificado", otherKey: "utilizador" });
   comentario.belongsToMany(comentario, { as: 'comentario_comentario_respostacomentarios', through: respostacomentario, foreignKey: "idcomentario", otherKey: "comentario" });
   comentario.belongsToMany(comentario, { as: 'idcomentario_comentarios', through: respostacomentario, foreignKey: "comentario", otherKey: "idcomentario" });
   comentario.belongsToMany(post, { as: 'post_post_respostaposts', through: respostapost, foreignKey: "idcomentario", otherKey: "post" });
-  comentario.belongsToMany(utilizadores, { as: 'utilizador_utilizadores', through: iteracaocomentario, foreignKey: "comentario", otherKey: "utilizador" });
+  comentario.belongsToMany(utilizadores, { as: 'utilizador_utilizadores_iteracaocomentarios', through: iteracaocomentario, foreignKey: "comentario", otherKey: "utilizador" });
   curso.belongsToMany(formando, { as: 'formando_formando_inscricaos', through: inscricao, foreignKey: "curso", otherKey: "formando" });
   curso.belongsToMany(topico, { as: 'topico_topicos', through: cursotopico, foreignKey: "curso", otherKey: "topico" });
   cursosincrono.belongsToMany(formando, { as: 'formando_formandos', through: avaliacaofinal, foreignKey: "cursosincrono", otherKey: "formando" });
@@ -95,6 +100,7 @@ function initModels(sequelize) {
   topico.belongsToMany(area, { as: 'area_areas', through: topicoarea, foreignKey: "topico", otherKey: "area" });
   topico.belongsToMany(curso, { as: 'curso_cursos', through: cursotopico, foreignKey: "topico", otherKey: "curso" });
   topico.belongsToMany(utilizadores, { as: 'utilizador_utilizadores_topicossubscritosutilizadores', through: topicossubscritosutilizadores, foreignKey: "topico", otherKey: "utilizador" });
+  utilizadores.belongsToMany(certificados, { as: 'certificado_certificados', through: certificadosutilizadores, foreignKey: "utilizador", otherKey: "certificado" });
   utilizadores.belongsToMany(comentario, { as: 'comentario_comentarios', through: iteracaocomentario, foreignKey: "utilizador", otherKey: "comentario" });
   utilizadores.belongsToMany(post, { as: 'post_posts', through: iteracaopost, foreignKey: "utilizador", otherKey: "post" });
   utilizadores.belongsToMany(topico, { as: 'topico_topico_topicossubscritosutilizadores', through: topicossubscritosutilizadores, foreignKey: "utilizador", otherKey: "topico" });
@@ -110,6 +116,8 @@ function initModels(sequelize) {
   canalnotificacoes.hasMany(historiconotificacoes, { as: "historiconotificacos", foreignKey: "canal"});
   area.belongsTo(categoria, { as: "categoria_categorium", foreignKey: "categoria"});
   categoria.hasMany(area, { as: "areas", foreignKey: "categoria"});
+  certificadosutilizadores.belongsTo(certificados, { as: "certificado_certificado", foreignKey: "certificado"});
+  certificados.hasMany(certificadosutilizadores, { as: "certificadosutilizadores", foreignKey: "certificado"});
   denunciacomentario.belongsTo(comentario, { as: "comentario_comentario", foreignKey: "comentario"});
   comentario.hasMany(denunciacomentario, { as: "denunciacomentarios", foreignKey: "comentario"});
   iteracaocomentario.belongsTo(comentario, { as: "comentario_comentario", foreignKey: "comentario"});
@@ -134,6 +142,8 @@ function initModels(sequelize) {
   cursosincrono.hasMany(avaliacaocontinua, { as: "avaliacaocontinuas", foreignKey: "cursosincrono"});
   avaliacaofinal.belongsTo(cursosincrono, { as: "cursosincrono_cursosincrono", foreignKey: "cursosincrono"});
   cursosincrono.hasMany(avaliacaofinal, { as: "avaliacaofinals", foreignKey: "cursosincrono"});
+  certificados.belongsTo(cursosincrono, { as: "cursosinc_cursosincrono", foreignKey: "cursosinc"});
+  cursosincrono.hasMany(certificados, { as: "certificados", foreignKey: "cursosinc"});
   sessao.belongsTo(cursosincrono, { as: "cursosincrono_cursosincrono", foreignKey: "cursosincrono"});
   cursosincrono.hasMany(sessao, { as: "sessaos", foreignKey: "cursosincrono"});
   denunciacomentario.belongsTo(denuncia, { as: "denuncia_denuncium", foreignKey: "denuncia"});
@@ -176,6 +186,8 @@ function initModels(sequelize) {
   utilizadores.hasMany(admin, { as: "admins", foreignKey: "utilizador"});
   canaisutilizadores.belongsTo(utilizadores, { as: "utilizador_utilizadore", foreignKey: "utilizador"});
   utilizadores.hasMany(canaisutilizadores, { as: "canaisutilizadores", foreignKey: "utilizador"});
+  certificadosutilizadores.belongsTo(utilizadores, { as: "utilizador_utilizadore", foreignKey: "utilizador"});
+  utilizadores.hasMany(certificadosutilizadores, { as: "certificadosutilizadores", foreignKey: "utilizador"});
   comentario.belongsTo(utilizadores, { as: "utilizador_utilizadore", foreignKey: "utilizador"});
   utilizadores.hasMany(comentario, { as: "comentarios", foreignKey: "utilizador"});
   denuncia.belongsTo(utilizadores, { as: "criador_utilizadore", foreignKey: "criador"});
@@ -207,6 +219,8 @@ function initModels(sequelize) {
     canaisutilizadores,
     canalnotificacoes,
     categoria,
+    certificados,
+    certificadosutilizadores,
     comentario,
     curso,
     cursoassincrono,

@@ -2957,4 +2957,137 @@ controllers.rmLicaoContent = async (req, res) => {
 
 };
 
+
+controllers.addCertificado = async (req, res) => {
+
+  const id = req.params.id;
+
+  const { nome, descricao } = req.body;
+
+  try {
+
+    const cursoSincrono = await models.cursosincrono.findOne({
+      where: {
+        curso: id,
+      },
+    });
+
+    if (!cursoSincrono) {
+      return res.status(404).json({
+        error: `Curso síncrono associado ao curso ${id} não encontrado.`,
+      });
+    }
+
+    const certificado = await models.certificados.create({nome,descricao,cursosinc : cursoSincrono.idcursosincrono });
+    return res.status(201).json(certificado);
+
+    
+  } catch (error) {
+
+    return res.status(500).json({
+      error: "Ocorreu um erro interno ao criar certificado.",
+    });
+    
+  }
+
+
+};
+
+
+controllers.updateCertificado = async (req, res) => {
+
+  const { idcertificado } = req.params;
+
+  const { nome, descricao } = req.body;
+
+
+  const updateData = {};
+
+  if(nome === null || descricao === null)  
+    return res.status(404).json({
+      message: "Campos não devem ser nulos",
+    });
+
+  if (nome != undefined) updateData.nome = nome;
+  if (descricao != undefined) updateData.descricao = descricao;
+
+  try {
+
+    let certificado = await models.certificados.findByPk(idcertificado);
+    certificado = await certificado.update(updateData);
+    return res.status(201).json(certificado);
+
+    
+  } catch (error) {
+
+    return res.status(500).json({
+      error: "Ocorreu um erro interno ao atualizar certificado.",
+    });
+    
+  }
+
+};
+
+
+controllers.deleteCertificado = async (req, res) => {
+
+  const { idcertificado } = req.params;
+
+  try {
+
+    const certificado = await models.certificados.findByPk(idcertificado);
+
+    if(!certificado){
+      return res.status(404).json({sucess:false,message : "Nenhum certificado com o id fornecido encontrado"});
+    }
+
+    await certificado.destroy();
+    return res.status(200).json({sucess:true,message : "Certificado eleminado com sucesso"});
+
+    
+  } catch (error) {
+
+    return res.status(500).json({
+      error: "Ocorreu um erro interno ao eleminar certificado.",
+    });
+    
+  }
+
+};
+
+
+controllers.getCertificados = async (req, res) => {
+
+  const id = req.params.id;
+
+
+  try {
+
+    const cursoSincrono = await models.cursosincrono.findOne({
+      where: {
+        curso: id,
+      },
+    });
+
+    if (!cursoSincrono) {
+      return res.status(404).json({
+        error: `Curso síncrono associado ao curso ${id} não encontrado.`,
+      });
+    }
+
+    const certificados = await models.certificados.findAll({where : { cursosinc : cursoSincrono.idcursosincrono } });
+    return res.status(200).json(certificados);
+
+    
+  } catch (error) {
+
+    return res.status(500).json({
+      error: "Ocorreu um erro interno ao procurar certificados.",
+    });
+    
+  }
+
+
+};
+
 module.exports = controllers;

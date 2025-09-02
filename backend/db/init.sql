@@ -247,6 +247,7 @@ CREATE TABLE CertificadosUtilizadores (
 
     certificado BIGINT,
     utilizador BIGINT,
+    criado TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     chave VARCHAR(128) UNIQUE DEFAULT gen_random_uuid(),
 
     CONSTRAINT CERTIFICADOSUTILIZADORES_PK PRIMARY KEY(certificado, utilizador),
