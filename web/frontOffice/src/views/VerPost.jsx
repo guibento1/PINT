@@ -7,8 +7,12 @@ import Modal from "@shared/components/Modal";
 import {
   fetchPostCommentsTreeCached,
   invalidatePostCommentsCache,
+  updatePostCommentsCache,
+  fetchPostRootCommentsCached,
+  fetchCommentWithReplies,
 } from "@shared/services/dataCache";
 import "@shared/styles/global.css";
+import SubmissionFilePreview from "@shared/components/SubmissionFilePreview";
 
 export default function VerPost() {
   const { id } = useParams();
@@ -28,6 +32,10 @@ export default function VerPost() {
   const [connectors, setConnectors] = useState([]); // svg paths entre avatares
   const [layoutTick, setLayoutTick] = useState(0); // gatilho de recomputar conectores
   const [votingComments, setVotingComments] = useState({}); // { [commentId]: boolean }
+  // Collapse map: when true for a comment id, its replies are hidden
+  const [collapsed, setCollapsed] = useState({}); // { [commentId]: bool }
+  // Avatar do utilizador atual para decorar comentários/respostas imediatamente
+  const [myAvatar, setMyAvatar] = useState(null);
 
   // Denúncias
   const [tiposDenuncia, setTiposDenuncia] = useState([]); // GET /forum/denuncias/tipos
@@ -44,6 +52,41 @@ export default function VerPost() {
   const [confirmTitle, setConfirmTitle] = useState("");
   const [confirmMessage, setConfirmMessage] = useState("");
   const [confirmAction, setConfirmAction] = useState(null);
+  // Info do utilizador autenticado (para decoração otimista), com fallback ao localStorage
+  const getStoredUser = () => {
+    try {
+      const fromSession = sessionStorage.getItem("user");
+      const fromLocal = localStorage.getItem("user");
+      return JSON.parse(fromSession || fromLocal || "null");
+    } catch {
+      return null;
+    }
+  };
+  const currentUser = getStoredUser();
+
+  // Carrega a foto do utilizador autenticado se não estiver presente no storage
+  useEffect(() => {
+    const loadMyAvatar = async () => {
+      try {
+        const myId =
+          currentUser?.id ??
+          currentUser?.idutilizador ??
+          currentUser?.utilizador;
+        if (!myId) return;
+        if (currentUser?.foto) {
+          setMyAvatar(currentUser.foto);
+          return;
+        }
+        const res = await api.get(`/utilizador/id/${myId}`);
+        const foto = res?.data?.foto || null;
+        setMyAvatar(foto);
+      } catch (e) {
+        // silencioso: sem avatar
+      }
+    };
+    loadMyAvatar();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Função estável para abrir o modal de confirmação (para actions existentes)
   const openConfirmModal = (title, message, action) => {
@@ -81,6 +124,12 @@ export default function VerPost() {
   const closeAllReplies = () => {
     setReplyOpen({});
     setReplyText({});
+    setLayoutTick((t) => t + 1);
+  };
+
+  // Alternar recolha/expansão de uma thread de comentários
+  const toggleCollapse = (commentId) => {
+    setCollapsed((prev) => ({ ...prev, [commentId]: !prev[commentId] }));
     setLayoutTick((t) => t + 1);
   };
 
@@ -124,37 +173,29 @@ export default function VerPost() {
   // utilidades
   const getUserName = (utilizador) => {
     if (!utilizador) return "Anónimo";
-    if (typeof utilizador === "string") return utilizador;
     if (typeof utilizador === "object" && utilizador.nome)
       return utilizador.nome;
+    if (typeof utilizador === "string") return utilizador;
     return "Anónimo";
   };
 
-  // Robust owner check: match by numeric id when available; accept backend 'Eu' sentinel
+  // Owner check: apenas por id quando disponível
   const isOwner = (utilizador) => {
     try {
-      const u = JSON.parse(sessionStorage.getItem("user") || "null");
-      const myId = u?.id ?? u?.idutilizador ?? u?.utilizador;
-      if (!myId) return utilizador === "Eu"; // fallback to sentinel
-
-      // If backend returned the sentinel
-      if (utilizador === "Eu") return true;
-
-      // If backend returned an object
+      const myId =
+        currentUser?.id ?? currentUser?.idutilizador ?? currentUser?.utilizador;
+      if (!myId) return false;
       if (utilizador && typeof utilizador === "object") {
         const ownerId =
           utilizador.id ?? utilizador.idutilizador ?? utilizador.utilizador;
         return ownerId && String(ownerId) === String(myId);
       }
-
-      // If backend returned a primitive id
       if (typeof utilizador === "number" || typeof utilizador === "string") {
         return String(utilizador) === String(myId);
       }
-
       return false;
     } catch {
-      return utilizador === "Eu";
+      return false;
     }
   };
 
@@ -344,6 +385,50 @@ export default function VerPost() {
     </svg>
   );
 
+  // Collapse/Expand icons (round add/minus)
+  const MinusIcon = ({ size = 22, color = "#6c757d" }) => (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      style={{ color }}
+    >
+      <path
+        d="M15 12.75C15.4142 12.75 15.75 12.4142 15.75 12C15.75 11.5858 15.4142 11.25 15 11.25H9C8.58579 11.25 8.25 11.5858 8.25 12C8.25 12.4142 8.58579 12.75 9 12.75H15Z"
+        fill="currentColor"
+      />
+      <path
+        fillRule="evenodd"
+        clipRule="evenodd"
+        d="M12 1.25C6.06294 1.25 1.25 6.06294 1.25 12C1.25 17.9371 6.06294 22.75 12 22.75C17.9371 22.75 22.75 17.9371 22.75 12C22.75 6.06294 17.9371 1.25 12 1.25ZM2.75 12C2.75 6.89137 6.89137 2.75 12 2.75C17.1086 2.75 21.25 6.89137 21.25 12C21.25 17.1086 17.1086 21.25 12 21.25C6.89137 21.25 2.75 17.1086 2.75 12Z"
+        fill="currentColor"
+      />
+    </svg>
+  );
+  const AddIcon = ({ size = 22, color = "#6c757d" }) => (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      style={{ color }}
+    >
+      <path
+        d="M12.75 9C12.75 8.58579 12.4142 8.25 12 8.25C11.5858 8.25 11.25 8.58579 11.25 9L11.25 11.25H9C8.58579 11.25 8.25 11.5858 8.25 12C8.25 12.4142 8.58579 12.75 9 12.75H11.25V15C11.25 15.4142 11.5858 15.75 12 15.75C12.4142 15.75 12.75 15.4142 12.75 15L12.75 12.75H15C15.4142 12.75 15.75 12.4142 15.75 12C15.75 11.5858 15.4142 11.25 15 11.25H12.75V9Z"
+        fill="currentColor"
+      />
+      <path
+        fillRule="evenodd"
+        clipRule="evenodd"
+        d="M12 1.25C6.06294 1.25 1.25 6.06294 1.25 12C1.25 17.9371 6.06294 22.75 12 22.75C17.9371 22.75 22.75 17.9371 22.75 12C22.75 6.06294 17.9371 1.25 12 1.25ZM2.75 12C2.75 6.89137 6.89137 2.75 12 2.75C17.1086 2.75 21.25 6.89137 21.25 12C21.25 17.1086 17.1086 21.25 12 21.25C6.89137 21.25 2.75 17.1086 2.75 12Z"
+        fill="currentColor"
+      />
+    </svg>
+  );
+
   const {
     categorias,
     areas,
@@ -357,6 +442,7 @@ export default function VerPost() {
     topicSearch,
     setTopicSearch,
     subscribedTopics,
+    toggleSubscribeTopic,
   } = useContext(SidebarContext);
 
   function timeAgo(iso) {
@@ -383,7 +469,8 @@ export default function VerPost() {
     try {
       setLoading(true);
       const res = await api.get(`/forum/post/${id}`);
-      setPost(res.data?.post || res.data?.data || res.data || null);
+      const raw = res.data?.post || res.data?.data || res.data || null;
+      setPost(raw);
     } catch (e) {
       console.error("Erro ao carregar post", e);
       setError("Não foi possível carregar o post.");
@@ -395,12 +482,80 @@ export default function VerPost() {
   async function loadCommentsTree() {
     setCommentsLoading(true);
     try {
-      const tree = await fetchPostCommentsTreeCached(id);
-      setComments(tree);
+      // 1) Fetch top-level comments quickly
+      const root = await fetchPostRootCommentsCached(id);
+      setComments(root);
+      // Collapse all root comments by default for better initial performance
+      try {
+        setCollapsed((prev) => {
+          const next = { ...prev };
+          if (Array.isArray(root)) {
+            root.forEach((c) => {
+              const cid = c.idcomentario || c.id;
+              if (cid != null) next[cid] = true;
+            });
+          }
+          return next;
+        });
+      } catch {}
+      setCommentsLoading(false); // show roots immediately
+
+      // 2) In background, hydrate replies per root with small concurrency
+      const concurrency = 4;
+      const queue = [...root];
+      const nextStateMap = new Map();
+
+      const runWorker = async () => {
+        while (queue.length) {
+          const c = queue.shift();
+          if (!c) break;
+          try {
+            const hydrated = await fetchCommentWithReplies(c);
+            nextStateMap.set(c.idcomentario || c.id, hydrated);
+            // Ensure newly hydrated comment and its subtree are collapsed by default
+            try {
+              setCollapsed((prev) => {
+                const map = { ...prev };
+                const mark = (node) => {
+                  if (!node) return;
+                  const nid = node.idcomentario || node.id;
+                  if (nid != null) map[nid] = true;
+                  if (Array.isArray(node.children)) node.children.forEach(mark);
+                };
+                mark(hydrated);
+                return map;
+              });
+            } catch {}
+            // apply incrementally
+            setComments((prev) => {
+              const replaceById = (list) =>
+                Array.isArray(list)
+                  ? list.map((item) => {
+                      const cid = item.idcomentario || item.id;
+                      const replacement = nextStateMap.get(cid);
+                      if (replacement) return replacement;
+                      // Keep existing children until they're hydrated
+                      return item;
+                    })
+                  : list;
+              const next = replaceById(prev);
+              try {
+                updatePostCommentsCache(id, next);
+              } catch {}
+              return next;
+            });
+          } catch {
+            // ignore hydrate errors per comment
+          }
+        }
+      };
+
+      await Promise.all(
+        Array.from({ length: Math.min(concurrency, queue.length) }, runWorker)
+      );
     } catch (e) {
       console.error("Erro ao carregar comentários", e);
       setError((prev) => prev || "Não foi possível carregar os comentários.");
-    } finally {
       setCommentsLoading(false);
     }
   }
@@ -410,6 +565,17 @@ export default function VerPost() {
     // Adiar carregamento de comentários até a página realmente necessitar (primeira visita ao VerPost)
     // Aqui carregamos assim que a página monta, mas via cache e com indicador visual.
     loadCommentsTree();
+    // Garantir que a página abre no topo ao carregar/navegar entre posts
+    try {
+      if (typeof window !== "undefined") {
+        window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+        const el =
+          document.scrollingElement ||
+          document.documentElement ||
+          document.body;
+        if (el) el.scrollTop = 0;
+      }
+    } catch {}
   }, [id]);
 
   // Carrega tipos de denúncia
@@ -429,12 +595,14 @@ export default function VerPost() {
     };
   }, []);
 
-  // Edges dos conectores (mantido igual)
+  // Edges dos conectores
   useEffect(() => {
     const buildEdges = (items, parentId = null, acc = []) => {
       if (!Array.isArray(items)) return acc;
       items.forEach((c) => {
         const cid = c.idcomentario || c.id;
+        // Se o pai está colapsado, não criar arestas nem descer nesta subárvore
+        if (parentId && collapsed[parentId]) return;
         if (parentId) acc.push({ from: parentId, to: cid });
         if (c.children?.length) buildEdges(c.children, cid, acc);
       });
@@ -490,14 +658,51 @@ export default function VerPost() {
       clearTimeout(t2);
       window.removeEventListener("resize", onResize);
     };
-  }, [comments, layoutTick]);
+  }, [comments, layoutTick, collapsed]);
 
   const handleCommentSubmit = async () => {
     if (!newComment.trim()) return;
     try {
-      await api.post(`/forum/post/${id}/comment`, { conteudo: newComment });
-      invalidatePostCommentsCache(id);
-      await loadCommentsTree();
+      const res = await api.post(`/forum/post/${id}/comment`, {
+        conteudo: newComment,
+      });
+      // Inserção otimista do comentário de topo com dados do utilizador atual
+      const created = res?.data?.data || res?.data || null;
+      if (created) {
+        const u = created?.utilizador;
+        const isUserObject =
+          u && typeof u === "object" && (u.nome || u.foto || u.id);
+        const isUserPrimitive = typeof u === "number" || typeof u === "string";
+        const shouldDecorate = !isUserObject && currentUser;
+        const decorated = shouldDecorate
+          ? {
+              ...created,
+              criado: created?.criado || new Date().toISOString(),
+              utilizador:
+                isUserPrimitive || !u
+                  ? {
+                      id:
+                        currentUser.id ??
+                        currentUser.idutilizador ??
+                        currentUser.utilizador ??
+                        u,
+                      nome: currentUser.nome ?? currentUser.name ?? "",
+                      foto: myAvatar ?? currentUser.foto ?? null,
+                    }
+                  : created.utilizador,
+              children: created?.children || [],
+              iteracao: created?.iteracao ?? null,
+              pontuacao: created?.pontuacao ?? 0,
+            }
+          : created;
+        setComments((prev) => {
+          const next = [...prev, decorated];
+          try {
+            updatePostCommentsCache(id, next);
+          } catch {}
+          return next;
+        });
+      }
       setNewComment("");
       setShowCommentBox(false);
     } catch (e) {
@@ -694,16 +899,44 @@ export default function VerPost() {
                 return c;
               })
             : list;
-        setComments((prev) =>
-          updateCommentById(prev, commentId, (c) => ({
+        // Decoração otimista: se backend ainda não devolve utilizador enriquecido, usar o atual
+        let createdDecorated = created;
+        const u = created?.utilizador;
+        const isUserObject =
+          u && typeof u === "object" && (u.nome || u.foto || u.id);
+        const isUserPrimitive = typeof u === "number" || typeof u === "string";
+        if (!isUserObject && isUserPrimitive && currentUser) {
+          createdDecorated = {
+            ...created,
+            criado: created?.criado || new Date().toISOString(),
+            utilizador: {
+              id:
+                currentUser.id ??
+                currentUser.idutilizador ??
+                currentUser.utilizador ??
+                u,
+              nome: currentUser.nome ?? currentUser.name ?? "",
+              foto: myAvatar ?? currentUser.foto ?? null,
+            },
+          };
+        }
+        setComments((prev) => {
+          const next = updateCommentById(prev, commentId, (c) => ({
             ...c,
-            children: [...(c.children || []), created],
-          }))
-        );
+            children: [...(c.children || []), createdDecorated],
+          }));
+          // Atualiza cache em memória para persistir ao navegar
+          try {
+            updatePostCommentsCache(id, next);
+          } catch {}
+          return next;
+        });
         setTimeout(() => setLayoutTick((t) => t + 1), 0);
       } else {
-        invalidatePostCommentsCache(id);
-        await loadCommentsTree();
+        // Cenário raro: sem objeto created – força refetch suave depois
+        try {
+          invalidatePostCommentsCache(id);
+        } catch {}
       }
       setReplyText((prev) => ({ ...prev, [commentId]: "" }));
       setReplyOpen((prev) => ({ ...prev, [commentId]: false }));
@@ -782,21 +1015,71 @@ export default function VerPost() {
                     if (el) avatarRefs.current[cid] = el;
                   }}
                 >
-                  <div className="avatar-sm d-flex align-items-center justify-content-center bg-secondary text-white rounded-circle">
-                    {authorName.charAt(0).toUpperCase()}
-                  </div>
+                  {(() => {
+                    const me = isOwner(comment.utilizador);
+                    const avatarUrl =
+                      comment?.utilizador?.foto ?? (me ? myAvatar : null);
+                    if (avatarUrl) {
+                      return (
+                        <div className="avatar-sm rounded-circle overflow-hidden">
+                          <img
+                            src={avatarUrl}
+                            alt={authorName}
+                            style={{
+                              width: "100%",
+                              height: "100%",
+                              objectFit: "cover",
+                            }}
+                          />
+                        </div>
+                      );
+                    }
+                    return (
+                      <div className="avatar-sm d-flex align-items-center justify-content-center bg-secondary text-white rounded-circle">
+                        {authorName.charAt(0).toUpperCase()}
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
               <div className="comment-main">
                 <div className="comment-meta">
-                  <span className="comment-author">{authorName}</span>
+                  {(() => {
+                    const me = isOwner(comment.utilizador);
+                    return (
+                      <span className="comment-author">
+                        {me ? <strong>{authorName}</strong> : authorName}
+                      </span>
+                    );
+                  })()}
                   <span className="text-muted">
                     • {timeAgo(comment.criado)}
                   </span>
-                  <div className="ms-auto" />
                 </div>
                 <div className="comment-body">{content}</div>
                 <div className="comment-actions-row d-flex align-items-center gap-2 mt-2">
+                  {hasChildren && (
+                    <button
+                      className="icon-btn"
+                      title={
+                        collapsed[cid]
+                          ? "Expandir respostas"
+                          : "Recolher respostas"
+                      }
+                      onClick={() => toggleCollapse(cid)}
+                      aria-label={
+                        collapsed[cid]
+                          ? "Expandir respostas"
+                          : "Recolher respostas"
+                      }
+                    >
+                      {collapsed[cid] ? (
+                        <AddIcon size={22} />
+                      ) : (
+                        <MinusIcon size={22} />
+                      )}
+                    </button>
+                  )}
                   <button
                     className={`icon-btn ${userVote === true ? "active" : ""}`}
                     title="Upvote"
@@ -886,7 +1169,7 @@ export default function VerPost() {
               </div>
             </div>
           </div>
-          {hasChildren && (
+          {hasChildren && !collapsed[cid] && (
             <div className="comment-children">{renderComments(children)}</div>
           )}
         </div>
@@ -1003,7 +1286,7 @@ export default function VerPost() {
           setSelectedTopico={setSelectedTopico}
           topicSearch={topicSearch}
           setTopicSearch={setTopicSearch}
-          toggleSubscribeTopic={() => {}}
+          toggleSubscribeTopic={toggleSubscribeTopic}
           subscribedTopics={subscribedTopics}
           readOnly
         />
@@ -1070,12 +1353,42 @@ export default function VerPost() {
                 </div>
                 <div className="post-main flex-grow-1">
                   <div className="d-flex align-items-center gap-2 text-muted small mb-2">
-                    <div className="avatar-sm d-flex align-items-center justify-content-center bg-secondary text-white rounded-circle">
-                      {getUserName(post?.utilizador).charAt(0).toUpperCase()}
-                    </div>
-                    <span className="comment-author">
-                      {getUserName(post?.utilizador)}
-                    </span>
+                    {(() => {
+                      const owner = isOwner(post?.utilizador);
+                      const avatarUrl =
+                        post?.utilizador?.foto ?? (owner ? myAvatar : null);
+                      if (avatarUrl) {
+                        return (
+                          <div className="avatar-sm rounded-circle overflow-hidden">
+                            <img
+                              src={avatarUrl}
+                              alt={getUserName(post?.utilizador)}
+                              style={{
+                                width: "100%",
+                                height: "100%",
+                                objectFit: "cover",
+                              }}
+                            />
+                          </div>
+                        );
+                      }
+                      return (
+                        <div className="avatar-sm d-flex align-items-center justify-content-center bg-secondary text-white rounded-circle">
+                          {getUserName(post?.utilizador)
+                            .charAt(0)
+                            .toUpperCase()}
+                        </div>
+                      );
+                    })()}
+                    {(() => {
+                      const me = isOwner(post?.utilizador);
+                      const name = getUserName(post?.utilizador);
+                      return (
+                        <span className="comment-author">
+                          {me ? <strong>{name}</strong> : name}
+                        </span>
+                      );
+                    })()}
                     <span>• {timeAgo(post?.criado || post?.createdAt)}</span>
                   </div>
                   <div className="mb-2 d-flex align-items-center">
@@ -1094,7 +1407,7 @@ export default function VerPost() {
                           String(denunciaTarget?.id) ===
                             String(post?.idpost || post?.id)
                         }
-                        size={22}
+                        size={32}
                       />
                     </button>
                   </div>
@@ -1102,6 +1415,14 @@ export default function VerPost() {
                   <p className="mb-3 post-body">
                     {post.conteudo || post.content}
                   </p>
+                  {post.anexo && (
+                    <div className="mt-3 mb-3">
+                      <SubmissionFilePreview
+                        url={post.anexo}
+                        date={post.criado || post.createdAt}
+                      />
+                    </div>
+                  )}
 
                   <div className="comment-actions">
                     <button

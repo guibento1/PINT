@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:cached_network_image/cached_network_image.dart'; 
+import 'package:cached_network_image/cached_network_image.dart';
 
 // Cartão para apresentar um curso
 class CourseCard extends StatelessWidget {
@@ -20,7 +20,18 @@ class CourseCard extends StatelessWidget {
     final bool hasThumbnail = thumbnailUrl != null && thumbnailUrl.isNotEmpty;
 
     final currentRoute = ModalRoute.of(context)?.settings.name;
-    final bool showInscritoTag = currentRoute != '/home' && (curso['inscrito'] == true);
+    final bool showInscritoTag =
+        currentRoute != '/home' && (curso['inscrito'] == true);
+
+    // Determine course type (síncrono vs assíncrono)
+    final tipoStr =
+        ((curso['tipo'] ?? curso['tipocurso'])?.toString().toLowerCase() ?? '');
+    final bool isSincrono =
+        tipoStr.contains('sinc') ||
+        tipoStr == 'sincrono' ||
+        tipoStr == 'síncrono' ||
+        curso['sincrono'] == true ||
+        (curso['sessoes'] is List && (curso['sessoes'] as List).isNotEmpty);
 
     return GestureDetector(
       onTap: onTap,
@@ -49,34 +60,47 @@ class CourseCard extends StatelessWidget {
               ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(10),
-                child: hasThumbnail
-                    ? CachedNetworkImage(
-                        imageUrl: thumbnailUrl,
-                        width: 72,
-                        height: 72,
-                        fit: BoxFit.cover,
-                        placeholder: (context, url) => const SizedBox(
+                child:
+                    hasThumbnail
+                        ? CachedNetworkImage(
+                          imageUrl: thumbnailUrl,
                           width: 72,
                           height: 72,
-                          child: Center(
-                            child: CircularProgressIndicator(strokeWidth: 2.0),
-                          ),
-                        ),
-                        errorWidget: (context, url, error) => Container(
+                          fit: BoxFit.cover,
+                          placeholder:
+                              (context, url) => const SizedBox(
+                                width: 72,
+                                height: 72,
+                                child: Center(
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2.0,
+                                  ),
+                                ),
+                              ),
+                          errorWidget:
+                              (context, url, error) => Container(
+                                width: 72,
+                                height: 72,
+                                color: Colors.grey[200],
+                                child: const Icon(
+                                  Icons.code,
+                                  color: Color(0xFFFD7E14),
+                                  size: 48,
+                                ),
+                              ),
+                        )
+                        : Container(
                           width: 72,
                           height: 72,
                           color: Colors.grey[200],
-                          child: const Icon(Icons.code, color: Color(0xFFFD7E14), size: 48),
+                          child: const Center(
+                            child: Icon(
+                              Icons.code,
+                              color: Color(0xFFFD7E14),
+                              size: 48,
+                            ),
+                          ),
                         ),
-                      )
-                    : Container(
-                        width: 72,
-                        height: 72,
-                        color: Colors.grey[200],
-                        child: const Center(
-                          child: Icon(Icons.code, color: Color(0xFFFD7E14), size: 48),
-                        ),
-                      ),
               ),
             ),
             const SizedBox(width: 15),
@@ -103,6 +127,42 @@ class CourseCard extends StatelessWidget {
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: isSincrono ? Color(0xFFE8F5E9) : Color(0xFFEDE7F6),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          isSincrono ? Icons.videocam : Icons.cloud_queue,
+                          size: 16,
+                          color:
+                              isSincrono
+                                  ? Color(0xFF2E7D32)
+                                  : Color(0xFF5E35B1),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          isSincrono ? 'Síncrono' : 'Assíncrono',
+                          style: TextStyle(
+                            color:
+                                isSincrono
+                                    ? Color(0xFF2E7D32)
+                                    : Color(0xFF5E35B1),
+                            fontWeight: FontWeight.w600,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                   if (showInscritoTag)
                     Padding(

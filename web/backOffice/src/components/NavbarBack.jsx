@@ -2,8 +2,10 @@ import { useState, useEffect } from "react";
 import { NavLink, Link, useNavigate, useLocation } from "react-router-dom";
 import logoSoftskills from "@shared/assets/images/thesoftskillsLogo.svg";
 import logoSoftinsa from "@shared/assets/images/softinsaLogo.svg";
-import Notifications from "@shared/assets/images/notification.svg?react";
-import Profile from "@shared/assets/images/profile.svg?react";
+import NotiEmpty from "@shared/assets/images/notification-vazio.svg?react";
+import NotiEmptyDot from "@shared/assets/images/notification-vazio-ponto.svg?react";
+import NotiFull from "@shared/assets/images/notification-cheio.svg?react";
+import api from "@shared/services/axios";
 
 export default function NavbarBack() {
   const location = useLocation();
@@ -14,6 +16,7 @@ export default function NavbarBack() {
   const [notificacoesAtivas, setNotificacoesAtivas] = useState(
     () => sessionStorage.getItem(STORAGE_KEY) === "1"
   );
+  const [hoverNoti, setHoverNoti] = useState(false);
 
   let user = null;
   if (sessionStorage.getItem("user")) {
@@ -24,6 +27,25 @@ export default function NavbarBack() {
     }
   }
   const nomeUsuario = user?.nome ? user.nome.split(" ")[0] : "Admin";
+  const avatarUrl =
+    user?.foto || user?.fotourl || user?.fotoPerfil || user?.avatar || "";
+  const userId =
+    user?.idutilizador ||
+    user?.id ||
+    user?.idUtilizador ||
+    user?.userId ||
+    user?.uid;
+
+  const buildFullUrl = (v) => {
+    const s = String(v || "");
+    if (!s) return "";
+    if (/^https?:\/\//i.test(s) || /^data:/i.test(s)) return s;
+    const base = (api?.defaults?.baseURL || "").replace(/\/$/, "");
+    const path = s.replace(/^\/+/, "");
+    return base ? `${base}/${path}` : s;
+  };
+
+  const [avatarState, setAvatarState] = useState(buildFullUrl(avatarUrl));
 
   // Recebe novas notificações
   useEffect(() => {
@@ -37,6 +59,27 @@ export default function NavbarBack() {
       setNotificacoesAtivas(false);
     }
   }, [location.pathname, notificacoesAtivas]);
+
+  // Fetch fresh user data to ensure avatar photo is available
+  useEffect(() => {
+    let cancelled = false;
+    const fetchUser = async () => {
+      try {
+        if (!userId) return;
+        const resp = await api.get(`/utilizador/id/${userId}`);
+        const foto = resp?.data?.foto || "";
+        if (!cancelled && foto) {
+          setAvatarState(buildFullUrl(foto));
+        }
+      } catch (_) {
+        // ignore
+      }
+    };
+    fetchUser();
+    return () => {
+      cancelled = true;
+    };
+  }, [userId]);
 
   const toggleMenu = () => setMenuAberto((v) => !v);
   const fecharMenu = () => setMenuAberto(false);
@@ -156,7 +199,7 @@ export default function NavbarBack() {
                       Notificações e Denúncias
                     </NavLink>
                   </li>
-                  <li className="nav-item">
+                  <li className="nav-item position-relative">
                     <NavLink
                       to="/notificacoes"
                       className={({ isActive }) =>
@@ -168,27 +211,32 @@ export default function NavbarBack() {
                         fecharMenu();
                       }}
                     >
-                      <span
-                        className="position-relative d-inline-block"
-                        style={{ width: 24, height: 24 }}
-                      >
-                        <Notifications
-                          style={{ width: 24, height: 24, display: "block" }}
-                        />
-                        {notificacoesAtivas && (
+                      {({ isActive }) => {
+                        const Icon = isActive
+                          ? NotiFull
+                          : notificacoesAtivas
+                          ? NotiEmptyDot
+                          : NotiEmpty;
+                        return (
                           <span
-                            className="position-absolute bg-danger rounded-circle"
-                            style={{
-                              top: -2,
-                              right: -2,
-                              width: 10,
-                              height: 10,
-                              border: "2px solid #fff",
-                            }}
-                            aria-label="Nova notificação"
-                          />
-                        )}
-                      </span>
+                            className={`position-relative d-inline-block noti-icon ${
+                              isActive ? "notificacoes-active" : ""
+                            } ${notificacoesAtivas ? "has-unread" : ""}`}
+                            style={{ width: 28, height: 28 }}
+                            onMouseEnter={() => setHoverNoti(true)}
+                            onMouseLeave={() => setHoverNoti(false)}
+                          >
+                            <Icon
+                              style={{
+                                width: 28,
+                                height: 28,
+                                display: "block",
+                                transition: "opacity 0.2s ease",
+                              }}
+                            />
+                          </span>
+                        );
+                      }}
                     </NavLink>
                   </li>
                   <li className="nav-item d-flex align-items-center">
@@ -199,15 +247,26 @@ export default function NavbarBack() {
                       }
                       onClick={fecharMenu}
                     >
-                      <Profile
+                      <span
+                        className="d-inline-block me-2"
                         style={{
-                          width: 24,
-                          height: 24,
-                          marginRight: 4,
-                          verticalAlign: "text-bottom",
+                          width: 32,
+                          height: 32,
+                          borderRadius: "50%",
+                          overflow: "hidden",
+                          border: "1px solid var(--border-light)",
+                          backgroundColor: "#e9ecef",
+                          backgroundImage: avatarState
+                            ? `url(${avatarState})`
+                            : "none",
+                          backgroundSize: "cover",
+                          backgroundPosition: "center",
+                          backgroundRepeat: "no-repeat",
+                          verticalAlign: "middle",
                         }}
-                      />{" "}
-                      {nomeUsuario}
+                        aria-hidden="true"
+                      />
+                      <span>{nomeUsuario}</span>
                     </NavLink>
                   </li>
                   <li className="nav-item">

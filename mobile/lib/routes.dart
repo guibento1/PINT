@@ -6,10 +6,13 @@ import 'views/home_page.dart';
 import 'views/login_page.dart';
 import 'views/profile_page.dart';
 import 'views/notifications_page.dart';
+import 'views/forums_page.dart';
+import 'views/create_post_page.dart';
+import 'views/post_details_page.dart';
 import 'backend/shared_preferences.dart' as my_prefs;
 import 'components/navigation_bar.dart';
 import 'components/top_headr_bar.dart';
-import 'components/offline_warning_wrapper.dart'; 
+import 'components/offline_warning_wrapper.dart';
 
 final rotas = GoRouter(
   initialLocation: '/',
@@ -35,20 +38,25 @@ final rotas = GoRouter(
     GoRoute(
       path: '/login',
       name: 'login',
-      builder: (context, state) => LoginPage(), 
+      builder: (context, state) => LoginPage(),
     ),
 
     ShellRoute(
       builder: (context, state, child) {
         final String currentPath = state.uri.path;
 
-        final bool hideTopBar = currentPath == '/course_details' || currentPath.startsWith('/course_details/');
+        // Hide top header and bottom navigation for specific full-screen pages
+        final bool hideTopBar =
+            currentPath == '/course_details' ||
+            currentPath.startsWith('/course_details/') ||
+            currentPath == '/forum_post' ||
+            currentPath.startsWith('/forum_post/');
 
-        return WillPopScope( 
+        return WillPopScope(
           onWillPop: () async {
             if (context.canPop()) {
-              context.pop(); 
-              return false; 
+              context.pop();
+              return false;
             }
             return true;
           },
@@ -62,9 +70,14 @@ final rotas = GoRouter(
                     if (!hideTopBar) const TopHeaderBar(),
                     Expanded(
                       child: OfflineWarningWrapper(
-                        offlineMessage: "Está offline, certas funcionalidades podem não funcionar",
+                        offlineMessage:
+                            "Está offline, certas funcionalidades podem não funcionar",
                         bannerColor: Colors.orange,
-                        textStyle: const TextStyle(color: Colors.white, fontSize: 14.0, fontWeight: FontWeight.bold),
+                        textStyle: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 14.0,
+                          fontWeight: FontWeight.bold,
+                        ),
                         child: child,
                       ),
                     ),
@@ -72,9 +85,8 @@ final rotas = GoRouter(
                 ),
               ),
             ),
-            bottomNavigationBar: !hideTopBar
-                ? SafeArea(child: NavigationBarClass())
-                : null,
+            bottomNavigationBar:
+                !hideTopBar ? SafeArea(child: NavigationBarClass()) : null,
           ),
         );
       },
@@ -98,6 +110,30 @@ final rotas = GoRouter(
           path: '/notifications',
           name: 'notifications',
           builder: (context, state) => NotificationsPage(),
+        ),
+        GoRoute(
+          path: '/forums',
+          name: 'forums',
+          builder: (context, state) => const ForumsPage(),
+        ),
+        GoRoute(
+          path: '/forum_create',
+          name: 'forum_create',
+          builder: (context, state) {
+            final extra = state.extra as Map<String, dynamic>?;
+            final idtopico = (extra?['idtopico'] ?? '').toString();
+            return CreatePostPage(idtopico: idtopico);
+          },
+        ),
+        GoRoute(
+          path: '/forum_post/:id',
+          name: 'forum_post',
+          builder: (context, state) {
+            final idStr = state.pathParameters['id'];
+            final id = int.tryParse(idStr ?? '');
+            if (id != null) return PostDetailsPage(id: id);
+            return const Scaffold(body: Center(child: Text('ID inválido')));
+          },
         ),
         GoRoute(
           path: '/profile',
@@ -127,11 +163,10 @@ final rotas = GoRouter(
 
     GoRoute(
       path: '/:anything',
-      builder: (context, state) => const Scaffold(
-        body: Center(
-          child: Text('Página não encontrada.'),
-        ),
-      ),
+      builder:
+          (context, state) => const Scaffold(
+            body: Center(child: Text('Página não encontrada.')),
+          ),
     ),
   ],
 );

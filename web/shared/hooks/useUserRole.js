@@ -38,6 +38,7 @@ export default function useUserRole() {
     roles,
     isFormador: roles[1],
     isFormando: roles[0],
+  isAdmin: roles[2],
     loading,
   };
 }

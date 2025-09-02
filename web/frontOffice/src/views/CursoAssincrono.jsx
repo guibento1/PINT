@@ -1,10 +1,17 @@
-import { useParams, useNavigate } from "react-router-dom";
-import React, { useEffect, useState, useCallback, useMemo } from "react";
+import { useParams } from "react-router-dom";
+import React, {
+  useEffect,
+  useState,
+  useCallback,
+  useMemo,
+  useContext,
+} from "react";
 import api from "@shared/services/axios";
 import SubmissionCard from "@shared/components/SubmissionCard";
 import "@shared/styles/curso.css";
 import Modal from "@shared/components/Modal";
 import useUserRole from "@shared/hooks/useUserRole";
+import { SidebarContext } from "../context/SidebarContext";
 
 const CursoAssincrono = () => {
   const { id } = useParams();
@@ -27,7 +34,7 @@ const CursoAssincrono = () => {
   const [actionToConfirm, setActionToConfirm] = useState(null);
 
   const maxVisibleTopics = 5;
-  const navigate = useNavigate();
+  const { refreshSubscribedTopics } = useContext(SidebarContext) || {};
 
   const handleShowMoreTopicos = () => {
     setShowAllTopicos(true);
@@ -113,17 +120,10 @@ const CursoAssincrono = () => {
       setOperationMessage(
         res.data.message || "Inscrição realizada com sucesso!"
       );
-      // fetch curso to obtain topics and redirect to forums (first topic) for immediate access
+      // Atualiza subscrições sem sair da página
       try {
-        const cursoRes = await api.get(`/curso/${id}`);
-        const topicos = cursoRes.data?.topicos || [];
-        if (topicos.length) {
-          navigate(`/forums?topico=${topicos[0].idtopico}`);
-        }
-      } catch (e) {
-        // non-fatal: ignore fetch/redirect errors
-        console.error("Erro ao obter tópicos após inscrição:", e);
-      }
+        await refreshSubscribedTopics?.();
+      } catch {}
     } catch (err) {
       console.error("Erro na inscrição:", err);
       setOperationStatus(1);

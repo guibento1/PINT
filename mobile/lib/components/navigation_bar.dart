@@ -21,11 +21,14 @@ class _NavigationBarClassState extends State<NavigationBarClass> {
     if (location.startsWith('/search_courses')) {
       return 1;
     }
-    if (location.startsWith('/notifications')) {
+    if (location.startsWith('/forums') || location.startsWith('/forum')) {
       return 2;
     }
-    if (location.startsWith('/profile')) {
+    if (location.startsWith('/notifications')) {
       return 3;
+    }
+    if (location.startsWith('/profile')) {
+      return 4;
     }
     return 0;
   }
@@ -39,6 +42,7 @@ class _NavigationBarClassState extends State<NavigationBarClass> {
       items: const <Widget>[
         Icon(Icons.home, size: 33, color: Colors.white),
         Icon(Icons.school, size: 33, color: Colors.white),
+        Icon(Icons.forum, size: 33, color: Colors.white),
         Icon(Icons.notifications_active, size: 33, color: Colors.white),
         Icon(Icons.account_circle, size: 33, color: Colors.white),
       ],
@@ -56,9 +60,12 @@ class _NavigationBarClassState extends State<NavigationBarClass> {
             context.go('/search_courses');
             break;
           case 2:
-            context.go('/notifications');
+            context.go('/forums');
             break;
           case 3:
+            context.go('/notifications');
+            break;
+          case 4:
             context.go('/profile');
             break;
         }

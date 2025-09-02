@@ -2,7 +2,9 @@ import React, { useEffect, useState, useContext } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import api from "@shared/services/axios";
 import LeftSidebar from "../components/LeftSidebar";
+import SubmissionFilePreview from "@shared/components/SubmissionFilePreview";
 import { SidebarContext } from "../context/SidebarContext";
+import "@shared/styles/global.css";
 
 export default function Forums() {
   const [searchParams] = useSearchParams();
@@ -21,6 +23,8 @@ export default function Forums() {
     setSelectedTopico,
     topicSearch,
     setTopicSearch,
+    subscribedTopics,
+    toggleSubscribeTopic,
   } = useContext(SidebarContext);
 
   const [posts, setPosts] = useState([]);
@@ -35,6 +39,10 @@ export default function Forums() {
   const [reportDescricao, setReportDescricao] = useState("");
 
   const [sortBy, setSortBy] = useState("recent");
+  const isFollowed =
+    selectedTopico &&
+    Array.isArray(subscribedTopics) &&
+    subscribedTopics.some((t) => String(t.idtopico) === String(selectedTopico));
 
   // Vote icons shared with VerPost (colors via currentColor)
   const UpIcon = ({ filled, size = 22, color = "#28a745" }) =>
@@ -328,17 +336,22 @@ export default function Forums() {
           setSelectedTopico={setSelectedTopico}
           topicSearch={topicSearch}
           setTopicSearch={setTopicSearch}
+          subscribedTopics={subscribedTopics}
+          toggleSubscribeTopic={toggleSubscribeTopic}
         />
       </div>
 
       {/* Conteúdo principal centrado no espaço à direita da sidebar */}
-      <main className="flex-grow-1" style={{ padding: "1rem", minWidth: 0 }}>
+      <main
+        className="flex-grow-1"
+        style={{ padding: "1rem", minWidth: 0, marginTop: "20px" }}
+      >
         <div
-          className="container-fluid py-3 bg-light"
+          className="container-fluid"
           style={{ maxWidth: "960px", margin: "0 auto" }}
         >
           {/* Filtros e ações */}
-          <div className="card p-3 mb-3 shadow-sm d-flex">
+          <div className="card-rounded mb-3">
             <div
               className="d-flex align-items-center"
               style={{ width: "100%" }}
@@ -354,6 +367,24 @@ export default function Forums() {
                 <option value="top">Mais votados</option>
               </select>
               <button
+                className={`btn btn-sm ms-2 ${
+                  isFollowed ? "btn-outline-danger" : "btn-outline-primary"
+                }`}
+                onClick={() =>
+                  selectedTopico && toggleSubscribeTopic(selectedTopico)
+                }
+                disabled={!selectedTopico}
+                title={
+                  !selectedTopico
+                    ? "Selecione um tópico para seguir"
+                    : isFollowed
+                    ? "Deixar de seguir este tópico"
+                    : "Seguir este tópico"
+                }
+              >
+                {isFollowed ? "Deixar de seguir" : "Seguir tópico"}
+              </button>
+              <button
                 className="btn btn-primary btn-sm ms-2"
                 onClick={handleCreatePostClick}
               >
@@ -363,7 +394,7 @@ export default function Forums() {
             </div>
           </div>
           {/* Lista de posts */}
-          <div className="card p-3 shadow-sm">
+          <div className="card-rounded">
             <h5 className="mb-3">
               Tópico:{" "}
               {topicos.find(
@@ -389,7 +420,7 @@ export default function Forums() {
               sortedPosts.map((p) => {
                 return (
                   <div
-                    className="card mb-3 p-3 shadow-sm post-box"
+                    className="card-rounded post-container mb-3"
                     key={p.idpost}
                     onClick={() => handleNavigateToPost(p.idpost)}
                     style={{
@@ -407,81 +438,110 @@ export default function Forums() {
                         "0 2px 4px rgba(0, 0, 0, 0.1)";
                     }}
                   >
-                    <div className="post-container">
-                      <div className="vote-column">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleVotePost(p.idpost, "upvote", p.iteracao);
-                          }}
-                          className={`vote-btn up ${
-                            p.iteracao === true ? "active" : ""
-                          }`}
-                          aria-label="Upvote"
-                        >
-                          <UpIcon
-                            filled={p.iteracao === true}
-                            size={44}
-                            color="#28a745"
-                          />
-                        </button>
-                        <div className="vote-score">{p.pontuacao ?? 0}</div>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleVotePost(p.idpost, "downvote", p.iteracao);
-                          }}
-                          className={`vote-btn down ${
-                            p.iteracao === false ? "active" : ""
-                          }`}
-                          aria-label="Downvote"
-                        >
-                          <DownIcon
-                            filled={p.iteracao === false}
-                            size={44}
-                            color="#dc3545"
-                          />
-                        </button>
+                    <div className="vote-column">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleVotePost(p.idpost, "upvote", p.iteracao);
+                        }}
+                        className={`vote-btn up ${
+                          p.iteracao === true ? "active" : ""
+                        }`}
+                        aria-label="Upvote"
+                      >
+                        <UpIcon
+                          filled={p.iteracao === true}
+                          size={44}
+                          color="#28a745"
+                        />
+                      </button>
+                      <div className="vote-score">{p.pontuacao ?? 0}</div>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleVotePost(p.idpost, "downvote", p.iteracao);
+                        }}
+                        className={`vote-btn down ${
+                          p.iteracao === false ? "active" : ""
+                        }`}
+                        aria-label="Downvote"
+                      >
+                        <DownIcon
+                          filled={p.iteracao === false}
+                          size={44}
+                          color="#dc3545"
+                        />
+                      </button>
+                    </div>
+                    <div className="post-main flex-grow-1">
+                      <div className="text-muted small mb-2">
+                        <span>
+                          Postado por{" "}
+                          {(() => {
+                            const myId = String(
+                              currentUser?.id ??
+                                currentUser?.idutilizador ??
+                                currentUser?.utilizador ??
+                                ""
+                            );
+                            const ownerId = String(
+                              p.utilizador?.id ??
+                                p.utilizador?.idutilizador ??
+                                p.utilizador?.utilizador ??
+                                ""
+                            );
+                            const name = p.utilizador?.nome || "Anônimo";
+                            const me = myId && ownerId && myId === ownerId;
+                            return (
+                              <span className="comment-author">
+                                {me ? <strong>{name}</strong> : name}
+                              </span>
+                            );
+                          })()}{" "}
+                          • {timeAgo(p.criado)}
+                        </span>
                       </div>
-                      <div className="post-main flex-grow-1">
-                        <div className="text-muted small mb-2">
-                          <span>
-                            Postado por{" "}
-                            <strong>
-                              {currentUser?.id === p.utilizador?.id
-                                ? "Eu"
-                                : p.utilizador?.nome || "Anônimo"}
-                            </strong>{" "}
-                            • {timeAgo(p.criado)}
-                          </span>
-                        </div>
-                        <h5 className="mb-1" style={{ fontWeight: "bold" }}>
-                          {p.titulo}
-                        </h5>
-                        <p
-                          className="text-muted mb-1 small"
-                          style={{ fontStyle: "italic" }}
-                        >
-                          {getPostPreview(p.conteudo)}
-                        </p>
+                      <h5 className="mb-1" style={{ fontWeight: "bold" }}>
+                        {p.titulo}
+                      </h5>
+                      <p
+                        className="text-muted mb-1 small"
+                        style={{ fontStyle: "italic" }}
+                      >
+                        {getPostPreview(p.conteudo)}
+                      </p>
+                      {p.anexo && (
                         <div
-                          className="small d-flex gap-3 text-muted"
-                          style={{ alignItems: "center", lineHeight: "1.5" }}
+                          className="mt-3"
+                          onClick={(e) => e.stopPropagation()}
                         >
-                          <span
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: "8px",
-                              fontSize: "1rem",
-                            }}
-                          >
-                            <CommentsIcon size={22} color="#6c757d" />
-                            <span style={{ fontSize: "1rem" }}>
-                              {p.ncomentarios ?? 0} comentários
-                            </span>
-                          </span>
+                          <SubmissionFilePreview
+                            url={p.anexo}
+                            date={p.criado}
+                          />
                         </div>
+                      )}
+                      <div
+                        className="small d-flex gap-3 text-muted"
+                        style={{
+                          alignItems: "center",
+                          lineHeight: "1.5",
+                          marginTop: p.anexo ? "12px" : 0,
+                        }}
+                      >
+                        <span
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "8px",
+                            fontSize: "1rem",
+                          }}
+                        >
+                          <CommentsIcon size={22} color="#6c757d" />
+                          <span style={{ fontSize: "1rem" }}>
+                            {p.ncomentarios ?? 0} comentários
+                          </span>
+                        </span>
                       </div>
                     </div>
                   </div>

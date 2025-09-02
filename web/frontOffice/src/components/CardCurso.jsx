@@ -1,14 +1,23 @@
 import React from "react";
 import { Link } from "react-router-dom";
 
-function CardCurso({ curso, disponivel = null, inscrito = null, lecionado= null, notipo = false }) {
+function CardCurso({
+  curso,
+  disponivel = null,
+  inscrito = null,
+  lecionado = null,
+  notipo = false,
+}) {
   const { nome, thumbnail, sincrono } = curso;
   const id = curso.idcurso;
   const route = sincrono ? `/curso-sincrono/${id}` : `/curso/${id}`;
 
   return (
     <Link to={route} style={{ textDecoration: "none", color: "inherit" }}>
-      <div className="card h-100 card-sm shadow">
+      <div
+        className="card h-100 card-sm shadow hover-lift"
+        style={{ boxShadow: "0 2px 4px rgba(0, 0, 0, 0.1)" }}
+      >
         <div className="ratio-box position-relative">
           <img
             src={

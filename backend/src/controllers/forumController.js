@@ -1,7 +1,7 @@
 var initModels = require("../models/init-models.js");
 const Sequelize = require("sequelize");
 var db = require("../database.js");
-const logger = require('../logger.js');
+const logger = require("../logger.js");
 const {
   updateFile,
   deleteFile,
@@ -11,51 +11,29 @@ const {
 } = require("../utils.js");
 var models = initModels(db);
 
-
 async function getUserInfo(user) {
+  const utilizadorObject = await models.utilizadores.findByPk(user, {
+    attributes: ["nome", "foto"],
+  });
 
-    const utilizadorObject = await models.utilizadores.findByPk(user,{
-        attributes: ["nome", "foto"]
-    });
+  let foto = null;
 
-    let foto = null;
+  if (utilizadorObject.dataValues.foto) {
+    foto = await generateSASUrl(
+      utilizadorObject.dataValues.foto,
+      "userprofiles"
+    );
+  }
 
-    if (utilizadorObject.dataValues.foto) {
-        foto = await generateSASUrl(utilizadorObject.dataValues.foto, 'userprofiles');
-    } 
-
-    return {id : user, nome: utilizadorObject.nome, foto };
+  return { id: user, nome: utilizadorObject.nome, foto };
 }
-
 
 async function formatStuff(stuff, utilizador, iteracaoModel) {
   return await Promise.all(
     stuff.map(async (stuffObject) => {
-      if (stuffObject.utilizador === utilizador) {
-        stuffObject.dataValues.utilizador = { id: utilizador, nome: "Eu" };
-      } else {
-        const utilizadorObject = await models.utilizadores.findByPk(
-          stuffObject.utilizador,
-          {
-            attributes: ["idutilizador", "nome", "foto"],
-          }
-        );
-
-        let foto = null;
-
-
-        if (utilizadorObject.dataValues.foto) {
-            foto = await generateSASUrl(utilizadorObject.dataValues.foto, 'userprofiles');
-        } 
-
-        stuffObject.dataValues.utilizador = {
-          id: utilizadorObject.idutilizador,
-          nome: utilizadorObject.nome,
-          foto
-        };
-
-
-      }
+      stuffObject.dataValues.utilizador = await getUserInfo(
+        stuffObject.utilizador
+      );
 
       const queryOptions = { where: { utilizador } };
 
@@ -75,72 +53,53 @@ async function formatStuff(stuff, utilizador, iteracaoModel) {
   );
 }
 
-
-
-
 const controllers = {};
 
 controllers.createPost = async (req, res) => {
-
   const { idtopico } = req.params;
   const { titulo, conteudo } = JSON.parse(req.body.info || "{}");
 
   const utilizador = req.user.idutilizador;
   const anexo = req.file;
 
-  const insertData = 
-  {
-      utilizador,
-      topico : idtopico,
-      titulo,
-      conteudo
+  const insertData = {
+    utilizador,
+    topico: idtopico,
+    titulo,
+    conteudo,
   };
 
-
-
-
   logger.debug(
-    `Recebida requisição para criar post. Query: ${JSON.stringify(
-      req.query
-    )}`
+    `Recebida requisição para criar post. Query: ${JSON.stringify(req.query)}`
   );
 
-  if( titulo == undefined || titulo == null ){
-    return res.status(400).json({message : "Campo obrigatório :  titulo"})
+  if (titulo == undefined || titulo == null) {
+    return res.status(400).json({ message: "Campo obrigatório :  titulo" });
   }
 
-  if( conteudo == undefined || conteudo == null ){
-    return res.status(400).json({message : "Campo obrigatório : conteudo"})
+  if (conteudo == undefined || conteudo == null) {
+    return res.status(400).json({ message: "Campo obrigatório : conteudo" });
   }
 
   try {
+    if (anexo && anexo != undefined) {
+      insertData.anexo = await updateFile(anexo, "anexosposts", null, [
+        ".jpg",
+        ".png",
+        ".pdf",
+      ]);
+    }
 
+    const post = await models.post.create(insertData, { returning: true });
 
-      if (anexo && anexo != undefined) {
-        insertData.anexo = await updateFile(
-          anexo,
-          "anexosposts",
-          null,
-          [".jpg", ".png",".pdf"]
-        );
-      }
+    if (post.anexo != null) {
+      post.dataValues.anexo = await generateSASUrl(post.anexo, "anexosposts");
+    }
 
-      const post = await models.post.create(insertData,{ returning: true });
+    post.dataValues.utilizador = await getUserInfo(utilizador);
 
-
-      if (post.anexo != null) {
-        post.dataValues.anexo = await generateSASUrl(
-          post.anexo,
-          "anexosposts"
-        );
-      }
-
-      post.dataValues.utilizador = await getUserInfo(utilizador);
-
-      return res.status(200).json(post);
-        
+    return res.status(200).json(post);
   } catch (error) {
-
     logger.error(`Erro interno no servidor. Detalhes: ${error.message}`, {
       stack: error.stack,
     });
@@ -148,21 +107,15 @@ controllers.createPost = async (req, res) => {
     return res.status(500).json({
       error: "Ocorreu um erro interno ao criar o post.",
     });
-
   }
-
 };
 
-
 controllers.deletePost = async (req, res) => {
-
   const { id } = req.params;
   const utilizador = req.user.idutilizador;
 
-
   const admin =
     req.user.roles.find((roleEntry) => roleEntry.role === "admin")?.id || 0;
-
 
   logger.debug(
     `Recebida requisição para eleminar post. Query: ${JSON.stringify(
@@ -170,53 +123,38 @@ controllers.deletePost = async (req, res) => {
     )}`
   );
 
-
   try {
+    const post = await models.post.findByPk(id);
 
-      const post = await models.post.findByPk(id);
-
-      if(!post){
-
-        return res.status(404).json({
-          error: "Post não encontrado.",
-        });
-
-      }
-
-      if(admin || utilizador == post.utilizador) {
-
-
-
-        await post.destroy();
-
-
-        if(post.anexo){
-
-          try {
-            await deleteFile(post.anexo, "anexosposts");
-          } catch (error) {
-            logger.error(
-              `Anexo de post não removido Detalhes: ${error.message}`,
-              {
-                stack: error.stack,
-              }
-            );
-          }
-
-        }
-
-
-        return res.status(200).json({message : "Post eleminado com sucesso"});
-
-      }
-
-
-      return res.status(403).json({
-        error: "Proibido: permissões insuficientes.",
+    if (!post) {
+      return res.status(404).json({
+        error: "Post não encontrado.",
       });
-        
-  } catch (error) {
+    }
 
+    if (admin || utilizador == post.utilizador) {
+      await post.destroy();
+
+      if (post.anexo) {
+        try {
+          await deleteFile(post.anexo, "anexosposts");
+        } catch (error) {
+          logger.error(
+            `Anexo de post não removido Detalhes: ${error.message}`,
+            {
+              stack: error.stack,
+            }
+          );
+        }
+      }
+
+      return res.status(200).json({ message: "Post eleminado com sucesso" });
+    }
+
+    return res.status(403).json({
+      error: "Proibido: permissões insuficientes.",
+    });
+  } catch (error) {
     logger.error(`Erro interno no servidor. Detalhes: ${error.message}`, {
       stack: error.stack,
     });
@@ -224,49 +162,35 @@ controllers.deletePost = async (req, res) => {
     return res.status(500).json({
       error: "Ocorreu um erro interno ao eleminar o post.",
     });
-
   }
-
 };
 
-
 controllers.getPost = async (req, res) => {
-
   const { id } = req.params;
   const utilizador = req.user.idutilizador;
 
   logger.debug(
-    `Recebida requisição para obter post. Query: ${JSON.stringify(
-      req.query
-    )}`
+    `Recebida requisição para obter post. Query: ${JSON.stringify(req.query)}`
   );
 
   try {
+    const post = await models.post.findByPk(id);
 
-      const post = await models.post.findByPk(id);
+    post.dataValues.utilizador = await getUserInfo(post.utilizador);
 
-      post.dataValues.utilizador = await getUserInfo(post.utilizador);
+    if (post.anexo) {
+      post.dataValues.anexo = await generateSASUrl(post.anexo, "anexosposts");
+    }
 
-      if (post.anexo) {
-        post.dataValues.anexo = await generateSASUrl(
-          post.anexo,
-          "anexosposts"
-        );
-      }
+    let iteracao = await models.iteracaopost.findOne({
+      where: { post: id, utilizador },
+    });
+    iteracao = !iteracao ? null : iteracao.positiva ? true : false;
 
-      if(post.utilizador == utilizador){
-        post.dataValues.utilizador = "Eu"
-      }
+    post.dataValues.iteracao = iteracao;
 
-      let iteracao  = await models.iteracaopost.findOne({where : {post:id,utilizador}});
-      iteracao = !iteracao ? null : iteracao.positiva ? true : false; 
-
-      post.dataValues.iteracao = iteracao;
-
-      return res.status(200).json(post);
-        
+    return res.status(200).json(post);
   } catch (error) {
-
     logger.error(`Erro interno no servidor. Detalhes: ${error.message}`, {
       stack: error.stack,
     });
@@ -274,59 +198,45 @@ controllers.getPost = async (req, res) => {
     return res.status(500).json({
       error: "Ocorreu um erro interno ao obter post.",
     });
-
   }
-
 };
 
-
 controllers.getPosts = async (req, res, topico = null) => {
-
   const { id } = req.params;
   const utilizador = req.user.idutilizador;
   const orderBy = req.query.order;
   const search = req.query.search;
 
   logger.debug(
-    `Recebida requisição para obter post. Query: ${JSON.stringify(
-      req.query
-    )}`
+    `Recebida requisição para obter post. Query: ${JSON.stringify(req.query)}`
   );
 
   try {
+    const queryOptions = { where: {} };
 
+    if (orderBy == "recent") {
+      queryOptions.order = [["criado", "DESC"]];
+    } else {
+      queryOptions.order = [["pontuacao", "DESC"]];
+    }
 
-      const queryOptions = {where : {}};
+    if (search != undefined && search != "") {
+      queryOptions.where.titulo = {
+        [Sequelize.Op.iLike]: `%${search}%`,
+      };
+    }
 
-      if(orderBy == "recent"){
-        queryOptions.order = [['criado', 'DESC']];
-      } else {
-        queryOptions.order = [['pontuacao', 'DESC']];
-      }
+    if (topico != null) {
+      queryOptions.where.topico = topico;
+    }
 
-      if(search != undefined && search != ""){
+    let posts = await models.post.findAll(queryOptions);
+    if (posts.length > 0) {
+      posts = await formatStuff(posts, utilizador, models.iteracaopost);
+    }
 
-        queryOptions.where.titulo = {
-          [Sequelize.Op.iLike]: `%${search}%`,
-        };
-
-      }
-
-
-
-      if(topico != null){
-        queryOptions.where.topico = topico ;
-      }
-
-      let posts = await models.post.findAll(queryOptions);
-      if(posts.length > 0){
-        posts = await formatStuff(posts,utilizador,models.iteracaopost);
-      }
-
-      return res.status(200).json(posts);
-        
+    return res.status(200).json(posts);
   } catch (error) {
-
     logger.error(`Erro interno no servidor. Detalhes: ${error.message}`, {
       stack: error.stack,
     });
@@ -334,14 +244,10 @@ controllers.getPosts = async (req, res, topico = null) => {
     return res.status(500).json({
       error: "Ocorreu um erro interno ao obter post.",
     });
-
   }
-
 };
 
-
 controllers.votePost = async (req, res, positiva) => {
-
   const { id } = req.params;
   const utilizador = req.user.idutilizador;
 
@@ -352,21 +258,14 @@ controllers.votePost = async (req, res, positiva) => {
   );
 
   try {
+    await models.iteracaopost.upsert({
+      post: id,
+      utilizador,
+      positiva,
+    });
 
-      await models.iteracaopost.upsert(
-
-            {
-                post: id,
-                utilizador,
-                positiva
-            },
-
-      );
-
-      return res.status(200).json({ message:"Post votado com sucesso" });
-        
+    return res.status(200).json({ message: "Post votado com sucesso" });
   } catch (error) {
-
     logger.error(`Erro interno no servidor. Detalhes: ${error.message}`, {
       stack: error.stack,
     });
@@ -374,14 +273,10 @@ controllers.votePost = async (req, res, positiva) => {
     return res.status(500).json({
       error: "Ocorreu um erro interno no voto a um post.",
     });
-
   }
-
 };
 
-
 controllers.removeVotePost = async (req, res) => {
-
   const { id } = req.params;
   const utilizador = req.user.idutilizador;
 
@@ -392,41 +287,28 @@ controllers.removeVotePost = async (req, res) => {
   );
 
   try {
+    await models.iteracaopost.destroy({
+      where: {
+        post: id,
+        utilizador,
+      },
+    });
 
-      await models.iteracaopost.destroy(
-
-            {
-                where :
-                {
-                    post: id,
-                    utilizador
-                }
-            }
-
-      );
-
-      return res.status(200).json({ message:"Post desvotado com sucesso" });
-        
+    return res.status(200).json({ message: "Post desvotado com sucesso" });
   } catch (error) {
-
     logger.error(`Erro interno no servidor. Detalhes: ${error.message}`, {
       stack: error.stack,
     });
-return res.status(500).json({
+    return res.status(500).json({
       error: "Ocorreu um erro interno ao remover o voto a um post.",
     });
-
   }
-
 };
 
-
 controllers.respondPost = async (req, res) => {
-
   const { id } = req.params;
   const { conteudo } = req.body;
   const utilizador = req.user.idutilizador;
-
 
   logger.debug(
     `Recebida requisição para criar comentario para o post com id ${id}. Query: ${JSON.stringify(
@@ -435,38 +317,33 @@ controllers.respondPost = async (req, res) => {
   );
 
   try {
+    const comentarioObject = await models.comentario.create(
+      {
+        utilizador,
+        conteudo,
+      },
 
-      const comentarioObject = await models.comentario.create(
+      { returning: true }
+    );
 
-            {
-                utilizador,
-                conteudo
-            },
+    const comentarioPost = await models.respostapost.create(
+      {
+        post: id,
+        idcomentario: comentarioObject.idcomentario,
+      },
+      { returning: true }
+    );
 
-            { returning: true }
+    if (!comentarioPost) {
+      comentarioObject.destroy();
+      throw new Error("Comentário não inserido na tabela respostaPost");
+    }
 
-      );
+    // Popular com dados reais do autor do comentário
+    comentarioObject.dataValues.utilizador = await getUserInfo(utilizador);
 
-        
-      const comentarioPost = await models.respostapost.create(
-        {
-        post : id,  
-          idcomentario: comentarioObject.idcomentario 
-        },
-        { returning: true }
-      );
-
-      if(!comentarioPost){
-        comentarioObject.destroy();
-        throw new Error("Comentário não inserido na tabela respostaPost");
-      }
-
-      comentarioObject.dataValues.utilizador = "Eu";
-
-      return res.status(200).json(comentarioObject);
-        
+    return res.status(200).json(comentarioObject);
   } catch (error) {
-
     logger.error(`Erro interno no servidor. Detalhes: ${error.message}`, {
       stack: error.stack,
     });
@@ -474,18 +351,13 @@ controllers.respondPost = async (req, res) => {
     return res.status(500).json({
       error: "Ocorreu um erro interno ao criar comentário.",
     });
-
   }
-
 };
 
-
 controllers.reportPost = async (req, res) => {
-
   const { id } = req.params;
   const { tipo, descricao } = req.body;
   const utilizador = req.user.idutilizador;
-
 
   logger.debug(
     `Recebida requisição para criar denuncia para o post com id ${id}. Query: ${JSON.stringify(
@@ -494,36 +366,31 @@ controllers.reportPost = async (req, res) => {
   );
 
   try {
+    const denunciaObject = await models.denuncia.create(
+      {
+        tipo,
+        descricao,
+        criador: utilizador,
+      },
 
-      const denunciaObject = await models.denuncia.create(
+      { returning: true }
+    );
 
-            {
-              tipo, 
-              descricao,
-              criador : utilizador
-            },
+    const denunciaPost = await models.denunciapost.create(
+      {
+        post: id,
+        denuncia: denunciaObject.iddenuncia,
+      },
+      { returning: true }
+    );
 
-            { returning: true }
-      );
+    if (!denunciaPost) {
+      denunciaObject.destroy();
+      throw new Error("Denuncia não inserida na tabela DenunciaPost");
+    }
 
-        
-      const denunciaPost = await models.denunciapost.create(
-        {
-          post : id,  
-          denuncia: denunciaObject.iddenuncia 
-        },
-        { returning: true }
-      );
-
-      if(!denunciaPost){
-        denunciaObject.destroy();
-        throw new Error("Denuncia não inserida na tabela DenunciaPost");
-      }
-
-      return res.status(200).json(denunciaObject);
-        
+    return res.status(200).json(denunciaObject);
   } catch (error) {
-
     logger.error(`Erro interno no servidor. Detalhes: ${error.message}`, {
       stack: error.stack,
     });
@@ -531,18 +398,13 @@ controllers.reportPost = async (req, res) => {
     return res.status(500).json({
       error: "Ocorreu um erro interno ao criar denuncia.",
     });
-
   }
-
 };
 
-
 controllers.getRespostasPost = async (req, res) => {
-
   const { id } = req.params;
   const utilizador = req.user.idutilizador;
   const orderBy = req.query.order;
-
 
   logger.debug(
     `Recebida requisição para criar comentario para o post com id ${id}. Query: ${JSON.stringify(
@@ -551,34 +413,40 @@ controllers.getRespostasPost = async (req, res) => {
   );
 
   try {
+    const repostasObjects = await models.respostapost.findAll({
+      where: { post: id },
+      attributes: ["idcomentario"],
+    });
+    const respostasIds = repostasObjects.map(
+      (resposta) => resposta.idcomentario
+    );
 
-      const repostasObjects = await models.respostapost.findAll( {where : { post : id  }, attributes : ["idcomentario"] });
-      const respostasIds = repostasObjects.map((resposta) => resposta.idcomentario );
+    const queryOptions = {
+      where: {
+        idcomentario: {
+          [Sequelize.Op.in]: respostasIds,
+        },
+      },
+    };
 
-      const queryOptions = {
-        where : { 
-          idcomentario : {
-            [Sequelize.Op.in]: respostasIds
-          }
-        }
-      };
+    if (orderBy == "recent") {
+      queryOptions.order = [["criado", "DESC"]];
+    } else {
+      queryOptions.order = [["pontuacao", "DESC"]];
+    }
 
-      if(orderBy == "recent"){
-        queryOptions.order = [['criado', 'DESC']];
-      } else {
-        queryOptions.order = [['pontuacao', 'DESC']];
-      }
+    let comentarios = await models.comentario.findAll(queryOptions);
 
-      let comentarios = await models.comentario.findAll(queryOptions);
+    if (comentarios.length > 0) {
+      comentarios = await formatStuff(
+        comentarios,
+        utilizador,
+        models.iteracaocomentario
+      );
+    }
 
-      if(comentarios.length > 0){
-        comentarios = await formatStuff(comentarios,utilizador,models.iteracaocomentario);
-      }
-
-      return res.status(200).json(comentarios);
-        
+    return res.status(200).json(comentarios);
   } catch (error) {
-
     logger.error(`Erro interno no servidor. Detalhes: ${error.message}`, {
       stack: error.stack,
     });
@@ -586,18 +454,13 @@ controllers.getRespostasPost = async (req, res) => {
     return res.status(500).json({
       error: "Ocorreu um erro interno ao obter comentário.",
     });
-
   }
-
 };
 
-
 controllers.getRespostasComentario = async (req, res) => {
-
   const { id } = req.params;
   const utilizador = req.user.idutilizador;
   const orderBy = req.query.order;
-
 
   logger.debug(
     `Recebida requisição para criar comentario para o comentario com id ${id}. Query: ${JSON.stringify(
@@ -606,34 +469,40 @@ controllers.getRespostasComentario = async (req, res) => {
   );
 
   try {
+    const repostasObjects = await models.respostacomentario.findAll({
+      where: { comentario: id },
+      attributes: ["idcomentario"],
+    });
+    const respostasIds = repostasObjects.map(
+      (resposta) => resposta.idcomentario
+    );
 
-      const repostasObjects = await models.respostacomentario.findAll( {where : { comentario : id  }, attributes : ["idcomentario"] });
-      const respostasIds = repostasObjects.map((resposta) => resposta.idcomentario );
+    const queryOptions = {
+      where: {
+        idcomentario: {
+          [Sequelize.Op.in]: respostasIds,
+        },
+      },
+    };
 
-      const queryOptions = {
-        where : { 
-          idcomentario : {
-            [Sequelize.Op.in]: respostasIds
-          }
-        }
-      };
+    if (orderBy == "recent") {
+      queryOptions.order = [["criado", "DESC"]];
+    } else {
+      queryOptions.order = [["pontuacao", "DESC"]];
+    }
 
-      if(orderBy == "recent"){
-        queryOptions.order = [['criado', 'DESC']];
-      } else {
-        queryOptions.order = [['pontuacao', 'DESC']];
-      }
+    let comentarios = await models.comentario.findAll(queryOptions);
 
-      let comentarios = await models.comentario.findAll(queryOptions);
+    if (comentarios.length > 0) {
+      comentarios = await formatStuff(
+        comentarios,
+        utilizador,
+        models.iteracaocomentario
+      );
+    }
 
-      if(comentarios.length > 0){
-        comentarios = await formatStuff(comentarios,utilizador,models.iteracaocomentario);
-      }
-
-      return res.status(200).json(comentarios);
-        
+    return res.status(200).json(comentarios);
   } catch (error) {
-
     logger.error(`Erro interno no servidor. Detalhes: ${error.message}`, {
       stack: error.stack,
     });
@@ -641,18 +510,13 @@ controllers.getRespostasComentario = async (req, res) => {
     return res.status(500).json({
       error: "Ocorreu um erro interno ao obter comentário.",
     });
-
   }
-
 };
 
-
 controllers.respondComent = async (req, res) => {
-
   const { id } = req.params;
   const { conteudo } = req.body;
   const utilizador = req.user.idutilizador;
-
 
   logger.debug(
     `Recebida requisição para criar comentario para o post com id ${id}. Query: ${JSON.stringify(
@@ -661,39 +525,30 @@ controllers.respondComent = async (req, res) => {
   );
 
   try {
+    const comentarioObject = await models.comentario.create(
+      {
+        utilizador,
+        conteudo,
+      },
 
-      const comentarioObject = await models.comentario.create(
+      { returning: true }
+    );
 
-            {
-                utilizador,
-                conteudo
-            },
+    const respostaComentario = await models.respostacomentario.create(
+      {
+        comentario: id,
+        idcomentario: comentarioObject.idcomentario,
+      },
+      { returning: true }
+    );
 
-            { returning: true }
+    if (!respostaComentario) {
+      comentarioObject.destroy();
+      throw new Error("Comentário não inserido na tabela respostaPost");
+    }
 
-      );
-
-        
-      const respostaComentario = await models.respostacomentario.create(
-        {
-          comentario : id,  
-          idcomentario: comentarioObject.idcomentario 
-        },
-        { returning: true }
-      );
-
-      if(!respostaComentario){
-        comentarioObject.destroy();
-        throw new Error("Comentário não inserido na tabela respostaPost");
-      }
-
-    
-      comentarioObject.dataValues.utilizador = "Eu";
-
-      return res.status(200).json(comentarioObject);
-        
+    return res.status(200).json(comentarioObject);
   } catch (error) {
-
     logger.error(`Erro interno no servidor. Detalhes: ${error.message}`, {
       stack: error.stack,
     });
@@ -701,14 +556,10 @@ controllers.respondComent = async (req, res) => {
     return res.status(500).json({
       error: "Ocorreu um erro interno ao criar comentário.",
     });
-
   }
-
 };
 
-
 controllers.getComentario = async (req, res) => {
-
   const { id } = req.params;
 
   logger.debug(
@@ -718,32 +569,28 @@ controllers.getComentario = async (req, res) => {
   );
 
   try {
+    const comentario = await models.comentario.findByPk(id);
 
-      const comentario = await models.comentario.findByPk(id);
+    if (comentario) {
+      let context = await models.respostapost.findOne({
+        where: { idcomentario: id },
+      });
 
-      if(comentario){
+      if (!context) {
+        comentario.dataValues.alvo = "comentario";
+        context = await models.respostacomentario.findOne({
+          where: { idcomentario: id },
+        });
 
-        let context = await models.respostapost.findOne({where : { idcomentario : id } });
-
-        if(!context){
-
-          comentario.dataValues.alvo = "comentario";
-          context = await models.respostacomentario.findOne({where : { idcomentario : id } });
-
-          comentario.dataValues.idalvo = context.comentario;
-        } else {
-
-          comentario.dataValues.alvo = "post";
-          comentario.dataValues.idalvo = context.post;
-
-        }
-
+        comentario.dataValues.idalvo = context.comentario;
+      } else {
+        comentario.dataValues.alvo = "post";
+        comentario.dataValues.idalvo = context.post;
       }
+    }
 
-      return res.status(200).json(comentario);
-        
+    return res.status(200).json(comentario);
   } catch (error) {
-
     logger.error(`Erro interno no servidor. Detalhes: ${error.message}`, {
       stack: error.stack,
     });
@@ -751,18 +598,13 @@ controllers.getComentario = async (req, res) => {
     return res.status(500).json({
       error: "Ocorreu um erro interno ao obter comentario.",
     });
-
   }
-
 };
 
-
 controllers.reportComentario = async (req, res) => {
-
   const { id } = req.params;
   const { tipo, descricao } = req.body;
   const utilizador = req.user.idutilizador;
-
 
   logger.debug(
     `Recebida requisição para criar denuncia para o comentario com id ${id}. Query: ${JSON.stringify(
@@ -771,36 +613,31 @@ controllers.reportComentario = async (req, res) => {
   );
 
   try {
+    const denunciaObject = await models.denuncia.create(
+      {
+        tipo,
+        descricao,
+        criador: utilizador,
+      },
 
-      const denunciaObject = await models.denuncia.create(
+      { returning: true }
+    );
 
-            {
-              tipo, 
-              descricao,
-              criador : utilizador
-            },
+    const denunciaPost = await models.denunciacomentario.create(
+      {
+        comentario: id,
+        denuncia: denunciaObject.iddenuncia,
+      },
+      { returning: true }
+    );
 
-            { returning: true }
-      );
+    if (!denunciaPost) {
+      denunciaObject.destroy();
+      throw new Error("Denuncia não inserida na tabela DenunciaComentario");
+    }
 
-        
-      const denunciaPost = await models.denunciacomentario.create(
-        {
-          comentario : id,  
-          denuncia : denunciaObject.iddenuncia 
-        },
-        { returning: true }
-      );
-
-      if(!denunciaPost){
-        denunciaObject.destroy();
-        throw new Error("Denuncia não inserida na tabela DenunciaComentario");
-      }
-
-      return res.status(200).json(denunciaObject);
-        
+    return res.status(200).json(denunciaObject);
   } catch (error) {
-
     logger.error(`Erro interno no servidor. Detalhes: ${error.message}`, {
       stack: error.stack,
     });
@@ -808,21 +645,15 @@ controllers.reportComentario = async (req, res) => {
     return res.status(500).json({
       error: "Ocorreu um erro interno ao criar denuncia.",
     });
-
   }
-
 };
 
-
 controllers.deleteComentario = async (req, res) => {
-
   const { id } = req.params;
   const utilizador = req.user.idutilizador;
 
-
   const admin =
     req.user.roles.find((roleEntry) => roleEntry.role === "admin")?.id || 0;
-
 
   logger.debug(
     `Recebida requisição para eleminar post. Query: ${JSON.stringify(
@@ -830,33 +661,26 @@ controllers.deleteComentario = async (req, res) => {
     )}`
   );
 
-
   try {
+    const comentario = await models.comentario.findByPk(id);
 
-      const comentario = await models.comentario.findByPk(id);
-
-      if(!comentario){
-
-        return res.status(404).json({
-          error: "Post não encontrado.",
-        });
-
-      }
-
-      if(admin || utilizador == comentario.utilizador) {
-
-        await  comentario.destroy();
-        return res.status(200).json({message : "Comentario eleminado com sucesso"});
-
-      }
-
-
-      return res.status(403).json({
-        error: "Proibido: permissões insuficientes.",
+    if (!comentario) {
+      return res.status(404).json({
+        error: "Post não encontrado.",
       });
-        
-  } catch (error) {
+    }
 
+    if (admin || utilizador == comentario.utilizador) {
+      await comentario.destroy();
+      return res
+        .status(200)
+        .json({ message: "Comentario eleminado com sucesso" });
+    }
+
+    return res.status(403).json({
+      error: "Proibido: permissões insuficientes.",
+    });
+  } catch (error) {
     logger.error(`Erro interno no servidor. Detalhes: ${error.message}`, {
       stack: error.stack,
     });
@@ -864,14 +688,10 @@ controllers.deleteComentario = async (req, res) => {
     return res.status(500).json({
       error: "Ocorreu um erro interno ao eleminar o post.",
     });
-
   }
-
 };
 
-
 controllers.voteComentario = async (req, res, positiva) => {
-
   const { id } = req.params;
   const utilizador = req.user.idutilizador;
 
@@ -882,21 +702,14 @@ controllers.voteComentario = async (req, res, positiva) => {
   );
 
   try {
+    await models.iteracaocomentario.upsert({
+      comentario: id,
+      utilizador,
+      positiva,
+    });
 
-      await models.iteracaocomentario.upsert(
-
-            {
-                comentario: id,
-                utilizador,
-                positiva
-            },
-
-      );
-
-      return res.status(200).json({ message:"Comentario votado com sucesso" });
-        
+    return res.status(200).json({ message: "Comentario votado com sucesso" });
   } catch (error) {
-
     logger.error(`Erro interno no servidor. Detalhes: ${error.message}`, {
       stack: error.stack,
     });
@@ -904,14 +717,10 @@ controllers.voteComentario = async (req, res, positiva) => {
     return res.status(500).json({
       error: "Ocorreu um erro interno no voto a um comentario.",
     });
-
   }
-
 };
 
-
 controllers.removeVoteComentario = async (req, res) => {
-
   const { id } = req.params;
   const utilizador = req.user.idutilizador;
 
@@ -922,38 +731,28 @@ controllers.removeVoteComentario = async (req, res) => {
   );
 
   try {
+    await models.iteracaocomentario.destroy({
+      where: {
+        comentario: id,
+        utilizador,
+      },
+    });
 
-      await models.iteracaocomentario.destroy(
-
-            {
-                where :
-                {
-                    comentario: id,
-                    utilizador
-                }
-            }
-
-      );
-
-      return res.status(200).json({ message:"Comentario desvotado com sucesso" });
-        
+    return res
+      .status(200)
+      .json({ message: "Comentario desvotado com sucesso" });
   } catch (error) {
-
     logger.error(`Erro interno no servidor. Detalhes: ${error.message}`, {
       stack: error.stack,
     });
-    
+
     return res.status(500).json({
-        error: "Ocorreu um erro interno ao remover o voto a um comentario.",
+      error: "Ocorreu um erro interno ao remover o voto a um comentario.",
     });
-
   }
-
 };
 
-
 controllers.getTiposDenuncia = async (req, res) => {
-
   logger.debug(
     `Recebida requisição para obter tipos de denuncia. Query: ${JSON.stringify(
       req.query
@@ -961,14 +760,10 @@ controllers.getTiposDenuncia = async (req, res) => {
   );
 
   try {
+    const tiposDenuncia = await models.tipodenuncia.findAll();
 
-      const tiposDenuncia = await models.tipodenuncia.findAll();
-
-
-      return res.status(200).json(tiposDenuncia);
-        
+    return res.status(200).json(tiposDenuncia);
   } catch (error) {
-
     logger.error(`Erro interno no servidor. Detalhes: ${error.message}`, {
       stack: error.stack,
     });
@@ -976,14 +771,10 @@ controllers.getTiposDenuncia = async (req, res) => {
     return res.status(500).json({
       error: "Ocorreu um erro interno ao tipos de denuncia.",
     });
-
   }
-
 };
-
 
 controllers.getDenunciaPosts = async (req, res) => {
-
   logger.debug(
     `Recebida requisição para obter tipos de denuncia. Query: ${JSON.stringify(
       req.query
@@ -991,46 +782,42 @@ controllers.getDenunciaPosts = async (req, res) => {
   );
 
   try {
+    queryOptions = {
+      include: [
+        {
+          model: models.denuncia,
+          as: "denuncia_denuncium",
+          attributes: ["tipo", "descricao", "criador"],
+        },
+      ],
+    };
 
-      queryOptions = {
+    const denunciaPosts = await models.denunciapost.findAll(queryOptions);
 
-          include: [
-            {
-              model: models.denuncia,
-              as: "denuncia_denuncium",
-              attributes: ["tipo", "descricao", "criador"],
-            },
-          ]
-
-      }
-
-
-      const denunciaPosts = await models.denunciapost.findAll(queryOptions);
-
-
-      let denunciaPostResults = 
-
-        await Promise.all( denunciaPosts.map( async (denuncia) => {
-
-          const utilizadorObject = await models.utilizadores.findByPk(denuncia.denuncia_denuncium.criador,{
-              attributes: ["nome"]
-          });
-
-            return {
-              post: denuncia.post,
-              iddenuncia: denuncia.denuncia,
-              tipo: denuncia.denuncia_denuncium.tipo,
-              decricao: denuncia.denuncia_denuncium.descricao,
-              utilizador: { id : denuncia.denuncia_denuncium.criador, nome : utilizadorObject.nome }
-            };
-          })
+    let denunciaPostResults = await Promise.all(
+      denunciaPosts.map(async (denuncia) => {
+        const utilizadorObject = await models.utilizadores.findByPk(
+          denuncia.denuncia_denuncium.criador,
+          {
+            attributes: ["nome"],
+          }
         );
 
+        return {
+          post: denuncia.post,
+          iddenuncia: denuncia.denuncia,
+          tipo: denuncia.denuncia_denuncium.tipo,
+          decricao: denuncia.denuncia_denuncium.descricao,
+          utilizador: {
+            id: denuncia.denuncia_denuncium.criador,
+            nome: utilizadorObject.nome,
+          },
+        };
+      })
+    );
 
-      return res.status(200).json(denunciaPostResults);
-        
+    return res.status(200).json(denunciaPostResults);
   } catch (error) {
-
     logger.error(`Erro interno no servidor. Detalhes: ${error.message}`, {
       stack: error.stack,
     });
@@ -1038,14 +825,10 @@ controllers.getDenunciaPosts = async (req, res) => {
     return res.status(500).json({
       error: "Ocorreu um erro interno ao obter denuncias.",
     });
-
   }
-
 };
-
 
 controllers.getDenunciaComentarios = async (req, res) => {
-
   logger.debug(
     `Recebida requisição para obter tipos de denuncia. Query: ${JSON.stringify(
       req.query
@@ -1053,44 +836,44 @@ controllers.getDenunciaComentarios = async (req, res) => {
   );
 
   try {
+    queryOptions = {
+      include: [
+        {
+          model: models.denuncia,
+          as: "denuncia_denuncium",
+          attributes: ["tipo", "descricao", "criador"],
+        },
+      ],
+    };
 
-      queryOptions = {
+    const denunciaComentarios = await models.denunciacomentario.findAll(
+      queryOptions
+    );
 
-          include: [
-            {
-              model: models.denuncia,
-              as: "denuncia_denuncium",
-              attributes: ["tipo", "descricao", "criador"],
-            },
-          ]
-
-      }
-
-
-      const denunciaComentarios = await models.denunciacomentario.findAll(queryOptions);
-
-      let denunciaComentarioResults = 
-
-        await Promise.all( denunciaComentarios.map( async (denuncia) => {
-
-          const utilizadorObject = await models.utilizadores.findByPk(denuncia.denuncia_denuncium.criador,{
-              attributes: ["nome"]
-          });
-
-            return {
-              comentario: denuncia.comentario,
-              iddenuncia: denuncia.denuncia,
-              tipo: denuncia.denuncia_denuncium.tipo,
-              decricao: denuncia.denuncia_denuncium.descricao,
-              utilizador: { id : denuncia.denuncia_denuncium.criador, nome : utilizadorObject.nome }
-            };
-          })
+    let denunciaComentarioResults = await Promise.all(
+      denunciaComentarios.map(async (denuncia) => {
+        const utilizadorObject = await models.utilizadores.findByPk(
+          denuncia.denuncia_denuncium.criador,
+          {
+            attributes: ["nome"],
+          }
         );
 
-      return res.status(200).json(denunciaComentarioResults);
-        
-  } catch (error) {
+        return {
+          comentario: denuncia.comentario,
+          iddenuncia: denuncia.denuncia,
+          tipo: denuncia.denuncia_denuncium.tipo,
+          decricao: denuncia.denuncia_denuncium.descricao,
+          utilizador: {
+            id: denuncia.denuncia_denuncium.criador,
+            nome: utilizadorObject.nome,
+          },
+        };
+      })
+    );
 
+    return res.status(200).json(denunciaComentarioResults);
+  } catch (error) {
     logger.error(`Erro interno no servidor. Detalhes: ${error.message}`, {
       stack: error.stack,
     });
@@ -1098,15 +881,10 @@ controllers.getDenunciaComentarios = async (req, res) => {
     return res.status(500).json({
       error: "Ocorreu um erro interno ao obter denuncias.",
     });
-
   }
-
 };
 
-
 controllers.rmDenuncia = async (req, res) => {
-
-
   const { id } = req.params;
 
   logger.debug(
@@ -1116,14 +894,10 @@ controllers.rmDenuncia = async (req, res) => {
   );
 
   try {
+    await models.denuncia.destroy({ where: { iddenuncia: id } });
 
-      await models.denuncia.destroy({ where : { iddenuncia : id } });
-
-
-      return res.status(200).json({message : "denuncia eleminada com sucesso"});
-        
+    return res.status(200).json({ message: "denuncia eleminada com sucesso" });
   } catch (error) {
-
     logger.error(`Erro interno no servidor. Detalhes: ${error.message}`, {
       stack: error.stack,
     });
@@ -1131,12 +905,7 @@ controllers.rmDenuncia = async (req, res) => {
     return res.status(500).json({
       error: "Ocorreu um erro interno ao eleminar denuncia.",
     });
-
   }
-
 };
-
-
-
 
 module.exports = controllers;
