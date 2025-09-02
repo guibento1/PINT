@@ -1165,58 +1165,88 @@ class _ForumsPageState extends State<ForumsPage> {
                                 // Attachment preview (if any)
                                 Builder(
                                   builder: (_) {
-                                    // Resolve URL from common keys
-                                    final raw =
-                                        p['anexo'] ??
-                                        p['anexoUrl'] ??
-                                        p['attachment'] ??
-                                        p['ficheiro'];
-                                    final url = raw?.toString();
-                                    if (url == null || url.isEmpty) {
-                                      return const SizedBox.shrink();
-                                    }
-                                    final resolved =
-                                        url.startsWith('http')
-                                            ? url
-                                            : '${_server.urlAPI}$url';
-
-                                    // Try to determine a human filename similarly to post details
+                                    // Extract URL and filename matching the details page behavior
+                                    String? fileUrl;
                                     String? fileName;
-                                    // 1) Direct known flat keys
-                                    for (final k in const [
-                                      'anexoNome',
-                                      'nomeAnexo',
-                                      'nomeFicheiro',
-                                      'ficheiroNome',
-                                      'filename',
-                                      'anexoFilename',
-                                      'anexo_name',
-                                    ]) {
-                                      final v = p[k];
-                                      if (v != null &&
-                                          v.toString().trim().isNotEmpty) {
-                                        fileName = v.toString().trim();
-                                        break;
+
+                                    final anexo = p['anexo'];
+                                    if (anexo is Map) {
+                                      for (final k in const [
+                                        'url',
+                                        'ficheiro',
+                                        'path',
+                                        'caminho',
+                                        'href',
+                                        'link',
+                                      ]) {
+                                        final v = anexo[k];
+                                        if (v is String &&
+                                            v.trim().isNotEmpty) {
+                                          fileUrl = v.trim();
+                                          break;
+                                        }
                                       }
+                                      for (final k in const [
+                                        'filename',
+                                        'nome',
+                                        'name',
+                                      ]) {
+                                        final v = anexo[k];
+                                        if (v is String &&
+                                            v.trim().isNotEmpty) {
+                                          fileName = v.trim();
+                                          break;
+                                        }
+                                      }
+                                    } else if (anexo is String &&
+                                        anexo.trim().isNotEmpty) {
+                                      fileUrl = anexo.trim();
                                     }
-                                    // 2) Nested anexo object
-                                    if (fileName == null) {
-                                      final a = p['anexo'];
-                                      if (a is Map) {
-                                        for (final k in const [
-                                          'filename',
-                                          'nome',
-                                          'name',
-                                        ]) {
-                                          final v = a[k];
-                                          if (v != null &&
-                                              v.toString().trim().isNotEmpty) {
-                                            fileName = v.toString().trim();
-                                            break;
-                                          }
+
+                                    if (fileUrl == null || fileUrl.isEmpty) {
+                                      for (final k in const [
+                                        'anexoUrl',
+                                        'attachment',
+                                        'ficheiro',
+                                        'fileUrl',
+                                        'file',
+                                      ]) {
+                                        final v = p[k];
+                                        if (v is String &&
+                                            v.trim().isNotEmpty) {
+                                          fileUrl = v.trim();
+                                          break;
                                         }
                                       }
                                     }
+
+                                    if (fileName == null || fileName.isEmpty) {
+                                      for (final k in const [
+                                        'anexoNome',
+                                        'nomeAnexo',
+                                        'nomeFicheiro',
+                                        'ficheiroNome',
+                                        'filename',
+                                        'anexoFilename',
+                                        'anexo_name',
+                                      ]) {
+                                        final v = p[k];
+                                        if (v is String &&
+                                            v.trim().isNotEmpty) {
+                                          fileName = v.trim();
+                                          break;
+                                        }
+                                      }
+                                    }
+
+                                    if (fileUrl == null || fileUrl.isEmpty) {
+                                      return const SizedBox.shrink();
+                                    }
+                                    // Normalize base join to avoid missing '/' when fileUrl does not start with '/'
+                                    final resolved =
+                                        fileUrl.startsWith('http')
+                                            ? fileUrl
+                                            : '${_server.urlAPI}${fileUrl.startsWith('/') ? '' : '/'}$fileUrl';
 
                                     return Padding(
                                       padding: const EdgeInsets.only(top: 8.0),

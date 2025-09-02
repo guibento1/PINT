@@ -21,8 +21,18 @@ class SubmissionFilePreview extends StatelessWidget {
     if (provided != null && provided.trim().isNotEmpty) return provided;
     try {
       final uri = Uri.parse(url);
-      final qp = uri.queryParameters['filename'] ?? uri.queryParameters['name'];
-      if (qp != null && qp.trim().isNotEmpty) return qp;
+      // Common query keys used by backends/CDNs
+      for (final k in const [
+        'filename',
+        'name',
+        'file',
+        'download',
+        'attachment',
+        'fn',
+      ]) {
+        final qp = uri.queryParameters[k];
+        if (qp != null && qp.trim().isNotEmpty) return Uri.decodeComponent(qp);
+      }
       final last = uri.pathSegments.isNotEmpty ? uri.pathSegments.last : '';
       if (last.isNotEmpty) return Uri.decodeComponent(last);
     } catch (_) {}
