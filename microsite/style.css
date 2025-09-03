@@ -75,6 +75,18 @@ ul {
   margin-top: 30px;
 }
 
+.galeria-seccao {
+  margin-top: 40px;
+}
+
+.galeria-seccao h3 {
+  font-size: 1.2rem;
+  color: #004aad;
+  margin-bottom: 10px;
+  padding-left: 12px;
+}
+
+
 .imagem {
   background: white;
   border-radius: 8px;
@@ -202,3 +214,27 @@ a:hover {
   font-size: 1rem;
   text-align: center;
 }
+
+.seta {
+  cursor: pointer;
+  position: absolute;
+  top: 50%;
+  font-size: 40px;
+  color: white;
+  padding: 10px;
+  user-select: none;
+  transition: 0.3s;
+}
+
+.seta:hover {
+  color: #ccc;
+}
+
+.seta.esquerda {
+  left: 20px;
+}
+
+.seta.direita {
+  right: 20px;
+}
+
