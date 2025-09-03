@@ -1958,6 +1958,14 @@ controllers.addSessao = async (req, res) => {
         idcursosincrono: idcursosinc,
       },
       attributes: ["curso"],
+
+      include: [
+        {
+          model: models.curso,
+          as: "curso_curso",
+          attributes: ["canal"],
+        },
+      ],
     });
     if (!cursosinc) {
       logger.warn(`Curso síncrono com ID ${idcursosinc} não encontrado.`);
@@ -1997,6 +2005,26 @@ controllers.addSessao = async (req, res) => {
     );
 
     const result = await formatSessao(createdRow);
+
+
+    try {
+
+      await sendNotification(
+        cursosinc.curso_curso.canal,
+        `Nova licão criada para o curso ${cursosinc.curso}`,
+        titulo
+      );
+      
+    } catch (error) {
+
+      logger.error(
+        `Nao foi possivel enviar notificao : ${error.message}`,
+        {
+          stack: error.stack,
+        }
+      );
+      
+    }
 
     return res.status(201).json(result);
     
@@ -2983,6 +3011,13 @@ controllers.addLicao = async (req, res) => {
         idcursoassincrono: idcursoassinc,
       },
       attributes: ["curso"],
+      include: [
+        {
+          model: models.curso,
+          as: "curso_curso",
+          attributes: ["canal"],
+        },
+      ],
     });
     if (!cursoassinc) {
       logger.warn(`Curso assíncrono com ID ${idcursoassinc} não encontrado.`);
@@ -2999,6 +3034,28 @@ controllers.addLicao = async (req, res) => {
     logger.info(
       `Lição com ID ${createdRow.idlicao} adicionada com sucesso ao curso assíncrono ${idcursoassinc}.`
     );
+
+    try {
+
+      await sendNotification(
+        cursoassinc.curso_curso.canal,
+        `Nova licão criada para o curso ${cursoassinc.curso}`,
+        titulo
+      );
+      
+    } catch (error) {
+
+      logger.error(
+        `Nao foi possivel enviar notificao : ${error.message}`,
+        {
+          stack: error.stack,
+        }
+      );
+      
+    }
+
+
+
     return res.status(201).json(createdRow);
   } catch (error) {
     logger.error(

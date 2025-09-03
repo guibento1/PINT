@@ -60,3 +60,40 @@ BEGIN
 
 END;
 $$ LANGUAGE plpgsql;
+
+
+CREATE OR REPLACE FUNCTION trg_inscricao_insert()
+RETURNS TRIGGER AS $$
+DECLARE
+    v_canal BIGINT;
+    v_utilizador BIGINT;
+BEGIN
+    SELECT canal INTO v_canal FROM Curso WHERE idCurso = NEW.curso;
+
+    SELECT utilizador INTO v_utilizador FROM Formando WHERE idFormando = NEW.formando;
+
+    INSERT INTO CanaisUtilizadores (canal, utilizador)
+    VALUES (v_canal, v_utilizador)
+    ON CONFLICT DO NOTHING;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+
+CREATE OR REPLACE FUNCTION trg_inscricao_delete()
+RETURNS TRIGGER AS $$ 
+DECLARE
+    v_canal BIGINT;
+    v_utilizador BIGINT;
+BEGIN
+    SELECT canal INTO v_canal FROM Curso WHERE idCurso = OLD.curso;
+
+    SELECT utilizador INTO v_utilizador FROM Formando WHERE idFormando = OLD.formando;
+
+    DELETE FROM CanaisUtilizadores
+    WHERE canal = v_canal AND utilizador = v_utilizador;
+
+    RETURN OLD;
+END;
+$$ LANGUAGE plpgsql;

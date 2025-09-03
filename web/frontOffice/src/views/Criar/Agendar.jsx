@@ -192,7 +192,7 @@ const Agendar = () => {
       await tryEndpoints(
         "post",
         [
-          `/sessao/${curso.idcrono}`,
+          `curso/sessao/${curso.idcrono}`,
           `/curso/cursosincrono/${curso.idcrono}/sessao`,
           `/curso/${id}/sessao`,
         ],

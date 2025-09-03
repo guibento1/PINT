@@ -199,37 +199,35 @@ controllers.getCanaisInscritos = async (req, res) => {
 
 
     try {
+
+
         const formando = await models.formando.findOne({
             where: {
                 utilizador: idutilizador
             }
         });
-        if (!formando) {
-            logger.warn(`O utilizador ${idutilizador} não possui a role de formando.`);
-            return res.status(404).json({
-                error: 'Utilizador não tem o papel de formando.'
+
+        if(formando){
+
+            const formandoId = formando.idformando;
+
+            const inscricoes = await models.inscricao.findAll({
+                where: {
+                    formando: formandoId
+                },
+                include: [
+                 {
+                    model: models.curso,
+                    as: "curso_curso",
+                    attributes: ["canal"],
+                 },
+                ]
             });
+
+            const inscricoesCanais = inscricoes.map((inscricao) => parseInt(inscricao.curso_curso.canal) )
+            canais.push(...inscricoesCanais);
+
         }
-        const inscricoes = await models.inscricao.findAll({
-            where: {
-                formando: formando.idformando
-            }
-        });
-        if (inscricoes.length === 0) {
-            logger.info(`Nenhuma inscrição encontrada para o formando ${formando.idformando}.`);
-            return res.status(200).json(canais);
-        }
-        const cursosIndexes = inscricoes.map(inscricao => inscricao.curso);
-        const cursosCanais = await models.curso.findAll({
-            attributes: ["canal"],
-            where: {
-                idcurso: {
-                    [Sequelize.Op.in]: cursosIndexes
-                }
-            }
-        });
-        const canaisCursos = cursosCanais.map(curso => parseInt(curso.canal));
-        canais = [...new Set([...canais, ...canaisCursos])];
         logger.info(`Canais inscritos para o utilizador ${idutilizador} retornados com sucesso.`);
         return res.status(200).json(canais);
     } catch (error) {
@@ -246,6 +244,8 @@ controllers.getCanaisInscritos = async (req, res) => {
 controllers.listUserNotifications = async (req, res) => {
 
     var idutilizador = req.user.idutilizador;
+
+
     logger.debug(`Recebida requisição para buscar notificaoes para o utilizador ${idutilizador}`);
 
     let canais = [1];
@@ -258,6 +258,31 @@ controllers.listUserNotifications = async (req, res) => {
     } else {
       const isAdmin = await models.admin.count({ where: { utilizador: idutilizador, ativo: true }, limit: 1 });
       if(isAdmin) canais.push(2);
+    }
+
+
+    const formandoId =
+        req.user.roles.find((roleEntry) => roleEntry.role === "formando")?.id || 0;
+
+    if(formandoId){
+
+        const inscricoes = await models.inscricao.findAll({
+            where: {
+                formando: formandoId
+            },
+            include: [
+             {
+                model: models.curso,
+                as: "curso_curso",
+                attributes: ["canal"],
+             },
+            ]
+        });
+
+        const inscricoesCanais = inscricoes.map((inscricao) => parseInt(inscricao.curso_curso.canal) )
+
+        canais.push(...inscricoesCanais);
+
     }
 
 
@@ -344,7 +369,7 @@ controllers.subscribeDeviceToCanais = async (req, res) => {
     const allCanalIds = allCanais.map(c => parseInt(c.canal)).filter(Boolean);
 
     for (const canal of allCanalIds) {
-      await unsubscribeFromCanal(device, `canal_${canal}`); 
+      await unsubscribeFromCanal(device, canal); 
     }
 
     logger.info(`Dispositivo desinscrito de todos os canais conhecidos: ${allCanalIds.join(', ')}`);
@@ -356,7 +381,7 @@ controllers.subscribeDeviceToCanais = async (req, res) => {
     const userCanais = canaisDB.map(c => parseInt(c.canal)).filter(Boolean);
 
     for (const canal of userCanais) {
-      await subscribeToCanal(device, `canal_${canal}`); 
+      await subscribeToCanal(device, canal); 
     }
 
     logger.info(`Dispositivo inscrito com sucesso nos canais do utilizador: ${userCanais.join(', ')}`);

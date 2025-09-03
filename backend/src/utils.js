@@ -252,6 +252,8 @@ async function sendNotification(topic, title, body, imageUrl = null) {
 
     const response = await firebaseAdmin.messaging().send(message);
 
+    console.log(response);
+
     logger.info(`FCM notification sent successfully to topic: "${topic}".`, {
       messageId: response,
     });
@@ -282,7 +284,6 @@ async function sendNotificationToUtilizador(utilizador, title, body, imageUrl = 
   try {
     let utilizadorDeviceTokens = await models.utilizadordispositivos.findAll({
       where: { utilizador },
-      attributes: ['dispositivo']
     });
 
     utilizadorDeviceTokens = utilizadorDeviceTokens.map((utilizadorDeviceToken) => utilizadorDeviceToken.dispositivo);
@@ -318,21 +319,22 @@ async function sendNotificationToUtilizador(utilizador, title, body, imageUrl = 
     let successCount = 0;
     let failureCount = 0;
 
-    for (const token of utilizadorDeviceTokens) {
+    for (const utilizadorDeviceToken of utilizadorDeviceTokens) {
       try {
         const response = await firebaseAdmin.messaging().send({
           ...message,
-          token,
+          token : utilizadorDeviceToken.dispositivo,
         });
 
         if (response.successCount > 0) {
           successCount++;
         } else {
+          utilizadorDeviceToken.destroy();
           failureCount++;
         }
       } catch (error) {
-        logger.error(`Error sending notification to token "${token}": ${error.message}`, {
-          token,
+        logger.error(`Error sending notification to token "${utilizadorDeviceToken.dispositivo}": ${error.message}`, {
+          token : utilizadorDeviceToken.dispositivo,
           title,
           body,
           stack: error.stack,
@@ -357,12 +359,16 @@ async function sendNotificationToUtilizador(utilizador, title, body, imageUrl = 
 
 
 async function subscribeToCanal(deviceTokens, topic) {
+
+  const topicFormated = "canal_" + topic;
+
   try {
-    const response = await firebaseAdmin.messaging().subscribeToTopic(deviceTokens, topic);
-    logger.info(`Subscribed ${deviceTokens} token(s) to topic "${topic}".`, response);
-    return response;
+    const response = await firebaseAdmin.messaging().subscribeToTopic(deviceTokens,topicFormated);
+    const success = response.errors.length == 0;
+    logger.info(`Subscribed token(s) to topic "${topicFormated}".`, success);
+    return success;
   } catch (error) {
-    logger.error(`Error subscribing tokens to topic "${topic}": ${error.message}`, {
+    logger.error(`Error subscribing tokens to topic "${topicFormated}": ${error.message}`, {
       tokens: deviceTokens,
       stack: error.stack,
     });
@@ -373,21 +379,20 @@ async function subscribeToCanal(deviceTokens, topic) {
 
 async function subscribeUtilizadorToCanal(utilizador, topic) {
 
-  const topicFormated = "canal_" + topic;
 
   try {
 
     let utilizadorDeviceTokens = await models.utilizadordispositivos.findAll({
       where: { utilizador },
-      attributes: ['dispositivo']
     });
 
-    utilizadorDeviceTokens = utilizadorDeviceTokens.map((utilizadorDeviceToken) => utilizadorDeviceToken.dispositivo);
-
-    for (const token of utilizadorDeviceTokens) {
+    for (const utilizadorDeviceToken of utilizadorDeviceTokens) {
       try {
 
-        await subscribeToCanal(token,topicFormated);
+        const success = await subscribeToCanal(utilizadorDeviceToken.dispositivo,topic);
+        if(!success){
+            utilizadorDeviceToken.destroy();
+        }
 
       } catch (error) {
         logger.error(`Error sending notification to token "${token}": ${error.message}`, {
@@ -409,10 +414,14 @@ async function subscribeUtilizadorToCanal(utilizador, topic) {
 
 
 async function unsubscribeFromCanal(deviceTokens, topic) {
+
+  const topicFormated = "canal_" + topic;
+
   try {
-    const response = await firebaseAdmin.messaging().unsubscribeFromTopic(deviceTokens, topic);
-    logger.info(`Unsubscribed ${deviceTokens.length} token(s) from topic "${topic}".`, response);
-    return response;
+    const response = await firebaseAdmin.messaging().unsubscribeFromTopic(deviceTokens, topicFormated);
+    const success = response.errors.length == 0;
+    logger.info(`Unsubscribed token(s) from topic "${topic}".`, success);
+    return success;
   } catch (error) {
     logger.error(`Error unsubscribing tokens from topic "${topic}": ${error.message}`, {
       tokens: deviceTokens,
@@ -425,22 +434,19 @@ async function unsubscribeFromCanal(deviceTokens, topic) {
 
 async function unsubscribeUtilizadorToCanal(utilizador, topic) {
 
-  const topicFormated = "canal_" + topic;
-
   try {
 
     let utilizadorDeviceTokens = await models.utilizadordispositivos.findAll({
       where: { utilizador },
-      attributes: ['dispositivo']
     });
 
-    utilizadorDeviceTokens = utilizadorDeviceTokens.map((utilizadorDeviceToken) => utilizadorDeviceToken.dispositivo);
-
-
-    for (const token of utilizadorDeviceTokens) {
+    for (const utilizadorDeviceToken of utilizadorDeviceTokens) {
       try {
 
-        await unsubscribeFromCanal(token,topicFormated);
+        const success = await unsubscribeFromCanal(utilizadorDeviceToken.dispositivo,topic);
+        if(!success){
+            utilizadorDeviceToken.destroy();
+        }
 
       } catch (error) {
         logger.error(`Error sending notification to token "${token}": ${error.message}`, {

@@ -20,3 +20,13 @@ CREATE TRIGGER trigger_remover_topicos
 BEFORE DELETE ON curso
 FOR EACH ROW
 EXECUTE FUNCTION remover_topico_from_topico_curso();
+
+CREATE TRIGGER trg_after_inscricao_insert
+AFTER INSERT ON Inscricao
+FOR EACH ROW
+EXECUTE FUNCTION trg_inscricao_insert();
+
+CREATE TRIGGER trg_after_inscricao_delete
+AFTER DELETE ON Inscricao
+FOR EACH ROW
+EXECUTE FUNCTION trg_inscricao_delete();
