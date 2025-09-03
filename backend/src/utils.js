@@ -359,11 +359,48 @@ async function sendNotificationToUtilizador(utilizador, title, body, imageUrl = 
 async function subscribeToCanal(deviceTokens, topic) {
   try {
     const response = await firebaseAdmin.messaging().subscribeToTopic(deviceTokens, topic);
-    logger.info(`Subscribed ${deviceTokens.length} token(s) to topic "${topic}".`, response);
+    logger.info(`Subscribed ${deviceTokens} token(s) to topic "${topic}".`, response);
     return response;
   } catch (error) {
     logger.error(`Error subscribing tokens to topic "${topic}": ${error.message}`, {
       tokens: deviceTokens,
+      stack: error.stack,
+    });
+    throw error;
+  }
+}
+
+
+async function subscribeUtilizadorToCanal(utilizador, topic) {
+
+  const topicFormated = "canal_" + topic;
+
+  try {
+
+    let utilizadorDeviceTokens = await models.utilizadordispositivos.findAll({
+      where: { utilizador },
+      attributes: ['dispositivo']
+    });
+
+    utilizadorDeviceTokens = utilizadorDeviceTokens.map((utilizadorDeviceToken) => utilizadorDeviceToken.dispositivo);
+
+    for (const token of utilizadorDeviceTokens) {
+      try {
+
+        await subscribeToCanal(token,topicFormated);
+
+      } catch (error) {
+        logger.error(`Error sending notification to token "${token}": ${error.message}`, {
+          token,
+          stack: error.stack,
+        });
+      }
+    }
+
+    logger.info(`Utilizador subscrito no topico.`);
+
+  } catch (error) {
+    logger.error(`Error sending FCM notification: ${error.message}`, {
       stack: error.stack,
     });
     throw error;
@@ -385,4 +422,43 @@ async function unsubscribeFromCanal(deviceTokens, topic) {
   }
 }
 
-module.exports = { isLink, uploadFile, deleteFile, updateFile, generateSASUrl, sendEmail, sendNotification, sendNotificationToUtilizador, subscribeToCanal, unsubscribeFromCanal};
+
+async function unsubscribeUtilizadorToCanal(utilizador, topic) {
+
+  const topicFormated = "canal_" + topic;
+
+  try {
+
+    let utilizadorDeviceTokens = await models.utilizadordispositivos.findAll({
+      where: { utilizador },
+      attributes: ['dispositivo']
+    });
+
+    utilizadorDeviceTokens = utilizadorDeviceTokens.map((utilizadorDeviceToken) => utilizadorDeviceToken.dispositivo);
+
+
+    for (const token of utilizadorDeviceTokens) {
+      try {
+
+        await unsubscribeFromCanal(token,topicFormated);
+
+      } catch (error) {
+        logger.error(`Error sending notification to token "${token}": ${error.message}`, {
+          token,
+          stack: error.stack,
+        });
+        failureCount++;
+      }
+    }
+
+    logger.info(`Utilizador desinscrito no topico.`);
+
+  } catch (error) {
+    logger.error(`Error sending FCM notification: ${error.message}`, {
+      stack: error.stack,
+    });
+    throw error;
+  }
+}
+
+module.exports = { isLink, uploadFile, deleteFile, updateFile, generateSASUrl, sendEmail, sendNotification, sendNotificationToUtilizador, subscribeToCanal, unsubscribeFromCanal, subscribeUtilizadorToCanal, unsubscribeUtilizadorToCanal};

@@ -8,7 +8,13 @@ const {
   generateSASUrl,
   isLink,
   sendEmail,
+  sendNotification,
+  sendNotificationToUtilizador,
+  subscribeUtilizadorToCanal,
+  unsubscribeUtilizadorToCanal
 } = require("../utils.js");
+
+
 const logger = require("../logger.js");
 
 const controllers = {};
@@ -1398,6 +1404,7 @@ controllers.getInscricoes = async (req, res) => {
 };
 
 controllers.inscreverCurso = async (req, res) => {
+
   const { id } = req.params;
   const { utilizador: utilizadorIdDoBody } = req.body || {};
 
@@ -1538,12 +1545,28 @@ controllers.inscreverCurso = async (req, res) => {
     logger.info(
       `Utilizador ${idDoUtilizadorParaInscricao} inscrito no curso ${id} com sucesso.`
     );
-    logger.info(`Email enviado para: ${req.user.email}`);
-    await sendEmail({
-      to: req.user.email,
-      subject: "Inscrição confirmada",
-      text: `Você foi inscrito no curso ${cursoEncontrado.nome}.`,
-    });
+
+    try {
+
+
+      logger.info(`Email enviado para: ${req.user.email}`);
+      await sendEmail({
+        to: req.user.email,
+        subject: "Inscrição confirmada",
+        text: `Você foi inscrito no curso ${cursoEncontrado.nome}.`,
+      });
+
+      await subscribeUtilizadorToCanal(idDoUtilizadorParaInscricao,cursoEncontrado.canal);
+      
+    } catch (error) {
+      logger.error(
+      `Erro ao subscrever ao canal de notificacoes do curso/mandar email. Detalhes: ${error.message}`,
+      {
+        stack: error.stack,
+      });
+      
+    }
+
     return res.status(201).json({
       message: "Inscrição realizada com sucesso!",
     });
@@ -1580,6 +1603,16 @@ controllers.sairCurso = async (req, res) => {
     });
   }
   try {
+
+
+    const cursoEncontrado = await models.curso.findByPk(id);
+    if (!cursoEncontrado) {
+      logger.warn(`Curso com ID ${id} não encontrado.`);
+      return res.status(404).json({
+        error: "Curso não encontrado.",
+      });
+    }
+
     const formandoData = await models.formando.findOne({
       where: {
         utilizador: idDoUtilizadorParaDesinscricao,
@@ -1630,6 +1663,20 @@ controllers.sairCurso = async (req, res) => {
 
     }
 
+    try {
+
+      await unsubscribeUtilizadorToCanal(idDoUtilizadorParaDesinscricao,cursoEncontrado.canal);
+      
+    } catch (error) {
+
+      logger.error(
+      `Erro ao unsubscrever ao canal de notificacoes do curso/mandar email. Detalhes: ${error.message}`,
+      {
+        stack: error.stack,
+      });
+      
+    }
+
     return res.status(200).json({
       message: "Inscrição removida com sucesso!",
     });
@@ -1667,6 +1714,27 @@ controllers.createCursoAssincrono = async (req, res) => {
     logger.info(
       `Curso assíncrono com ID ${createdRow.idcurso} criado com sucesso.`
     );
+
+    try {
+
+      if(createdRow.disponivel){
+
+        await sendNotification( 
+          1, 
+          `Novo curso assíncrono criado : ${createdRow.nome}`,
+          `Inicio de Inscrições : ${createdRow.nome}`      
+        );
+
+      }
+
+      
+    } catch (error) {
+
+      logger.error(`Erro ao enviar notificacao. Detalhes: ${error.message}`, {
+        stack: error.stack,
+      });
+      
+    }
     return res.status(201).json(createdRow);
   } catch (error) {
     logger.error(`Erro ao criar curso assíncrono. Detalhes: ${error.message}`, {
