@@ -40,6 +40,23 @@ window.onload = function () {
     abrirModal();
   });
 
+  document.addEventListener("keydown", (event) => {
+    if (document.getElementById("modal").style.display === "flex") {
+      if (event.key === "ArrowLeft") {
+        indexAtual = (indexAtual - 1 + imagens.length) % imagens.length;
+        abrirModal();
+      }
+      if (event.key === "ArrowRight") {
+        indexAtual = (indexAtual + 1) % imagens.length;
+        abrirModal();
+      }
+      if (event.key === "Escape") {
+        document.getElementById("modal").style.display = "none";
+      }
+    }
+  });
+
+
   // Botão voltar ao topo
   window.onscroll = function () {
     if (document.body.scrollTop > 200 || document.documentElement.scrollTop > 200) {
