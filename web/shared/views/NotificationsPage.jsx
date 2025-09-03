@@ -91,10 +91,12 @@ const NotificationsPage = () => {
   };
   const isToday = (n) => {
     const d = getNotifDate(n);
-    return d &&
+    return (
+      d &&
       d.getDate() === today.getDate() &&
       d.getMonth() === today.getMonth() &&
-      d.getFullYear() === today.getFullYear();
+      d.getFullYear() === today.getFullYear()
+    );
   };
   const notificationsToday = notifications.filter(isToday);
   const notificationsOlder = notifications.filter((n) => !isToday(n));
@@ -123,7 +125,8 @@ const NotificationsPage = () => {
 
   const NotificationCard = ({ notif }) => {
     // Use the most reliable date field for display
-    const notifTimeRaw = notif?.instante || notif?.data || notif?.createdAt || notif?.at;
+    const notifTimeRaw =
+      notif?.instante || notif?.data || notif?.createdAt || notif?.at;
     return (
       <div
         className="card mb-3 shadow-sm border-0"
