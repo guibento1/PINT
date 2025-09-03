@@ -19,6 +19,8 @@ const EditarCursoSincrono = () => {
   const [formData, setFormData] = useState({
     nome: "",
     disponivel: false,
+    inicio: "",
+    fim: "",
     iniciodeinscricoes: "",
     fimdeinscricoes: "",
     maxinscricoes: "",
@@ -80,6 +82,8 @@ const EditarCursoSincrono = () => {
           nome: dataCurso.nome || "",
           // se backend envia boolean / int
           disponivel: !!dataCurso.disponivel,
+          inicio: dataCurso.inicio || "",
+          fim: dataCurso.fim || "",
           iniciodeinscricoes: dataCurso.iniciodeinscricoes || "",
           fimdeinscricoes: dataCurso.fimdeinscricoes || "",
           maxinscricoes: dataCurso.maxinscricoes || "",
@@ -149,6 +153,8 @@ const EditarCursoSincrono = () => {
       const info = {
         nome: formData.nome,
         disponivel: formData.disponivel,
+        inicio: formData.inicio,
+        fim: formData.fim,
         iniciodeinscricoes: formData.iniciodeinscricoes,
         fimdeinscricoes: formData.fimdeinscricoes,
         maxinscricoes: formData.maxinscricoes
@@ -312,6 +318,31 @@ const EditarCursoSincrono = () => {
 
           <div className="col-md-6">
             <label className="form-label">
+              Início do Curso <span className="text-danger">*</span>
+            </label>
+            <input
+              type="datetime-local"
+              name="inicio"
+              className="form-control"
+              value={formatDataForInput(formData.inicio)}
+              onChange={handleChange}
+              required
+            />
+          </div>
+
+          <div className="col-md-6">
+            <label className="form-label">Fim do Curso</label>
+            <input
+              type="datetime-local"
+              name="fim"
+              className="form-control"
+              value={formatDataForInput(formData.fim)}
+              onChange={handleChange}
+            />
+          </div>
+
+          <div className="col-md-6">
+            <label className="form-label">
               Início das Inscrições <span className="text-danger">*</span>
             </label>
             <input
@@ -359,7 +390,22 @@ const EditarCursoSincrono = () => {
             )}
           </div>
 
-          {/* Campo 'Disponível' removido para cursos síncronos */}
+          {/* Disponibilidade do curso */}
+          <div className="col-md-6">
+            <div className="form-check form-switch mt-4">
+              <input
+                className="form-check-input"
+                type="checkbox"
+                id="disponivel"
+                name="disponivel"
+                checked={formData.disponivel}
+                onChange={handleChange}
+              />
+              <label className="form-check-label" htmlFor="disponivel">
+                Curso disponível
+              </label>
+            </div>
+          </div>
 
           <div className="col-12">
             <label className="form-label">Thumbnail</label>

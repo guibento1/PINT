@@ -60,7 +60,7 @@ const SubmissionManager = ({
     <div className={`card ${dense ? "mb-2" : "mb-3"}`}>
       <div className="card-body">
         <div className="row g-2 align-items-end">
-          {/* Identity */}
+          {/* Identidade */}
           <div className="col-md-8">
             <div className="d-flex flex-column">
               {id != null && (
@@ -74,7 +74,6 @@ const SubmissionManager = ({
             </div>
           </div>
 
-          {/* Grade controls (compact, inline, right aligned) */}
           <div className="col-md-4">
             <div className="d-flex justify-content-md-end align-items-end gap-2 flex-wrap">
               <div className="d-flex flex-column">

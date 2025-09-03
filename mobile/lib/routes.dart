@@ -46,7 +46,6 @@ final rotas = GoRouter(
       builder: (context, state, child) {
         final String currentPath = state.uri.path;
 
-        // Hide top header and bottom navigation for specific full-screen pages
         final bool hideBars =
             currentPath == '/course_details' ||
             currentPath.startsWith('/course_details/') ||

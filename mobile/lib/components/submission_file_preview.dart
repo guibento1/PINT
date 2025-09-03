@@ -4,7 +4,7 @@ import 'submission_card.dart';
 class SubmissionFilePreview extends StatelessWidget {
   final String url;
   final String? filename;
-  final String? type; // mime
+  final String? type; 
   final DateTime? date;
   final String? statusLabel;
 
@@ -21,7 +21,6 @@ class SubmissionFilePreview extends StatelessWidget {
     if (provided != null && provided.trim().isNotEmpty) return provided;
     try {
       final uri = Uri.parse(url);
-      // Common query keys used by backends/CDNs
       for (final k in const [
         'filename',
         'name',

@@ -112,12 +112,11 @@ class _ExploreCoursesPageState extends State<ExploreCoursesPage> {
   }
 
   void _applyLocalFiltersAndSort() {
-    // Only show courses the user is NOT subscribed to
     _filteredCourses =
         _allCourses.where((course) {
           final int? id = _parseIdCurso(course['idcurso']);
           if (id == null)
-            return true; // if id missing/unparseable, keep it visible
+            return true; 
           return !_subscribedCourseIds.contains(id);
         }).toList();
   }

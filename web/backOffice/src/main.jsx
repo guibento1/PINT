@@ -8,7 +8,7 @@ import {
 } from "@shared/services/firebase";
 import App from "./App.jsx";
 import "@shared/styles/file-upload.css";
-import "../../shared/styles/global.css";
+import "@shared/styles/global.css";
 
 // Listener FCM foreground (dispara evento para a NavbarBack acender a bolinha)
 onMessage(messaging, (payload) => {

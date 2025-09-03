@@ -18,8 +18,7 @@ export default function ResetPassword() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // Modal functions
-
+  // Modal 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [resetPasswordStatus, setResetPasswordStatus] = useState(-1); // 0 - success; 1 - fields missing; 2 - password mismatch; 3 - no token; 4 - erro
 

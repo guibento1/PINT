@@ -19,7 +19,7 @@ class _ForumsPageState extends State<ForumsPage> {
   List<Map<String, dynamic>> areas = [];
   List<Map<String, dynamic>> topicos = [];
   List<dynamic> posts = [];
-  // Global topic name cache (id -> designacao) to resolve names even when only the id is present in posts
+  // Cache de nomes de tópicos (id -> designação)
   Map<int, String> _topicMap = {};
 
   String? selectedCategoria;
@@ -31,7 +31,7 @@ class _ForumsPageState extends State<ForumsPage> {
   bool loading = true;
   String? error;
 
-  // Loading/error states for filters (consistent with course_filter.dart)
+  // Estados de carregamento/erro dos filtros
   bool _loadingCategorias = false;
   bool _loadingAreas = false;
   bool _loadingTopicos = false;
@@ -47,9 +47,8 @@ class _ForumsPageState extends State<ForumsPage> {
 
   Future<void> _bootstrap() async {
     await _fetchCategories();
-    // Preload all topics to resolve names regardless of current filters
+    // Arranque: mapa de tópicos e posts
     await _loadTopicMap();
-    // Carregar posts iniciais (sem filtro de tópico) para mostrar conteúdo logo
     await _fetchPosts();
   }
 
@@ -69,9 +68,7 @@ class _ForumsPageState extends State<ForumsPage> {
         }
         if (mounted) setState(() => _topicMap = map);
       }
-    } catch (_) {
-      // ignore; best-effort cache
-    }
+    } catch (_) {}
   }
 
   Future<void> _fetchCategories() async {
@@ -123,7 +120,6 @@ class _ForumsPageState extends State<ForumsPage> {
     } finally {
       if (mounted) setState(() => _loadingAreas = false);
     }
-    // Atualizar listagem de posts com o novo contexto de filtros
     await _fetchPosts();
   }
 
@@ -153,7 +149,6 @@ class _ForumsPageState extends State<ForumsPage> {
     } finally {
       if (mounted) setState(() => _loadingTopicos = false);
     }
-    // Atualizar listagem de posts com o novo contexto de filtros
     await _fetchPosts();
   }
 
@@ -179,7 +174,7 @@ class _ForumsPageState extends State<ForumsPage> {
     }
   }
 
-  // Apply topicSearch: find a topic whose name contains the search and filter posts by it
+  // Pesquisa por tópico (texto -> id) e aplica filtro
   Future<void> _applyTopicSearch() async {
     final term = topicSearch.trim().toLowerCase();
     if (term.isEmpty) {
@@ -191,7 +186,7 @@ class _ForumsPageState extends State<ForumsPage> {
       return;
     }
 
-    // 1) Try current loaded topics list first
+    // Tentar na lista atual
     int? matchId;
     for (final Map<String, dynamic> t in topicos) {
       final name = (t['designacao'] ?? t['nome'])?.toString().toLowerCase();
@@ -200,7 +195,7 @@ class _ForumsPageState extends State<ForumsPage> {
         break;
       }
     }
-    // 2) Fallback to global cache
+    // Recurso ao cache global
     if (matchId == null && _topicMap.isNotEmpty) {
       try {
         matchId =
@@ -229,9 +224,7 @@ class _ForumsPageState extends State<ForumsPage> {
     await _fetchPosts();
   }
 
-  // legacy signature kept previously is no longer used
-
-  // Optimistic voting: update local state immediately, then call API; fallback to refetch on error
+  // Votação otimista: atualiza localmente e sincroniza com a API (reverte em falha)
   Future<void> _votePostAtIndex(int index, String voteType) async {
     if (index < 0 || index >= posts.length) return;
     final Map<String, dynamic> p = Map<String, dynamic>.from(
@@ -267,7 +260,6 @@ class _ForumsPageState extends State<ForumsPage> {
       }
     }
 
-    // Apply optimistic update
     final updated =
         Map<String, dynamic>.from(p)
           ..['iteracao'] = newVote
@@ -276,7 +268,6 @@ class _ForumsPageState extends State<ForumsPage> {
       posts[index] = updated;
     });
 
-    // Call server; if it fails, refetch to realign
     if (idpost != null) {
       final success = await _votePostById(
         idpost,
@@ -352,7 +343,7 @@ class _ForumsPageState extends State<ForumsPage> {
         }
       }
     }
-    // sometimes avatar may be at root
+    // Avatar pode vir no objeto raiz (fallback)
     final rootKeys = ['avatar', 'foto', 'avatarUrl'];
     for (final k in rootKeys) {
       final v = p[k];
@@ -450,8 +441,7 @@ class _ForumsPageState extends State<ForumsPage> {
     return null;
   }
 
-  // Build unique topic items for the dropdown, filtered by topicSearch,
-  // and ensure the currently selectedTopico exists exactly once in the list.
+  // Opções do dropdown de tópicos (garante seleção presente)
   List<DropdownMenuItem<String?>> _topicDropdownItems() {
     final List<DropdownMenuItem<String?>> items = [
       const DropdownMenuItem<String?>(
@@ -474,7 +464,6 @@ class _ForumsPageState extends State<ForumsPage> {
       }
     }
 
-    // Ensure the selectedTopico appears exactly once in the list
     if (selectedTopico != null && selectedTopico!.isNotEmpty) {
       final alreadyIn = items.any((i) => i.value == selectedTopico);
       if (!alreadyIn) {
@@ -505,7 +494,7 @@ class _ForumsPageState extends State<ForumsPage> {
         child: ListView(
           padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 20.0),
           children: [
-            // Título da página
+            // Título
             const Text(
               'Fóruns',
               style: TextStyle(
@@ -515,8 +504,7 @@ class _ForumsPageState extends State<ForumsPage> {
               ),
             ),
             const SizedBox(height: 16),
-
-            // Filtros (cartão) — layout igual ao CourseFilterWidget
+            // Filtros
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
@@ -909,8 +897,7 @@ class _ForumsPageState extends State<ForumsPage> {
                 ],
               ),
             ),
-
-            // Botão criar post (fora do cartão, como ação separada)
+            // Ação: criar post
             Align(
               alignment: Alignment.centerRight,
               child: Padding(
@@ -936,7 +923,6 @@ class _ForumsPageState extends State<ForumsPage> {
             ),
 
             const SizedBox(height: 16),
-
             // Lista de posts
             if (loading)
               const Center(
@@ -969,7 +955,6 @@ class _ForumsPageState extends State<ForumsPage> {
                 itemBuilder: (context, idx) {
                   final p = posts[idx] as Map<String, dynamic>;
                   final idpost = _asInt(p['idpost'] ?? p['id']);
-                  // iteracao handled directly from posts[idx]
                   final score = p['pontuacao'] ?? 0;
                   final titulo = p['titulo'] ?? p['title'] ?? '—';
                   final conteudo = p['conteudo'] ?? p['content'] ?? '';
@@ -977,7 +962,6 @@ class _ForumsPageState extends State<ForumsPage> {
                       conteudo.toString().length > 150
                           ? '${conteudo.toString().substring(0, 150)}...'
                           : conteudo.toString();
-                  // author is now derived on render via _authorName(p)
                   final dynamic rawComments =
                       p['ncomentarios'] ??
                       p['comentarios'] ??
@@ -1008,7 +992,7 @@ class _ForumsPageState extends State<ForumsPage> {
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Voting column
+                          // Coluna de votos
                           Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
@@ -1062,12 +1046,12 @@ class _ForumsPageState extends State<ForumsPage> {
                             ],
                           ),
                           const SizedBox(width: 12),
-                          // Content
+                          // Conteúdo
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                // Header: avatar + author name
+                                // Cabeçalho: avatar + autor
                                 Row(
                                   children: [
                                     Builder(
@@ -1107,7 +1091,7 @@ class _ForumsPageState extends State<ForumsPage> {
                                     ),
                                   ],
                                 ),
-                                // Topic name (if available)
+                                // Tópico (se existir)
                                 Builder(
                                   builder: (_) {
                                     final topic = _topicNameOf(p);
@@ -1162,10 +1146,10 @@ class _ForumsPageState extends State<ForumsPage> {
                                     color: Color(0xFF49454F),
                                   ),
                                 ),
-                                // Attachment preview (if any)
+                                // Anexo (se existir)
                                 Builder(
                                   builder: (_) {
-                                    // Extract URL and filename matching the details page behavior
+                                    // Extrai URL e nome do anexo
                                     String? fileUrl;
                                     String? fileName;
 
@@ -1242,7 +1226,6 @@ class _ForumsPageState extends State<ForumsPage> {
                                     if (fileUrl == null || fileUrl.isEmpty) {
                                       return const SizedBox.shrink();
                                     }
-                                    // Normalize base join to avoid missing '/' when fileUrl does not start with '/'
                                     final resolved =
                                         fileUrl.startsWith('http')
                                             ? fileUrl
@@ -1258,7 +1241,7 @@ class _ForumsPageState extends State<ForumsPage> {
                                   },
                                 ),
                                 const SizedBox(height: 8),
-                                // Footer meta: comments count
+                                // Meta: nº de comentários
                                 Row(
                                   children: [
                                     const Icon(

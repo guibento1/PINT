@@ -26,35 +26,34 @@ export default function VerPost() {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
   const [votingPost, setVotingPost] = useState(false);
-  const [replyOpen, setReplyOpen] = useState({}); // { [commentId]: bool }
-  const [replyText, setReplyText] = useState({}); // { [commentId]: string }
+  const [replyOpen, setReplyOpen] = useState({}); 
+  const [replyText, setReplyText] = useState({}); 
   const threadRef = useRef(null);
-  const avatarRefs = useRef({}); // { [commentId]: HTMLElement }
-  const [connectors, setConnectors] = useState([]); // svg paths entre avatares
-  const [layoutTick, setLayoutTick] = useState(0); // gatilho de recomputar conectores
-  const [votingComments, setVotingComments] = useState({}); // { [commentId]: boolean }
-  // Collapse map: when true for a comment id, its replies are hidden
-  const [collapsed, setCollapsed] = useState({}); // { [commentId]: bool }
-  // Avatar do utilizador atual para decorar comentários/respostas imediatamente
+  const avatarRefs = useRef({}); 
+  const [connectors, setConnectors] = useState([]); 
+  const [layoutTick, setLayoutTick] = useState(0); 
+  const [votingComments, setVotingComments] = useState({}); 
+  
+  const [collapsed, setCollapsed] = useState({});
+
   const [myAvatar, setMyAvatar] = useState(null);
-  const [topicMap, setTopicMap] = useState(new Map()); // idtopico -> designacao
+  const [topicMap, setTopicMap] = useState(new Map()); 
 
   // Denúncias
-  const [tiposDenuncia, setTiposDenuncia] = useState([]); // GET /forum/denuncias/tipos
+  const [tiposDenuncia, setTiposDenuncia] = useState([]); 
   const [denunciaOpen, setDenunciaOpen] = useState(false);
   const [denunciaTipo, setDenunciaTipo] = useState("");
   const [denunciaDescricao, setDenunciaDescricao] = useState("");
-  const [denunciaTarget, setDenunciaTarget] = useState(null); // { kind: 'post'|'comment', id }
+  const [denunciaTarget, setDenunciaTarget] = useState(null); 
 
-  // Status de denúncia para exibir feedback sem browser alert
-  const [denunciaStatus, setDenunciaStatus] = useState(null); // { type: 'success'|'error', message: string }
+  const [denunciaStatus, setDenunciaStatus] = useState(null); 
 
-  // Modal de confirmação já existente (para ações de deleção, etc)
+  // Modal de confirmação
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmTitle, setConfirmTitle] = useState("");
   const [confirmMessage, setConfirmMessage] = useState("");
   const [confirmAction, setConfirmAction] = useState(null);
-  // Info do utilizador autenticado (para decoração otimista), com fallback ao localStorage
+
   const getStoredUser = () => {
     try {
       const fromSession = sessionStorage.getItem("user");
@@ -66,7 +65,6 @@ export default function VerPost() {
   };
   const currentUser = getStoredUser();
 
-  // Carrega a foto do utilizador autenticado se não estiver presente no storage
   useEffect(() => {
     const loadMyAvatar = async () => {
       try {
@@ -82,15 +80,11 @@ export default function VerPost() {
         const res = await api.get(`/utilizador/id/${myId}`);
         const foto = res?.data?.foto || null;
         setMyAvatar(foto);
-      } catch (e) {
-        // silencioso: sem avatar
-      }
+  } catch (e) {}
     };
     loadMyAvatar();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Preload topics once to resolve topic name if only id is present
   useEffect(() => {
     (async () => {
       try {
@@ -103,7 +97,7 @@ export default function VerPost() {
     })();
   }, []);
 
-  // Função estável para abrir o modal de confirmação (para actions existentes)
+  // Abrir modal de confirmação
   const openConfirmModal = (title, message, action) => {
     setConfirmTitle(title);
     setConfirmMessage(message);
@@ -116,9 +110,8 @@ export default function VerPost() {
     setConfirmAction(null);
   };
 
-  // Abre o modal de denúncia
+  // Abrir modal de denúncia
   const openDenunciaModal = (targetKind, targetId) => {
-    // qualquer ação alternativa fecha caixas de resposta
     setReplyOpen({});
     setReplyText({});
     setLayoutTick((t) => t + 1);
@@ -129,26 +122,26 @@ export default function VerPost() {
     setDenunciaStatus(null);
   };
 
-  // Fecha o modal de denúncia
+  // Fechar modal de denúncia
   const closeDenunciaModal = () => {
     setDenunciaOpen(false);
     setDenunciaTarget(null);
   };
 
-  // Helper: fechar todas as caixas de resposta
+  // Fechar respostas
   const closeAllReplies = () => {
     setReplyOpen({});
     setReplyText({});
     setLayoutTick((t) => t + 1);
   };
 
-  // Alternar recolha/expansão de uma thread de comentários
+  // Expandir/Recolher thread
   const toggleCollapse = (commentId) => {
     setCollapsed((prev) => ({ ...prev, [commentId]: !prev[commentId] }));
     setLayoutTick((t) => t + 1);
   };
 
-  // Envia a denúncia com o payload esperado
+  // Submeter denúncia
   const handleSubmitDenuncia = async () => {
     if (!denunciaTarget) return;
     if (!denunciaTipo) {
@@ -172,7 +165,6 @@ export default function VerPost() {
         type: "success",
         message: "Denúncia enviada com sucesso.",
       });
-      // opcional: fechar o modal após breves instantes
       setTimeout(() => {
         closeDenunciaModal();
       }, 800);
@@ -185,7 +177,6 @@ export default function VerPost() {
     }
   };
 
-  // utilidades
   const getUserName = (utilizador) => {
     if (!utilizador) return "Anónimo";
     if (typeof utilizador === "object" && utilizador.nome)
@@ -194,7 +185,7 @@ export default function VerPost() {
     return "Anónimo";
   };
 
-  // Owner check: apenas por id quando disponível
+  // Verificar autoria
   const isOwner = (utilizador) => {
     try {
       const myId =
@@ -214,7 +205,7 @@ export default function VerPost() {
     }
   };
 
-  // Icons (mantidos do estilo existente)
+  // Ícones
   const UpIcon = ({ filled, size = 22, color = "#28a745" }) =>
     filled ? (
       <svg
@@ -311,10 +302,8 @@ export default function VerPost() {
       </svg>
     );
 
-  // New icons for reply and report using provided SVG paths
   const ReplyIcon = ({ filled, size = 22, color = "#6c757d" }) =>
     filled ? (
-      // reply-cheio.svg (viewBox 0 0 32 32)
       <svg
         width={size}
         height={size}
@@ -330,7 +319,6 @@ export default function VerPost() {
         />
       </svg>
     ) : (
-      // reply-vazio.svg (viewBox 0 0 32 32)
       <svg
         width={size}
         height={size}
@@ -349,7 +337,6 @@ export default function VerPost() {
 
   const ReportIcon = ({ filled, size = 22, color = "#6c757d" }) =>
     filled ? (
-      // report-cheio.svg (viewBox 0 0 24 24)
       <svg
         width={size}
         height={size}
@@ -364,7 +351,6 @@ export default function VerPost() {
         />
       </svg>
     ) : (
-      // report-vazio.svg (viewBox 0 0 24 24)
       <svg
         width={size}
         height={size}
@@ -383,7 +369,6 @@ export default function VerPost() {
       </svg>
     );
 
-  // Delete (trash) icon filled, using shared delete-cheio.svg path; color follows currentColor
   const DeleteIcon = ({ size = 18, color = "#ffffff" }) => (
     <svg
       width={size}
@@ -400,7 +385,6 @@ export default function VerPost() {
     </svg>
   );
 
-  // Collapse/Expand icons (round add/minus)
   const MinusIcon = ({ size = 22, color = "#6c757d" }) => (
     <svg
       width={size}
@@ -460,7 +444,6 @@ export default function VerPost() {
     toggleSubscribeTopic,
   } = useContext(SidebarContext);
 
-  // Resolve topic info for current post
   const getTopicForPost = (p) => {
     try {
       const rawTopico = p?.topico;
@@ -523,10 +506,8 @@ export default function VerPost() {
   async function loadCommentsTree() {
     setCommentsLoading(true);
     try {
-      // 1) Fetch top-level comments quickly
       const root = await fetchPostRootCommentsCached(id);
       setComments(root);
-      // Collapse all root comments by default for better initial performance
       try {
         setCollapsed((prev) => {
           const next = { ...prev };
@@ -539,9 +520,8 @@ export default function VerPost() {
           return next;
         });
       } catch {}
-      setCommentsLoading(false); // show roots immediately
+      setCommentsLoading(false); 
 
-      // 2) In background, hydrate replies per root with small concurrency
       const concurrency = 4;
       const queue = [...root];
       const nextStateMap = new Map();
@@ -553,7 +533,6 @@ export default function VerPost() {
           try {
             const hydrated = await fetchCommentWithReplies(c);
             nextStateMap.set(c.idcomentario || c.id, hydrated);
-            // Ensure newly hydrated comment and its subtree are collapsed by default
             try {
               setCollapsed((prev) => {
                 const map = { ...prev };
@@ -567,7 +546,6 @@ export default function VerPost() {
                 return map;
               });
             } catch {}
-            // apply incrementally
             setComments((prev) => {
               const replaceById = (list) =>
                 Array.isArray(list)
@@ -575,7 +553,6 @@ export default function VerPost() {
                       const cid = item.idcomentario || item.id;
                       const replacement = nextStateMap.get(cid);
                       if (replacement) return replacement;
-                      // Keep existing children until they're hydrated
                       return item;
                     })
                   : list;
@@ -586,7 +563,6 @@ export default function VerPost() {
               return next;
             });
           } catch {
-            // ignore hydrate errors per comment
           }
         }
       };
@@ -603,10 +579,7 @@ export default function VerPost() {
 
   useEffect(() => {
     loadPost();
-    // Adiar carregamento de comentários até a página realmente necessitar (primeira visita ao VerPost)
-    // Aqui carregamos assim que a página monta, mas via cache e com indicador visual.
     loadCommentsTree();
-    // Garantir que a página abre no topo ao carregar/navegar entre posts
     try {
       if (typeof window !== "undefined") {
         window.scrollTo({ top: 0, left: 0, behavior: "auto" });
@@ -619,7 +592,7 @@ export default function VerPost() {
     } catch {}
   }, [id]);
 
-  // Carrega tipos de denúncia
+  // Carregar tipos de denúncia
   useEffect(() => {
     let mounted = true;
     const loadTipos = async () => {
@@ -636,13 +609,12 @@ export default function VerPost() {
     };
   }, []);
 
-  // Edges dos conectores
+  // Conectores das respostas
   useEffect(() => {
     const buildEdges = (items, parentId = null, acc = []) => {
       if (!Array.isArray(items)) return acc;
       items.forEach((c) => {
         const cid = c.idcomentario || c.id;
-        // Se o pai está colapsado, não criar arestas nem descer nesta subárvore
         if (parentId && collapsed[parentId]) return;
         if (parentId) acc.push({ from: parentId, to: cid });
         if (c.children?.length) buildEdges(c.children, cid, acc);
@@ -707,7 +679,6 @@ export default function VerPost() {
       const res = await api.post(`/forum/post/${id}/comment`, {
         conteudo: newComment,
       });
-      // Inserção otimista do comentário de topo com dados do utilizador atual
       const created = res?.data?.data || res?.data || null;
       if (created) {
         const u = created?.utilizador;
@@ -775,7 +746,6 @@ export default function VerPost() {
   // Votação post
   const handleVotePost = async (voteType) => {
     if (votingPost || !post) return;
-    // fechar qualquer reply aberto quando executa outra ação
     closeAllReplies();
     setVotingPost(true);
     const current = post.iteracao;
@@ -831,7 +801,6 @@ export default function VerPost() {
   // Votação comentário
   const handleVoteComment = async (commentId, currentVote, voteType) => {
     if (votingComments[commentId]) return;
-    // fechar replies quando votar
     closeAllReplies();
     setVotingComments((m) => ({ ...m, [commentId]: true }));
 
@@ -879,7 +848,7 @@ export default function VerPost() {
           })
         : list;
 
-    // Update otimista
+  // Atualização otimista
     setComments((prev) =>
       updateCommentById(prev, commentId, (c) => ({
         ...c,
@@ -911,7 +880,6 @@ export default function VerPost() {
   const toggleReply = (commentId) => {
     setReplyOpen((prev) => {
       const isOpen = !!prev[commentId];
-      // exclusivo: se já está aberto, fecha tudo; caso contrário, abre só este
       return isOpen ? {} : { [commentId]: true };
     });
     setLayoutTick((t) => t + 1);
@@ -940,7 +908,6 @@ export default function VerPost() {
                 return c;
               })
             : list;
-        // Decoração otimista: se backend ainda não devolve utilizador enriquecido, usar o atual
         let createdDecorated = created;
         const u = created?.utilizador;
         const isUserObject =
@@ -966,7 +933,6 @@ export default function VerPost() {
             ...c,
             children: [...(c.children || []), createdDecorated],
           }));
-          // Atualiza cache em memória para persistir ao navegar
           try {
             updatePostCommentsCache(id, next);
           } catch {}
@@ -974,7 +940,6 @@ export default function VerPost() {
         });
         setTimeout(() => setLayoutTick((t) => t + 1), 0);
       } else {
-        // Cenário raro: sem objeto created – força refetch suave depois
         try {
           invalidatePostCommentsCache(id);
         } catch {}
@@ -987,19 +952,17 @@ export default function VerPost() {
     }
   };
 
-  // Denúncia: em vez de por browser alert, usamos o modal
-  // - ao clicar no ⚑ de um comentário, dispara openDenunciaModal("comment", id)
-  // - ao clicar no Denunciar do post, dispara openDenunciaModal("post", id)
+  // Denúncia via modal
   const handleReportComment = (commentId) => {
     openDenunciaModal("comment", commentId);
   };
 
-  // Denúncia de post (já integrado via post Denunciar)
+  // Denúncia do post
   const handleReportPost = () => {
     openDenunciaModal("post", post?.idpost || post?.id);
   };
 
-  // Botões de deleção (mantidos para referência)
+  // Eliminar
   const confirmDeletePost = () => {
     openConfirmModal(
       "Eliminar Post",
@@ -1171,7 +1134,6 @@ export default function VerPost() {
                       size={22}
                     />
                   </button>
-                  {/* Removido o botão extra "Denunciar" para evitar redundância */}
                   {isOwner(comment.utilizador) && (
                     <button
                       className="btn btn-danger btn-sm my-1 py-1 pb-2 btn-icon-delete"
@@ -1222,7 +1184,7 @@ export default function VerPost() {
 
   return (
     <div className="d-flex">
-      {/* Modal de denúncia (usado para post e comentários) */}
+  {/* Modal de denúncia */}
       <Modal
         isOpen={denunciaOpen}
         onClose={closeDenunciaModal}
@@ -1282,7 +1244,7 @@ export default function VerPost() {
         </div>
       </Modal>
 
-      {/* Modal de confirmação existente (para deleções, se houver) */}
+  {/* Modal de confirmação */}
       <Modal
         isOpen={confirmOpen}
         onClose={closeConfirmModal}
@@ -1313,7 +1275,7 @@ export default function VerPost() {
         </div>
       </Modal>
 
-      {/* Sidebar esquerda fixa na largura dentro do flex */}
+  {/* Sidebar esquerda */}
       <div style={{ flex: "0 0 320px" }}>
         <LeftSidebar
           categorias={categorias}

@@ -15,8 +15,9 @@ const Agendar = () => {
 
   const [curso, setCurso] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [uploadingSessao, setUploadingSessao] = useState(null); // idsessao em upload
-  const [deletingMaterialId, setDeletingMaterialId] = useState(null); // idmaterial em delete
+  const [uploadingSessao, setUploadingSessao] = useState(null); 
+  const [deletingMaterialId, setDeletingMaterialId] = useState(null); 
+
   // editar sessão
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingSessao, setEditingSessao] = useState(null);
@@ -65,7 +66,6 @@ const Agendar = () => {
     }
   }, [id]);
 
-  // Helper: tenta múltiplos endpoints até um funcionar
   const tryEndpoints = async (method, urls, data, config) => {
     let lastErr;
     for (const url of urls) {
@@ -76,10 +76,8 @@ const Agendar = () => {
         if (method === "delete") return await api.delete(url, config);
       } catch (err) {
         lastErr = err;
-        // tenta próximo se 404; caso contrário, guarda e continua
         const status = err?.response?.status;
         if (status !== 404) {
-          // ainda assim tenta os restantes, pode haver um válido
           continue;
         }
       }
@@ -244,7 +242,6 @@ const Agendar = () => {
     setOperationMessage("");
     try {
       const fd = new FormData();
-      // Backend expects 'info' JSON com titulo e tipo (numérico). tipo: 1 => ficheiro
       const info = { titulo: file.name || "Material", tipo: 1 };
       fd.append("info", JSON.stringify(info));
       fd.append("ficheiro", file);
@@ -602,7 +599,7 @@ const Agendar = () => {
                 </div>
               </div>
 
-              {/* Materiais da sessão (opcional) */}
+              {/* Materiais da sessão */}
               {(() => {
                 const mats =
                   s?.materiais ||

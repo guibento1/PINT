@@ -225,11 +225,6 @@ const CursoAssincrono = () => {
     });
   };
 
-  // Helpers removidos: max inscrições e lista de inscritos não são mostrados aqui
-
-  // statusColor removido: cores de estado não são usadas nesta página
-
-  // Substituído por SubmissionCard
 
   if (loading) {
     return (
@@ -479,7 +474,7 @@ const CursoAssincrono = () => {
           )}
         </div>
 
-        {/* Plano Curricular — agora imediatamente abaixo dos tópicos (visível para todos) */}
+        {/* Plano Curricular */}
         {curso?.planocurricular && (
           <div className="row g-4 mt-1">
             <div className="col-12">

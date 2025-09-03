@@ -16,7 +16,7 @@ const AvaliacoesSincrono = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  // Continuous assessments
+  // Avaliações Contínuas
   const [avaliacoes, setAvaliacoes] = useState([]);
   const [newTitulo, setNewTitulo] = useState("");
   const [enunciadoFile, setEnunciadoFile] = useState(null);
@@ -25,7 +25,7 @@ const AvaliacoesSincrono = () => {
   const [fimDisponibilidade, setFimDisponibilidade] = useState("");
   const [fimDeSubmissoes, setFimDeSubmissoes] = useState("");
 
-  // Submissions
+  // Submissões
   const [selectedAvaliacao, setSelectedAvaliacao] = useState(null);
   const [submissoes, setSubmissoes] = useState([]);
   const [loadingSubmissoes, setLoadingSubmissoes] = useState(false);
@@ -48,7 +48,7 @@ const AvaliacoesSincrono = () => {
     setEditEnunciadoFile(null);
   };
 
-  // Final grade
+  // Avaliações Finais
   const [selectedFormando, setSelectedFormando] = useState("");
   const [notaFinal, setNotaFinal] = useState("");
   const [finalSaving, setFinalSaving] = useState(false);
@@ -57,7 +57,7 @@ const AvaliacoesSincrono = () => {
   const [inscritos, setInscritos] = useState([]);
   const [loadingInscritos, setLoadingInscritos] = useState(false);
 
-  // Generic result modal
+  // Modal
   const [operationStatus, setOperationStatus] = useState(null); // 0 ok | 1 erro
   const [operationMessage, setOperationMessage] = useState("");
   const [isResultModalOpen, setIsResultModalOpen] = useState(false);
@@ -68,12 +68,10 @@ const AvaliacoesSincrono = () => {
     setOperationMessage("");
   };
 
-  // Small helpers to avoid repetition
   const normalizeInscrito = (entry) => {
     const base = entry?.formando || entry?.user || entry?.utilizador || entry;
     const [first = "", ...rest] = (base?.nome || "").split(" ");
     return {
-      // keep any top-level fields from the endpoint (e.g., nota, idformando)
       ...entry,
       ...base,
       idformando:
@@ -114,7 +112,6 @@ const AvaliacoesSincrono = () => {
       .filter(Boolean);
   };
 
-  // Finals local cache (sessionStorage) to prevent visual regressions on refresh
   const cacheKey = useMemo(() => `finaisCache_${id}`, [id]);
   const loadFinaisCache = useCallback(() => {
     try {
@@ -149,7 +146,6 @@ const AvaliacoesSincrono = () => {
     [cacheKey]
   );
 
-  // cache for inscritos to keep the list visible even if the inscritos endpoint fails
   const inscritosCacheKey = useMemo(() => `inscritosCache_${id}`, [id]);
   const loadInscritosCache = useCallback(() => {
     try {
@@ -180,9 +176,8 @@ const AvaliacoesSincrono = () => {
     [inscritosCacheKey]
   );
 
-  // permissions
+  // Permissões
   const idFormadorRole = user?.roles?.find((r) => r.role === "formador")?.id;
-  // allow any formador to access the UI; server will enforce the exact course-level permission
   const isFormadorDoCurso =
     isFormador &&
     (curso?.formador == null || curso?.formador === idFormadorRole);
@@ -196,7 +191,6 @@ const AvaliacoesSincrono = () => {
       const d = res.data || {};
       setCurso(d);
 
-      // Avaliações contínuas a partir do payload do curso
       const avList =
         (Array.isArray(d.avaliacaocontinua) && d.avaliacaocontinua) ||
         (Array.isArray(d.avaliacoes) && d.avaliacoes) ||
@@ -204,7 +198,6 @@ const AvaliacoesSincrono = () => {
         [];
       setAvaliacoes(avList);
 
-      // Inscritos: usar o endpoint dedicado que já inclui as notas; fallback para payload do curso
       let normalizedInscritos = [];
       try {
         const cid = d.idcurso || id;
@@ -235,7 +228,6 @@ const AvaliacoesSincrono = () => {
         else setInscritos([]);
       }
 
-      // Avaliações finais: preferir as notas que vieram nos inscritos
       let finaisList = [];
       const fromInscricoes = (normalizedInscritos || [])
         .map((entry) => {
@@ -413,7 +405,6 @@ const AvaliacoesSincrono = () => {
     fetchCurso();
   }, [fetchCurso]);
 
-  // Prefill nota when selecting a formando
   useEffect(() => {
     if (!selectedFormando) return;
     const existing = getNotaByFormandoId(Number(selectedFormando));
@@ -421,7 +412,6 @@ const AvaliacoesSincrono = () => {
     else setNotaFinal("");
   }, [selectedFormando, getNotaByFormandoId]);
 
-  // No extra fetches — rely only on GET /curso/:id
 
   const toIsoOrEmpty = (val) => (val ? new Date(val).toISOString() : "");
   const toInputLocal = (val) => {
@@ -429,7 +419,7 @@ const AvaliacoesSincrono = () => {
     const d = new Date(val);
     if (isNaN(d.getTime())) return "";
     const local = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
-    return local.toISOString().slice(0, 16); // YYYY-MM-DDTHH:MM
+    return local.toISOString().slice(0, 16); 
   };
 
   const handleCreateAvaliacao = async (e) => {
@@ -456,7 +446,6 @@ const AvaliacoesSincrono = () => {
       const fd = new FormData();
       const info = {
         titulo: newTitulo,
-        // time windows (send both naming styles to be safe)
         ...(inicioDisponibilidade
           ? {
               inicioDisponibilidade: toIsoOrEmpty(inicioDisponibilidade),
@@ -494,7 +483,6 @@ const AvaliacoesSincrono = () => {
       setInicioDeSubmissoes("");
       setFimDisponibilidade("");
       setFimDeSubmissoes("");
-      // Optimistic append using response
       if (createdRes?.data) {
         setAvaliacoes((prev) => [createdRes.data, ...prev]);
       } else {
@@ -568,7 +556,6 @@ const AvaliacoesSincrono = () => {
         `/curso/cursosincrono/${id}/avalicaocontinua/${selectedAvaliacao}/corrigir`,
         { idsubmissao, nota: Number(nota) }
       );
-      // refresh submissoes
       await handleLoadSubmissoes(selectedAvaliacao);
       setOperationStatus(0);
       setOperationMessage("Nota atribuída.");
@@ -599,7 +586,6 @@ const AvaliacoesSincrono = () => {
     }
     const bodyNota = { nota: parsedNota };
     try {
-      // Try update first; if not found, create
       try {
         await api.put(
           `/curso/cursosincrono/${id}/formando/${formandoId}/avaliacaofinal`,
@@ -615,7 +601,6 @@ const AvaliacoesSincrono = () => {
           throw ePut;
         }
       }
-      // Optimistic update: reflect grade locally immediately
       setFinais((prev) => {
         const fidStr = String(formandoId);
         const idx = prev.findIndex(
@@ -627,7 +612,6 @@ const AvaliacoesSincrono = () => {
             ...copy[idx],
             nota: parsedNota,
           };
-          // update cache
           saveFinaisCache(copy);
           return copy;
         }
@@ -637,7 +621,6 @@ const AvaliacoesSincrono = () => {
       });
       setOperationStatus(0);
       setOperationMessage("Avaliação final guardada.");
-      // Refresh from single course fetch while keeping optimistic state
       fetchCurso();
     } catch (err) {
       const is403 = err?.response?.status === 403;
@@ -1170,7 +1153,6 @@ const AvaliacoesSincrono = () => {
                 const sid = s.idsubmissao ?? s.id ?? s.submissaoId;
                 const fid =
                   s.idformando || s.formando || s.utilizador || s.userId || sid;
-                // Try to resolve the student's display name from multiple possible shapes
                 let nomeResolved =
                   s.formando_formando?.nome ||
                   s.formando?.nome ||

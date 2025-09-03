@@ -6,7 +6,6 @@ const Modal = ({ isOpen, onClose, title, children }) => {
       const scrollBarWidth =
         window.innerWidth - document.documentElement.clientWidth;
       document.body.style.overflow = "hidden";
-      // Compensate layout shift when scrollbar disappears
       if (scrollBarWidth > 0) {
         document.body.style.paddingRight = `${scrollBarWidth}px`;
       }

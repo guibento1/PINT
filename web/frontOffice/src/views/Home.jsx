@@ -1,4 +1,3 @@
-// web/frontend/frontOffice/src/views/Home.jsx
 import React, { useEffect, useState } from "react";
 import useUserRole from "@shared/hooks/useUserRole";
 import api from "@shared/services/axios";
@@ -15,6 +14,7 @@ export default function Home() {
     `/curso/inscricoes/utilizador/${user.id}`
   );
   const [cursos, setCursos] = useState([]);
+  const [loadingCursos, setLoadingCursos] = useState(false);
   const [cursosSincronos, setCursosSincronos] = useState([]); // apenas para formador
   const [termoPesquisa, setTermoPesquisa] = useState("");
   const [categoriasAtivas, setCategoriasAtivas] = useState([]);
@@ -63,10 +63,20 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
+    setLoadingCursos(true);
     api
       .get(urlApi)
-      .then((res) => setCursos(res.data))
-      .catch((err) => console.error("Erro ao carregar cursos:", err));
+      .then((res) => {
+        if (!cancelled) setCursos(res.data);
+      })
+      .catch((err) => console.error("Erro ao carregar cursos:", err))
+      .finally(() => {
+        if (!cancelled) setLoadingCursos(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [urlApi]);
 
   // Buscar cursos síncronos que o formador leciona
@@ -137,20 +147,18 @@ export default function Home() {
             <div className="mb-5">
               <h4 className="mb-3">Cursos que leciono:</h4>
               {cursosSincronos.length > 0 ? (
-                <div className="row g-4">
-                  {cursosSincronos.map((curso) => (
-                    <div
-                      className="col-sm-6 col-md-4 col-lg-3"
-                      key={curso.idcurso}
-                    >
+                <section className="ag-format-container">
+                  <div className="ag-courses_box">
+                    {cursosSincronos.map((curso) => (
                       <CardCurso
-                        className="shadow border-radius p-2"
+                        key={curso.idcurso}
+                        variant="ag"
                         curso={curso}
                         notipo={true}
                       />
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                </section>
               ) : (
                 <div className="alert alert-light mt-2">
                   <h5 className="mb-2">Nenhum curso síncrono encontrado...</h5>
@@ -160,16 +168,14 @@ export default function Home() {
             </div>
           )}
 
-          {/* Secção Meus Cursos (vem depois) */}
           <div className="mb-2">
             <h4 className="mb-3">
               {isFormando
                 ? "Cursos em que estou inscrito:"
                 : isFormador
-                ? "Cursos em que estou inscrito:" 
+                ? "Cursos em que estou inscrito:"
                 : "Cursos"}
             </h4>
-            {/* Pesquisa + Categorias movidas para baixo do título "Os meus cursos" */}
             <div className="row align-items-start mb-3">
               <div className="col-12 col-md-6 col-lg-3">
                 <div className="mb-3 mb-md-0">
@@ -193,20 +199,26 @@ export default function Home() {
                 </div>
               )}
             </div>
-            {cursos.length > 0 ? (
-              <div className="row g-4">
-                {cursos.map((curso) => (
-                  <div
-                    className="col-sm-6 col-md-4 col-lg-3"
-                    key={curso.idcurso}
-                  >
-                    <CardCurso
-                      className="shadow border-radius p-2"
-                      curso={curso}
-                    />
-                  </div>
-                ))}
+            {loadingCursos ? (
+              <div className="container mt-5">
+                <div className="text-center my-5">
+                  <div className="spinner-border text-primary" />
+                  <p className="mt-2 text-muted">A carregar cursos...</p>
+                </div>
               </div>
+            ) : cursos.length > 0 ? (
+              <section className="ag-format-container">
+                <div className="ag-courses_box">
+                  {cursos.map((curso) => (
+                    <CardCurso
+                      key={curso.idcurso}
+                      variant="ag"
+                      curso={curso}
+                      inscrito={true}
+                    />
+                  ))}
+                </div>
+              </section>
             ) : (
               <div className="alert alert-light mt-4">
                 <h5 className="mb-2">Nenhum curso encontrado...</h5>
@@ -225,10 +237,17 @@ export default function Home() {
             <h5 className="mb-3 fw-semibold mb-1 text-center">
               Sabes que dia é hoje?
             </h5>
-            <Calendar onChange={setSelectedDate} value={selectedDate} locale="pt-PT"
-                      formatShortWeekday={(locale, date) =>
-                      date.toLocaleDateString(locale, { weekday: "short" }).substring(0, 3).toUpperCase()
-              } />
+            <Calendar
+              onChange={setSelectedDate}
+              value={selectedDate}
+              locale="pt-PT"
+              formatShortWeekday={(locale, date) =>
+                date
+                  .toLocaleDateString(locale, { weekday: "short" })
+                  .substring(0, 3)
+                  .toUpperCase()
+              }
+            />
           </div>
         </div>
       </div>

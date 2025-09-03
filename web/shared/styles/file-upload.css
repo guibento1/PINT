@@ -1,4 +1,4 @@
-/* Global file upload and submission card styles overriding Bootstrap vibes */
+/* File Upload */
 
 .file-upload .upload-dropzone {
   border: 2px dashed var(--bs-secondary-border-subtle, #ced4da);
