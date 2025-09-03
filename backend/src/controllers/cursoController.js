@@ -11,9 +11,8 @@ const {
   sendNotification,
   sendNotificationToUtilizador,
   subscribeUtilizadorToCanal,
-  unsubscribeUtilizadorToCanal
+  unsubscribeUtilizadorToCanal,
 } = require("../utils.js");
-
 
 const logger = require("../logger.js");
 
@@ -36,7 +35,8 @@ async function findTopicos(id) {
     data = data.map((t) => ({
       idtopico: t.topico_topico.idtopico,
       designacao: t.topico_topico.designacao,
-    })); return data;
+    }));
+    return data;
   }
   return [];
 }
@@ -68,7 +68,9 @@ async function updateTopicos(id, topicos) {
       });
     }
     if (cursoTopicosInserts.length > 0) {
-      await models.cursotopico.bulkCreate(cursoTopicosInserts, {individualHooks: true});
+      await models.cursotopico.bulkCreate(cursoTopicosInserts, {
+        individualHooks: true,
+      });
     }
   } catch (error) {
     console.error("Error in updateTopicos:", error);
@@ -108,7 +110,6 @@ async function addInscrito(cursosIn, idFormando) {
   );
   return cursosOut;
 }
-
 
 async function addLecionado(cursosIn, idFormador) {
   if (!(typeof cursosIn[Symbol.iterator] === "function")) cursosIn = [cursosIn];
@@ -331,28 +332,25 @@ async function addLicao(idcurso, licao) {
   return createdRow;
 }
 
-async function updateLicao(idlicao, params){
-
-  const {titulo,descricao} = params;
+async function updateLicao(idlicao, params) {
+  const { titulo, descricao } = params;
   const updateData = {};
 
-  if(titulo == undefined && descricao == undefined) return;
-  if(titulo === null || descricao === null) throw new Error("fields must not be null");
+  if (titulo == undefined && descricao == undefined) return;
+  if (titulo === null || descricao === null)
+    throw new Error("fields must not be null");
 
   if (titulo != undefined) updateData.titulo = titulo;
   if (descricao != undefined) updateData.descricao = descricao;
 
-  let licao = await models.licao.findOne({where : { idlicao:idlicao }});
+  let licao = await models.licao.findOne({ where: { idlicao: idlicao } });
 
   licao = await licao.update(updateData);
 
   return licao;
-
 }
 
-
-async function formatSessao(sessao){
-
+async function formatSessao(sessao) {
   const licao = await models.licao.findByPk(sessao.licao);
   sessao.dataValues.titulo = licao.titulo;
   sessao.dataValues.descricao = licao.descricao;
@@ -379,7 +377,10 @@ async function formatSessao(sessao){
       };
 
       if (!isLink(material.referencia)) {
-        material.referencia = await generateSASUrl(material.referencia, "ficheiroslicao");
+        material.referencia = await generateSASUrl(
+          material.referencia,
+          "ficheiroslicao"
+        );
       }
 
       return material;
@@ -437,7 +438,6 @@ async function rmLicao(idlicao) {
 }
 
 async function addLicaoContent(idlicao, ficheiro, material) {
-
   const licaoExists = await models.licao.findByPk(idlicao);
   if (!licaoExists) {
     throw new Error(`Lição com ID ${idlicao} não existe.`);
@@ -464,24 +464,18 @@ async function addLicaoContent(idlicao, ficheiro, material) {
   return createdMaterial;
 }
 
-
 async function rmLicaoContent(idlicao, idmaterial) {
-
   try {
-
-    await models.licaomaterial.destroy({ 
-
-      where : {
-       licao: idlicao,
-       material: idmaterial,
-      }
-
+    await models.licaomaterial.destroy({
+      where: {
+        licao: idlicao,
+        material: idmaterial,
+      },
     });
 
     const material = await models.material.findByPk(idmaterial);
 
-    if (material.referencia && !isLink(material.referencia)){
-
+    if (material.referencia && !isLink(material.referencia)) {
       try {
         await deleteFile(material.referencia, "ficheiroslicao");
       } catch (error) {
@@ -489,15 +483,12 @@ async function rmLicaoContent(idlicao, idmaterial) {
           `Não foi possível apagar o ficheiro da lição na object storage. Referência: ${referencia}. Detalhes: ${error.message}`
         );
       }
-
     }
-    
   } catch (error) {
-      logger.warn(
-        `Não foi possível apagar o conteudo da lição. Detalhes: ${error.message}`
-      );
+    logger.warn(
+      `Não foi possível apagar o conteudo da lição. Detalhes: ${error.message}`
+    );
   }
-
 }
 
 async function createCurso(thumbnail, info) {
@@ -614,7 +605,7 @@ controllers.list = async (req, res) => {
       "fimdeinscricoes",
       "thumbnail",
     ],
-    order : [["idcurso", "ASC"]]
+    order: [["idcurso", "ASC"]],
   };
   try {
     if (req.query.area) {
@@ -684,7 +675,6 @@ controllers.list = async (req, res) => {
 };
 
 controllers.rmCurso = async (req, res) => {
-
   const { id } = req.params;
   logger.debug(`Recebida requisição para remover curso com ID: ${id}`);
   try {
@@ -704,7 +694,6 @@ controllers.rmCurso = async (req, res) => {
     });
 
     if (cursosincrono) {
-
       const sessoes = await models.sessao.findAll({
         where: {
           cursosincrono: cursosincrono.idcursosincrono,
@@ -718,8 +707,7 @@ controllers.rmCurso = async (req, res) => {
         })
       );
 
-      await models.cursosincrono.destroy({where: {curso: id} })
-
+      await models.cursosincrono.destroy({ where: { curso: id } });
     } else {
       const licoes = await models.licao.findAll({
         where: {
@@ -734,9 +722,8 @@ controllers.rmCurso = async (req, res) => {
         })
       );
 
-      await models.cursoassincrono.destroy({where: {curso: id} })
+      await models.cursoassincrono.destroy({ where: { curso: id } });
     }
-
 
     await models.cursotopico.destroy({
       where: {
@@ -750,8 +737,7 @@ controllers.rmCurso = async (req, res) => {
       },
     });
 
-    if(curso.thumbnail){
-
+    if (curso.thumbnail) {
       try {
         await deleteFile(curso.thumbnail, "thumbnailscursos");
       } catch (error) {
@@ -762,9 +748,7 @@ controllers.rmCurso = async (req, res) => {
           }
         );
       }
-
     }
-
 
     logger.info(`Curso com ID ${id} removido com sucesso.`);
     return res.status(200).json({
@@ -781,7 +765,6 @@ controllers.rmCurso = async (req, res) => {
       error: "Ocorreu um erro interno ao remover o curso.",
     });
   }
-
 };
 
 controllers.getCurso = async (req, res) => {
@@ -801,8 +784,6 @@ controllers.getCurso = async (req, res) => {
     req.user.roles.find((roleEntry) => roleEntry.role === "formador")?.id || 0;
 
   try {
-
-
     if (formando) {
       const inscricao = await models.inscricao.findOne({
         where: {
@@ -836,33 +817,37 @@ controllers.getCurso = async (req, res) => {
 
     curso = (await addTipo(curso))[0];
     curso.dataValues.topicos = await findTopicos(id);
-    
-    if(curso.dataValues.sincrono){
 
-        const cursoSinc = await models.cursosincrono.findOne({
-          where: {
-            curso: id,
-          },
-          attributes: ["idcursosincrono","formador","inicio","fim","nhoras","maxincricoes"],
-        });
+    if (curso.dataValues.sincrono) {
+      const cursoSinc = await models.cursosincrono.findOne({
+        where: {
+          curso: id,
+        },
+        attributes: [
+          "idcursosincrono",
+          "formador",
+          "inicio",
+          "fim",
+          "nhoras",
+          "maxincricoes",
+        ],
+      });
 
+      const nInscricoes = await models.inscricao.count({
+        where: {
+          curso: id,
+        },
+      });
 
-        const nInscricoes = await models.inscricao.count({
-          where: {
-            curso: id,
-          },
-        });
+      curso.dataValues.idcrono = cursoSinc.idcursosincrono;
+      curso.dataValues.formador = cursoSinc.formador;
+      curso.dataValues.inicio = cursoSinc.inicio;
+      curso.dataValues.fim = cursoSinc.fim;
+      curso.dataValues.nhoras = cursoSinc.nhoras;
+      curso.dataValues.maxincricoes = cursoSinc.maxincricoes;
+      curso.dataValues.inscricoes = nInscricoes;
 
-        curso.dataValues.idcrono = cursoSinc.idcursosincrono;
-        curso.dataValues.formador = cursoSinc.formador;
-        curso.dataValues.inicio = cursoSinc.inicio;
-        curso.dataValues.fim = cursoSinc.fim;
-        curso.dataValues.nhoras = cursoSinc.nhoras;
-        curso.dataValues.maxincricoes = cursoSinc.maxincricoes;
-        curso.dataValues.inscricoes = nInscricoes;
-
-
-        if(cursoSinc.formador == formador) acessible = true;
+      if (cursoSinc.formador == formador) acessible = true;
     }
 
     if (!curso || (!curso.disponivel && !acessible)) {
@@ -879,15 +864,11 @@ controllers.getCurso = async (req, res) => {
       );
     }
     if (acessible) {
-
       if (formando) curso = (await addInscrito(curso, formando))[0];
-
 
       logger.debug(`Curso acessivel.`);
 
-      
       if (curso.dataValues.sincrono) {
-
         logger.debug(`Curso sincrono.`);
 
         const sessoes = await models.sessao.findAll({
@@ -904,33 +885,25 @@ controllers.getCurso = async (req, res) => {
           ],
         });
 
-
         try {
-
-
           let totalHorasDasSessoes = 0;
 
-          sessoes.forEach(sessao => {
+          sessoes.forEach((sessao) => {
             totalHorasDasSessoes += parseInt(sessao.duracaohoras);
           });
 
-
-          curso.dataValues.progresso = ((totalHorasDasSessoes / curso.dataValues.nhoras) * 100).toFixed(2);
-          
+          curso.dataValues.progresso = (
+            (totalHorasDasSessoes / curso.dataValues.nhoras) *
+            100
+          ).toFixed(2);
         } catch (error) {
-
-
           logger.error(
             `Erro interno do servidor ao buscar curso. Detalhes: ${error.message}`,
             {
               stack: error.stack,
             }
           );
-          
         }
-
-
-
 
         const avaliacoes = await models.avaliacaocontinua.findAll({
           where: {
@@ -938,57 +911,63 @@ controllers.getCurso = async (req, res) => {
           },
         });
 
-        if(avaliacoes != undefined && sessoes != null && sessoes.length > 0 ){
-
-
+        if (avaliacoes != undefined && sessoes != null && sessoes.length > 0) {
           const agora = new Date();
 
           curso.dataValues.avaliacoes = (
             await Promise.all(
-
               avaliacoes.map(async (avaliacao) => {
-
-                if(formando && curso.dataValues.inscrito && (agora >= avaliacao.iniciodesubmissoes) ){
-
+                if (
+                  formando &&
+                  curso.dataValues.inscrito &&
+                  agora >= avaliacao.iniciodesubmissoes
+                ) {
                   const submissao = await models.submissao.findOne({
-                    where : {
-                      avaliacaocontinua : avaliacao.idavaliacaocontinua,
-                      formando : formando,
-                      cursosincrono : curso.dataValues.idcrono
-                    }
+                    where: {
+                      avaliacaocontinua: avaliacao.idavaliacaocontinua,
+                      formando: formando,
+                      cursosincrono: curso.dataValues.idcrono,
+                    },
                   });
 
-                  if(submissao != null){
-                    submissao.dataValues.submissao = await generateSASUrl(submissao.submissao, "submissoes");
+                  if (submissao != null) {
+                    submissao.dataValues.submissao = await generateSASUrl(
+                      submissao.submissao,
+                      "submissoes"
+                    );
                   }
 
-                  avaliacao.dataValues.submissao = submissao ;
-
+                  avaliacao.dataValues.submissao = submissao;
                 }
 
-                avaliacao.dataValues.enunciado = await generateSASUrl(avaliacao.enunciado, "enunciadosavaliacao");
+                avaliacao.dataValues.enunciado = await generateSASUrl(
+                  avaliacao.enunciado,
+                  "enunciadosavaliacao"
+                );
                 return avaliacao;
               })
             )
           ).filter((avaliacao) => {
-            return (admin) || (curso.dataValues.formador == formador) || (agora >= avaliacao.iniciodisponibilidade);
+            return (
+              admin ||
+              curso.dataValues.formador == formador ||
+              agora >= avaliacao.iniciodisponibilidade
+            );
           });
 
-          if(formando && curso.dataValues.inscrito){
+          if (formando && curso.dataValues.inscrito) {
+            const avaliacaoFinal = await models.avaliacaofinal.findOne({
+              where: {
+                formando: formando,
+                cursosincrono: curso.dataValues.idcrono,
+              },
+            });
 
-              const avaliacaoFinal = await models.avaliacaofinal.findOne({
-
-                where : {
-                  formando : formando,
-                  cursosincrono : curso.dataValues.idcrono
-                }
-
-              });
-
-              curso.dataValues.avaliacaofinal = 
-                ( avaliacaoFinal == null || avaliacaoFinal.nota == null ) ? null : avaliacaoFinal.nota  
+            curso.dataValues.avaliacaofinal =
+              avaliacaoFinal == null || avaliacaoFinal.nota == null
+                ? null
+                : avaliacaoFinal.nota;
           }
-
         } else {
           curso.dataValues.avaliacoes = [];
         }
@@ -1074,9 +1053,7 @@ controllers.getCurso = async (req, res) => {
   }
 };
 
-
 controllers.getCursoLecionados = async (req, res) => {
-
   const { idformador } = req.params;
   logger.debug(
     `Recebida requisição para listar cursos lecionados do formando ${idformador}. Query: ${JSON.stringify(
@@ -1110,7 +1087,9 @@ controllers.getCursoLecionados = async (req, res) => {
   }
 
   try {
-    const cursosLecionados = await models.cursosincrono.findAll({where : { formador : idformador }});
+    const cursosLecionados = await models.cursosincrono.findAll({
+      where: { formador: idformador },
+    });
     const cursosIndexes = cursosLecionados.map((cursosinc) => cursosinc.curso);
     queryOptions.where.idcurso = {
       [Sequelize.Op.in]: cursosIndexes,
@@ -1290,7 +1269,6 @@ controllers.getCursoInscritos = async (req, res) => {
   }
 };
 
-
 controllers.getInscricoes = async (req, res) => {
   const { id } = req.params;
 
@@ -1300,12 +1278,15 @@ controllers.getInscricoes = async (req, res) => {
     req.user.roles.find((roleEntry) => roleEntry.role === "admin")?.id || 0;
 
   const toNumberOrNull = (v) => {
-    if (v === null || v === undefined || v === "" || typeof v === "boolean") return null;
+    if (v === null || v === undefined || v === "" || typeof v === "boolean")
+      return null;
     const n = typeof v === "number" ? v : Number(v);
     return Number.isFinite(n) ? n : null;
   };
 
-  logger.debug(`Recebida requisição para listar inscritos do curso com ID: ${id}`);
+  logger.debug(
+    `Recebida requisição para listar inscritos do curso com ID: ${id}`
+  );
   try {
     const curso = await models.curso.findByPk(id);
     if (!curso) {
@@ -1321,7 +1302,8 @@ controllers.getInscricoes = async (req, res) => {
     if (!admin) {
       if (!cursoSinc || cursoSinc.formador != formador) {
         return res.status(403).json({
-          error: "Proibido: permissões insuficientes para inscrever outro utilizador.",
+          error:
+            "Proibido: permissões insuficientes para inscrever outro utilizador.",
         });
       }
     }
@@ -1357,7 +1339,8 @@ controllers.getInscricoes = async (req, res) => {
     // Attach idformando from inscricao
     utilizadores = utilizadores.map((utilizador) => {
       const inscricao = inscricoes.find(
-        (entry) => entry.formando_formando?.utilizador == utilizador.idutilizador
+        (entry) =>
+          entry.formando_formando?.utilizador == utilizador.idutilizador
       );
       if (inscricao) {
         utilizador.dataValues.idformando = inscricao.formando;
@@ -1399,12 +1382,13 @@ controllers.getInscricoes = async (req, res) => {
       `Erro interno do servidor ao listar inscritos do curso. Detalhes: ${error.message}`,
       { stack: error.stack }
     );
-    return res.status(500).json({ error: "Ocorreu um erro interno ao buscar os inscritos." });
+    return res
+      .status(500)
+      .json({ error: "Ocorreu um erro interno ao buscar os inscritos." });
   }
 };
 
 controllers.inscreverCurso = async (req, res) => {
-
   const { id } = req.params;
   const { utilizador: utilizadorIdDoBody } = req.body || {};
 
@@ -1455,13 +1439,10 @@ controllers.inscreverCurso = async (req, res) => {
     }
 
     const data = await models.cursosincrono.findOne({
-      where:
-      { curso : id,
-        formador : formador
-      }
+      where: { curso: id, formador: formador },
     });
 
-    if(data){
+    if (data) {
       logger.warn(
         `O utilizador é formador no curso, não é possivel se inscrever.`
       );
@@ -1490,29 +1471,30 @@ controllers.inscreverCurso = async (req, res) => {
       });
     }
 
-    const cursoSincronoEncontrado = await models.cursosincrono.findOne({where : {curso : id}});
+    const cursoSincronoEncontrado = await models.cursosincrono.findOne({
+      where: { curso: id },
+    });
 
-    if(cursoSincronoEncontrado){
-
-      if( cursoSincronoEncontrado.maxincricoes ) {
-
+    if (cursoSincronoEncontrado) {
+      if (cursoSincronoEncontrado.maxincricoes) {
         const nInscricoes = await models.inscricao.count({
           where: {
             curso: id,
           },
         });
 
-        if ( cursoSincronoEncontrado.maxincricoes != null &&
+        if (
+          cursoSincronoEncontrado.maxincricoes != null &&
           nInscricoes >= cursoSincronoEncontrado.maxincricoes
         ) {
-          logger.warn(`Limite máximo de inscrições atingido para o curso ${id}.`);
+          logger.warn(
+            `Limite máximo de inscrições atingido para o curso ${id}.`
+          );
           return res.status(400).json({
             error: "Vagas esgotadas para este curso.",
           });
         }
-
       }
-
     }
 
     const insertData = {
@@ -1524,31 +1506,27 @@ controllers.inscreverCurso = async (req, res) => {
     await models.inscricao.create(insertData);
     const topicos = await findTopicos(id);
 
-    if(topicos && topicos.length > 0){
-
+    if (topicos && topicos.length > 0) {
       let inscricoestopicos = [];
 
-      topicos.forEach(topico => {
-
+      topicos.forEach((topico) => {
         inscricoestopicos.push({
-          topico : topico.idtopico,
-          utilizador : idDoUtilizadorParaInscricao
+          topico: topico.idtopico,
+          utilizador: idDoUtilizadorParaInscricao,
         });
-        
       });
 
-      await models.topicossubscritosutilizadores.bulkCreate(inscricoestopicos, {ignoreDuplicates: true, individualHooks: true});
-
+      await models.topicossubscritosutilizadores.bulkCreate(inscricoestopicos, {
+        ignoreDuplicates: true,
+        individualHooks: true,
+      });
     }
-
 
     logger.info(
       `Utilizador ${idDoUtilizadorParaInscricao} inscrito no curso ${id} com sucesso.`
     );
 
     try {
-
-
       logger.info(`Email enviado para: ${req.user.email}`);
       await sendEmail({
         to: req.user.email,
@@ -1556,15 +1534,17 @@ controllers.inscreverCurso = async (req, res) => {
         text: `Você foi inscrito no curso ${cursoEncontrado.nome}.`,
       });
 
-      await subscribeUtilizadorToCanal(idDoUtilizadorParaInscricao,cursoEncontrado.canal);
-      
+      await subscribeUtilizadorToCanal(
+        idDoUtilizadorParaInscricao,
+        cursoEncontrado.canal
+      );
     } catch (error) {
       logger.error(
-      `Erro ao subscrever ao canal de notificacoes do curso/mandar email. Detalhes: ${error.message}`,
-      {
-        stack: error.stack,
-      });
-      
+        `Erro ao subscrever ao canal de notificacoes do curso/mandar email. Detalhes: ${error.message}`,
+        {
+          stack: error.stack,
+        }
+      );
     }
 
     return res.status(201).json({
@@ -1575,8 +1555,11 @@ controllers.inscreverCurso = async (req, res) => {
       `Erro interno do servidor ao inscrever no curso. Detalhes: ${error.message}`,
       {
         stack: error.stack,
-      }); return res.status(500).json({ error: "Ocorreu um erro interno ao tentar inscrever no curso.",
-    });
+      }
+    );
+    return res
+      .status(500)
+      .json({ error: "Ocorreu um erro interno ao tentar inscrever no curso." });
   }
 };
 
@@ -1603,8 +1586,6 @@ controllers.sairCurso = async (req, res) => {
     });
   }
   try {
-
-
     const cursoEncontrado = await models.curso.findByPk(id);
     if (!cursoEncontrado) {
       logger.warn(`Curso com ID ${id} não encontrado.`);
@@ -1645,36 +1626,33 @@ controllers.sairCurso = async (req, res) => {
       `Inscrição do formando ${formando} no curso ${id} removida com sucesso.`
     );
 
-
     let topicos = await findTopicos(id);
 
-    if(topicos && topicos.length > 0){
-
+    if (topicos && topicos.length > 0) {
       topicos = topicos.map((topicoEntry) => topicoEntry.idtopico);
 
       await models.topicossubscritosutilizadores.destroy({
-          where : {
-            topico : {
-              [Sequelize.Op.in]: topicos
-            },
-            utilizador : idDoUtilizadorParaDesinscricao
-          }
+        where: {
+          topico: {
+            [Sequelize.Op.in]: topicos,
+          },
+          utilizador: idDoUtilizadorParaDesinscricao,
+        },
       });
-
     }
 
     try {
-
-      await unsubscribeUtilizadorToCanal(idDoUtilizadorParaDesinscricao,cursoEncontrado.canal);
-      
+      await unsubscribeUtilizadorToCanal(
+        idDoUtilizadorParaDesinscricao,
+        cursoEncontrado.canal
+      );
     } catch (error) {
-
       logger.error(
-      `Erro ao unsubscrever ao canal de notificacoes do curso/mandar email. Detalhes: ${error.message}`,
-      {
-        stack: error.stack,
-      });
-      
+        `Erro ao unsubscrever ao canal de notificacoes do curso/mandar email. Detalhes: ${error.message}`,
+        {
+          stack: error.stack,
+        }
+      );
     }
 
     return res.status(200).json({
@@ -1716,24 +1694,17 @@ controllers.createCursoAssincrono = async (req, res) => {
     );
 
     try {
-
-      if(createdRow.disponivel){
-
-        await sendNotification( 
-          1, 
+      if (createdRow.disponivel) {
+        await sendNotification(
+          1,
           `Novo curso assíncrono criado : ${createdRow.nome}`,
-          `Inicio de Inscrições : ${createdRow.nome}`      
+          `Inicio de Inscrições : ${createdRow.nome}`
         );
-
       }
-
-      
     } catch (error) {
-
       logger.error(`Erro ao enviar notificacao. Detalhes: ${error.message}`, {
         stack: error.stack,
       });
-      
     }
     return res.status(201).json(createdRow);
   } catch (error) {
@@ -1779,7 +1750,6 @@ controllers.updateCursoAssincrono = async (req, res) => {
   }
 };
 
-
 controllers.createCursoSincrono = async (req, res) => {
   logger.debug(
     `Recebida requisição para criar curso Síncrono. Body: ${req.body.info}`
@@ -1800,22 +1770,36 @@ controllers.createCursoSincrono = async (req, res) => {
 
   if (
     info.nhoras === undefined ||
-    typeof info.nhoras !== 'number' ||
+    typeof info.nhoras !== "number" ||
     info.nhoras <= 0
   ) {
-    return res.status(400).json({ error: "O campo 'nhoras' é obrigatório e deve ser um número positivo." });
+    return res
+      .status(400)
+      .json({
+        error: "O campo 'nhoras' é obrigatório e deve ser um número positivo.",
+      });
   }
 
   if (!info.inicio || isNaN(new Date(info.inicio))) {
-    return res.status(400).json({ error: "O campo 'inicio' é obrigatório e deve ser uma data válida." });
+    return res
+      .status(400)
+      .json({
+        error: "O campo 'inicio' é obrigatório e deve ser uma data válida.",
+      });
   }
 
   if (!info.fim || isNaN(new Date(info.fim))) {
-    return res.status(400).json({ error: "O campo 'fim' é obrigatório e deve ser uma data válida." });
+    return res
+      .status(400)
+      .json({
+        error: "O campo 'fim' é obrigatório e deve ser uma data válida.",
+      });
   }
 
   if (new Date(info.inicio) >= new Date(info.fim)) {
-    return res.status(400).json({ error: "O campo 'fim' deve ser posterior ao campo 'inicio'." });
+    return res
+      .status(400)
+      .json({ error: "O campo 'fim' deve ser posterior ao campo 'inicio'." });
   }
 
   try {
@@ -1827,7 +1811,8 @@ controllers.createCursoSincrono = async (req, res) => {
       nhoras: info.nhoras,
       inicio: info.inicio,
       fim: info.fim,
-      maxinscricoes: info.maxinscricoes !== undefined ? info.maxinscricoes : null,
+      maxinscricoes:
+        info.maxinscricoes !== undefined ? info.maxinscricoes : null,
     });
 
     if (createdRow.thumbnail) {
@@ -1842,9 +1827,12 @@ controllers.createCursoSincrono = async (req, res) => {
     createdRow.dataValues.nHoras = info.nhoras;
     createdRow.dataValues.inicio = info.inicio;
     createdRow.dataValues.fim = info.fim;
-    createdRow.dataValues.maxinscricoes= info.maxinscricoes !== undefined ? info.maxinscricoes : null;
+    createdRow.dataValues.maxinscricoes =
+      info.maxinscricoes !== undefined ? info.maxinscricoes : null;
 
-    logger.info(`Curso Síncrono com ID ${createdRow.idcurso} criado com sucesso.`);
+    logger.info(
+      `Curso Síncrono com ID ${createdRow.idcurso} criado com sucesso.`
+    );
 
     return res.status(201).json(createdRow);
   } catch (error) {
@@ -1858,9 +1846,7 @@ controllers.createCursoSincrono = async (req, res) => {
   }
 };
 
-
 controllers.updateCursoSincrono = async (req, res) => {
-
   const { id } = req.params;
   logger.debug(
     `Recebida requisição para atualizar curso síncrono com ID: ${id}. Body: ${req.body.info}`
@@ -1872,7 +1858,9 @@ controllers.updateCursoSincrono = async (req, res) => {
   try {
     const data = await models.curso.findByPk(id);
     if (!data) {
-      logger.warn(`Tentativa de atualizar curso síncrono com ID ${id} que não foi encontrado.`);
+      logger.warn(
+        `Tentativa de atualizar curso síncrono com ID ${id} que não foi encontrado.`
+      );
       return res.status(404).json({ error: "Curso não encontrado." });
     }
 
@@ -1883,21 +1871,28 @@ controllers.updateCursoSincrono = async (req, res) => {
     );
 
     if (invalidFields.length > 0) {
-      logger.info(`Validação de argumentos para o update do curso sincrono falhou.`);
+      logger.info(
+        `Validação de argumentos para o update do curso sincrono falhou.`
+      );
       return res.status(400).json({
-        error: `Os seguintes campos não podem ser nulos se forem enviados: ${invalidFields.join(", ")}`,
+        error: `Os seguintes campos não podem ser nulos se forem enviados: ${invalidFields.join(
+          ", "
+        )}`,
       });
     }
 
     const updateData = {};
 
-    if (info.maxinscricoes !== undefined) updateData.maxincricoes = info.maxinscricoes;
+    if (info.maxinscricoes !== undefined)
+      updateData.maxincricoes = info.maxinscricoes;
     if (info.inicio !== undefined) updateData.inicio = info.inicio;
     if (info.fim !== undefined) updateData.fim = info.fim;
     if (info.formador !== undefined) updateData.formador = info.formador;
     if (info.nhoras !== undefined) updateData.nhoras = info.nhoras;
 
-    let cursoSincrono = await models.cursosincrono.findOne({ where: { curso: id } });
+    let cursoSincrono = await models.cursosincrono.findOne({
+      where: { curso: id },
+    });
 
     cursoSincrono = await cursoSincrono.update(updateData);
 
@@ -1914,25 +1909,22 @@ controllers.updateCursoSincrono = async (req, res) => {
       `Erro interno do servidor ao atualizar curso síncrono. Detalhes: ${error.message}`,
       { stack: error.stack }
     );
-    return res.status(500).json({ error: "Ocorreu um erro interno ao atualizar o curso." });
+    return res
+      .status(500)
+      .json({ error: "Ocorreu um erro interno ao atualizar o curso." });
   }
 };
 
-
 controllers.addSessao = async (req, res) => {
-
   const { idcursosinc } = req.params;
-  const { 
-
-      titulo, 
-      descricao, 
-      linksessao, 
-      datahora, 
-      duracaohoras, 
-      plataformavideoconferencia 
-
+  const {
+    titulo,
+    descricao,
+    linksessao,
+    datahora,
+    duracaohoras,
+    plataformavideoconferencia,
   } = req.body;
-
 
   logger.debug(
     `Recebida requisição para adicionar lição ao curso síncrono ${idcursosinc}. Dados: ${JSON.stringify(
@@ -1940,19 +1932,26 @@ controllers.addSessao = async (req, res) => {
     )}`
   );
 
-  if (!titulo || !descricao || !linksessao || !datahora || !duracaohoras || !plataformavideoconferencia ) {
+  if (
+    !titulo ||
+    !descricao ||
+    !linksessao ||
+    !datahora ||
+    !duracaohoras ||
+    !plataformavideoconferencia
+  ) {
     logger.warn(
       `Tentativa de adicionar sessao com campos faltando. Dados recebidos: ${JSON.stringify(
         req.body
       )}`
     );
     return res.status(400).json({
-      error: 'Os campos "titulo", "descricao", "linkSessão", "dataHora", "duracaoHoras", "plataformaVideoConferencia" são obrigatórios.',
+      error:
+        'Os campos "titulo", "descricao", "linkSessão", "dataHora", "duracaoHoras", "plataformaVideoConferencia" são obrigatórios.',
     });
   }
 
   try {
-
     const cursosinc = await models.cursosincrono.findOne({
       where: {
         idcursosincrono: idcursosinc,
@@ -1982,23 +1981,20 @@ controllers.addSessao = async (req, res) => {
 
     let createdRow = await addLicao(cursosinc.curso, licao);
 
-    logger.info(
-      `Lição com ID ${createdRow.idsessao} creada com sucesso.`
-    );
+    logger.info(`Lição com ID ${createdRow.idsessao} creada com sucesso.`);
 
     insertData = {
-      licao : createdRow.idlicao,
-      cursosincrono : idcursosinc,
+      licao: createdRow.idlicao,
+      cursosincrono: idcursosinc,
       linksessao,
-      datahora, 
-      duracaohoras, 
-      plataformavideoconferencia 
-    }
+      datahora,
+      duracaohoras,
+      plataformavideoconferencia,
+    };
 
     createdRow = await models.sessao.create(insertData, {
       returning: true,
     });
-
 
     logger.info(
       `Sessão com ID ${createdRow.idsessao} adicionada com sucesso ao curso síncrono ${idcursosinc}.`
@@ -2006,30 +2002,20 @@ controllers.addSessao = async (req, res) => {
 
     const result = await formatSessao(createdRow);
 
-
     try {
-
       await sendNotification(
         cursosinc.curso_curso.canal,
         `Nova licão criada para o curso ${cursosinc.curso}`,
         titulo
       );
-      
     } catch (error) {
-
-      logger.error(
-        `Nao foi possivel enviar notificao : ${error.message}`,
-        {
-          stack: error.stack,
-        }
-      );
-      
+      logger.error(`Nao foi possivel enviar notificao : ${error.message}`, {
+        stack: error.stack,
+      });
     }
 
     return res.status(201).json(result);
-    
   } catch (error) {
-
     logger.error(
       `Erro interno do servidor ao adicionar sessão. Detalhes: ${error.message}`,
       {
@@ -2039,14 +2025,10 @@ controllers.addSessao = async (req, res) => {
     return res.status(500).json({
       error: "Ocorreu um erro interno.",
     });
-    
   }
-
 };
 
-
 controllers.rmSessao = async (req, res) => {
-
   const { idsessao } = req.params;
   logger.debug(`Recebida requisição para remover sessão com ID: ${idsessao}`);
   try {
@@ -2066,7 +2048,6 @@ controllers.rmSessao = async (req, res) => {
     await rmLicao(idlicao);
     logger.debug(`Lição associada a sessão eleminada com sucesso.`);
 
-
     return res.status(201).json({
       message: "Sessão removida com sucesso.",
     });
@@ -2083,33 +2064,32 @@ controllers.rmSessao = async (req, res) => {
   }
 };
 
-
 controllers.updateSessao = async (req, res) => {
-
   const { idsessao } = req.params;
-  const { 
-
-      titulo, 
-      descricao, 
-      linksessao, 
-      datahora, 
-      duracaohoras, 
-      plataformavideoconferencia 
-
+  const {
+    titulo,
+    descricao,
+    linksessao,
+    datahora,
+    duracaohoras,
+    plataformavideoconferencia,
   } = req.body;
 
   logger.debug(`Recebida requisição para atualizar sessão com ID: ${idsessao}`);
   try {
-
     let sessao = await models.licao.findByPk(idsessao);
     let updateData = {};
 
-    sessao = await sessao.update({linksessao,datahora,duracaohoras,plataformavideoconferencia});
-    await updateLicao(sessao.licao,{titulo,descricao})
+    sessao = await sessao.update({
+      linksessao,
+      datahora,
+      duracaohoras,
+      plataformavideoconferencia,
+    });
+    await updateLicao(sessao.licao, { titulo, descricao });
 
     const result = await formatSessao(sessao);
     return res.status(201).json(result);
-
   } catch (error) {
     logger.error(
       `Erro interno do servidor ao atualizar sessão. Detalhes: ${error.message}`,
@@ -2121,12 +2101,9 @@ controllers.updateSessao = async (req, res) => {
       error: "Ocorreu um erro interno ao atualizar a sessão.",
     });
   }
-
 };
 
-
 controllers.addSessaoContent = async (req, res) => {
-
   const { idsessao } = req.params;
   const sessao = await models.sessao.findByPk(idsessao);
   const idlicao = sessao.licao;
@@ -2152,7 +2129,6 @@ controllers.addSessaoContent = async (req, res) => {
     criador: req.user.idutilizador,
   };
   try {
-
     const createdMaterial = await addLicaoContent(idlicao, ficheiro, material);
     logger.info(
       `Material com ID ${createdMaterial.idmaterial} adicionado com sucesso à sessão ${idsessao}.`
@@ -2169,12 +2145,9 @@ controllers.addSessaoContent = async (req, res) => {
       error: "Ocorreu um erro interno ao criar o material.",
     });
   }
-
 };
 
-
 controllers.rmSessaoContent = async (req, res) => {
-
   const { idsessao, idmaterial } = req.params;
   const sessao = await models.sessao.findByPk(idsessao);
   const idlicao = sessao.licao;
@@ -2184,125 +2157,132 @@ controllers.rmSessaoContent = async (req, res) => {
   );
 
   if (!idlicao || !idmaterial) {
-    logger.warn(
-      `Tentativa de remover material com campos faltando.`
-    );
+    logger.warn(`Tentativa de remover material com campos faltando.`);
     return res.status(400).json({
-      error:
-        'Os campos "idlicao" e "idmaterial" são obrigatórios.',
+      error: 'Os campos "idlicao" e "idmaterial" são obrigatórios.',
     });
   }
 
   try {
-
     await rmLicaoContent(idlicao, idmaterial);
 
     logger.info(
       `Conteudo da sessão ${idsessao} e id ${idmaterial} removido com sucesso`
     );
 
-    return res.status(201).json({message:"material removido com sucesso"});
-    
+    return res.status(201).json({ message: "material removido com sucesso" });
   } catch (error) {
-
     return res.status(500).json({
       error: "Ocorreu um erro interno ao criar o material.",
     });
-    
   }
-
 };
 
-
 controllers.createAvaliacaoContinua = async (req, res) => {
-
   const { id } = req.params;
 
   const enunciado = req.file;
 
-
-  const admin = req.user.roles.find((roleEntry) => roleEntry.role === "admin")?.id || 0;
+  const admin =
+    req.user.roles.find((roleEntry) => roleEntry.role === "admin")?.id || 0;
 
   const formador =
     req.user.roles.find((roleEntry) => roleEntry.role === "formador")?.id || 0;
 
-  const { titulo, inicioDisponibilidade, fimDisponibilidade, inicioDeSubmissoes, fimDeSubmissoes } = JSON.parse(req.body.info || "{}");
-
+  const {
+    titulo,
+    inicioDisponibilidade,
+    fimDisponibilidade,
+    inicioDeSubmissoes,
+    fimDeSubmissoes,
+  } = JSON.parse(req.body.info || "{}");
 
   logger.debug(
     `Recebida requisição para adicionar um avaliação continua ao curso sincrono ${id}.`
   );
 
   try {
-
-    const cursosinc = await models.cursosincrono.findOne({where : { curso : id }});
-
-    if(!cursosinc){
-
+    const cursosinc = await models.cursosincrono.findOne({
+      where: { curso: id },
+    });
+    if (!cursosinc) {
       return res.status(404).json({
-        message:
-          `Nenhum curso sincrono com id ${id} não encontrado.`,
+        message: `Nenhum curso sincrono com id ${id} não encontrado.`,
       });
-
     }
-
-    if (!admin && (cursosinc.formador != formador)) {
+    if (!admin && cursosinc.formador != formador) {
       return res.status(403).json({
         error: "Proibido: permissões insuficientes.",
       });
     }
-
-    if( (!inicioDisponibilidade || inicioDisponibilidade == undefined) || 
-        (!inicioDeSubmissoes || inicioDeSubmissoes == undefined) ||
-        (!titulo || titulo == undefined)
+    if (
+      !inicioDisponibilidade ||
+      inicioDisponibilidade == undefined ||
+      !inicioDeSubmissoes ||
+      inicioDeSubmissoes == undefined ||
+      !titulo ||
+      titulo == undefined
     ) {
-
       return res.status(400).json({
-        error: "Campos titulo, inicioDisponibilidade e inicioDeSubmissoes são obrigatório e não nulos",
+        error:
+          "Campos titulo, inicioDisponibilidade e inicioDeSubmissoes são obrigatório e não nulos",
       });
-
     }
-
-    if(!enunciado){
+    if (!enunciado) {
       return res.status(400).json({
         error: "Enunciado não fornecido",
       });
     }
 
-    const insertData = {}
-
-    insertData.enunciado = await updateFile(enunciado,"enunciadosavaliacao");
+    const insertData = {};
+    insertData.enunciado = await updateFile(enunciado, "enunciadosavaliacao");
     insertData.titulo = titulo;
     insertData.iniciodisponibilidade = inicioDisponibilidade;
     insertData.iniciodesubmissoes = inicioDeSubmissoes;
-    insertData.cursosincrono = cursosinc.idcursosincrono; 
+    insertData.cursosincrono = cursosinc.idcursosincrono;
+    if (fimDisponibilidade && fimDisponibilidade != undefined)
+      insertData.fimdisponibilidade = fimDisponibilidade;
+    if (fimDeSubmissoes && fimDeSubmissoes != undefined)
+      insertData.fimdesubmissoes = fimDeSubmissoes;
 
-    if(fimDisponibilidade && fimDisponibilidade!=undefined) insertData.fimdisponibilidade = fimDisponibilidade;
-    if(fimDeSubmissoes && fimDeSubmissoes!=undefined) insertData.fimdesubmissoes = fimDeSubmissoes;
+    let avaliacaocontinua = await models.avaliacaocontinua.create(insertData, {
+      returning: true,
+    });
+    avaliacaocontinua.dataValues.enunciado = await generateSASUrl(
+      avaliacaocontinua.enunciado,
+      "enunciadosavaliacao"
+    );
 
-    avaliacaocontinua = await models.avaliacaocontinua.create(insertData,{ returning : true });
-    avaliacaocontinua.dataValues.enunciado = await generateSASUrl(avaliacaocontinua.enunciado,"enunciadosavaliacao");
+    // Notificação para todos os inscritos no curso (canal do curso)
+    try {
+      const curso = await models.curso.findOne({ where: { idcurso: id } });
+      if (curso && curso.canal) {
+        await sendNotification(
+          curso.canal,
+          `Nova avaliação contínua disponível`,
+          `Foi criada uma nova avaliação contínua no curso ${curso.nome}.`
+        );
+      }
+    } catch (error) {
+      logger.error(
+        `Erro ao enviar notificação de avaliação contínua: ${error.message}`,
+        { stack: error.stack }
+      );
+    }
 
     return res.status(201).json(avaliacaocontinua);
-
   } catch (error) {
-
-
     return res.status(500).json({
       error: "Ocorreu um erro interno ao criar a avaliação.",
     });
-    
   }
-
 };
 
 controllers.rmAvaliacaoContinua = async (req, res) => {
-
-
   const { id, idavalicao } = req.params;
 
-
-  const admin = req.user.roles.find((roleEntry) => roleEntry.role === "admin")?.id || 0;
+  const admin =
+    req.user.roles.find((roleEntry) => roleEntry.role === "admin")?.id || 0;
 
   const formador =
     req.user.roles.find((roleEntry) => roleEntry.role === "formador")?.id || 0;
@@ -2312,8 +2292,9 @@ controllers.rmAvaliacaoContinua = async (req, res) => {
   );
 
   try {
-
-    const cursosinc = await models.cursosincrono.findOne({ where: { curso: id } });
+    const cursosinc = await models.cursosincrono.findOne({
+      where: { curso: id },
+    });
 
     if (!cursosinc) {
       return res.status(404).json({
@@ -2321,7 +2302,7 @@ controllers.rmAvaliacaoContinua = async (req, res) => {
       });
     }
 
-    if (!admin && (cursosinc.formador != formador)) {
+    if (!admin && cursosinc.formador != formador) {
       return res.status(403).json({
         error: "Proibido: permissões insuficientes.",
       });
@@ -2340,16 +2321,20 @@ controllers.rmAvaliacaoContinua = async (req, res) => {
       });
     }
 
-
     await deleteFile(avaliacaocontinua.enunciado, "enunciadosavaliacao");
 
-    const submissoes = await models.submissao.findAll({where : { avaliacaocontinua : idavalicao, cursosincrono : cursosinc.idcursosincrono  } });
+    const submissoes = await models.submissao.findAll({
+      where: {
+        avaliacaocontinua: idavalicao,
+        cursosincrono: cursosinc.idcursosincrono,
+      },
+    });
 
     await Promise.all(
-        submissoes.map(async (submissao) => {
-          await deleteFile(submissao.submissao, "submissoes");
-          await submissao.destroy();
-        })
+      submissoes.map(async (submissao) => {
+        await deleteFile(submissao.submissao, "submissoes");
+        await submissao.destroy();
+      })
     );
 
     await avaliacaocontinua.destroy();
@@ -2357,23 +2342,20 @@ controllers.rmAvaliacaoContinua = async (req, res) => {
     return res.status(200).json({
       message: "Avaliação contínua removida com sucesso.",
     });
-
   } catch (error) {
     logger.error("Erro ao remover avaliação contínua:", error);
     return res.status(500).json({
       error: "Ocorreu um erro interno ao remover a avaliação.",
     });
   }
-
 };
 
-
 controllers.editAvaliacaoContinua = async (req, res) => {
-
   const { id, idavalicao } = req.params;
   const enunciado = req.file;
 
-  const admin = req.user.roles.find((roleEntry) => roleEntry.role === "admin")?.id || 0;
+  const admin =
+    req.user.roles.find((roleEntry) => roleEntry.role === "admin")?.id || 0;
 
   const formador =
     req.user.roles.find((roleEntry) => roleEntry.role === "formador")?.id || 0;
@@ -2391,7 +2373,9 @@ controllers.editAvaliacaoContinua = async (req, res) => {
   );
 
   try {
-    const cursosinc = await models.cursosincrono.findOne({ where: { curso: id } });
+    const cursosinc = await models.cursosincrono.findOne({
+      where: { curso: id },
+    });
 
     if (!cursosinc) {
       return res.status(404).json({
@@ -2399,7 +2383,7 @@ controllers.editAvaliacaoContinua = async (req, res) => {
       });
     }
 
-    if (!admin && (cursosinc.formador != formador)) {
+    if (!admin && cursosinc.formador != formador) {
       return res.status(403).json({
         error: "Proibido: permissões insuficientes.",
       });
@@ -2419,44 +2403,55 @@ controllers.editAvaliacaoContinua = async (req, res) => {
     }
 
     if (titulo !== undefined) avaliacaocontinua.titulo = titulo;
-    if (inicioDisponibilidade !== undefined) avaliacaocontinua.iniciodisponibilidade = inicioDisponibilidade;
-    if (fimDisponibilidade !== undefined) avaliacaocontinua.fimdisponibilidade = fimDisponibilidade;
-    if (inicioDeSubmissoes !== undefined) avaliacaocontinua.iniciodesubmissoes = inicioDeSubmissoes;
-    if (fimDeSubmissoes !== undefined) avaliacaocontinua.fimdesubmissoes = fimDeSubmissoes;
+    if (inicioDisponibilidade !== undefined)
+      avaliacaocontinua.iniciodisponibilidade = inicioDisponibilidade;
+    if (fimDisponibilidade !== undefined)
+      avaliacaocontinua.fimdisponibilidade = fimDisponibilidade;
+    if (inicioDeSubmissoes !== undefined)
+      avaliacaocontinua.iniciodesubmissoes = inicioDeSubmissoes;
+    if (fimDeSubmissoes !== undefined)
+      avaliacaocontinua.fimdesubmissoes = fimDeSubmissoes;
 
     if (enunciado) {
-      avaliacaocontinua.enunciado = await updateFile(enunciado, "enunciadosavaliacao");
+      avaliacaocontinua.enunciado = await updateFile(
+        enunciado,
+        "enunciadosavaliacao"
+      );
     }
 
     await avaliacaocontinua.save();
 
-    avaliacaocontinua.dataValues.enunciado = await generateSASUrl(avaliacaocontinua.enunciado, "enunciadosavaliacao"); return res.status(200).json(avaliacaocontinua);
-
+    avaliacaocontinua.dataValues.enunciado = await generateSASUrl(
+      avaliacaocontinua.enunciado,
+      "enunciadosavaliacao"
+    );
+    return res.status(200).json(avaliacaocontinua);
   } catch (error) {
     logger.error("Erro ao editar avaliação contínua:", error);
     return res.status(500).json({
       error: "Ocorreu um erro interno ao editar a avaliação.",
     });
   }
-
 };
 
-
 controllers.addAvaliacaoFinal = async (req, res) => {
-
   const { id, formando } = req.params;
   const { nota } = req.body;
 
-  const admin = req.user.roles.find((roleEntry) => roleEntry.role === "admin")?.id || 0;
+  const admin =
+    req.user.roles.find((roleEntry) => roleEntry.role === "admin")?.id || 0;
 
   const formadorId =
     req.user.roles.find((roleEntry) => roleEntry.role === "formador")?.id || 0;
 
-  logger.debug(`Recebida requisição para adicionar nota final ao formando ${formando} no curso ${id}.`);
+  logger.debug(
+    `Recebida requisição para adicionar nota final ao formando ${formando} no curso ${id}.`
+  );
 
   try {
-
-    const cursoSincrono = await models.cursosincrono.findOne({ where: { curso: id } });
+    const cursoSincrono = await models.cursosincrono.findOne({
+      where: { curso: id },
+    });
 
     if (!admin && (!cursoSincrono || cursoSincrono.formador !== formadorId)) {
       return res.status(403).json({ error: "Acesso negado." });
@@ -2471,7 +2466,8 @@ controllers.addAvaliacaoFinal = async (req, res) => {
 
       if (dataAtual > dataLimite) {
         return res.status(403).json({
-          error: "Não é possível fazer operações com avaliações finais. O prazo de 30 dias após o término do curso expirou.",
+          error:
+            "Não é possível fazer operações com avaliações finais. O prazo de 30 dias após o término do curso expirou.",
         });
       }
     }
@@ -2484,7 +2480,9 @@ controllers.addAvaliacaoFinal = async (req, res) => {
     });
 
     if (exists) {
-      return res.status(400).json({ error: "Avaliação final já existe para este formando." });
+      return res
+        .status(400)
+        .json({ error: "Avaliação final já existe para este formando." });
     }
 
     const created = await models.avaliacaofinal.create({
@@ -2494,62 +2492,77 @@ controllers.addAvaliacaoFinal = async (req, res) => {
     });
 
     try {
-
-      if(nota > 9.5){
-
+      if (nota > 9.5) {
         const formandoObject = await models.formando.findByPk(formando);
         const utilizador = formandoObject.utilizador;
-        const certificados = await models.certificados.findAll({where : { cursosinc : cursoSincrono.idcursosincrono } });
+        const certificados = await models.certificados.findAll({
+          where: { cursosinc: cursoSincrono.idcursosincrono },
+        });
 
         const certificadosUtilizador = [];
 
-        certificados.forEach(certificadoObject => {
+        certificados.forEach((certificadoObject) => {
           certificadosUtilizador.push({
-              certificado : certificadoObject.idcertificado,
-              utilizador
+            certificado: certificadoObject.idcertificado,
+            utilizador,
           });
         });
 
-        await models.certificadosutilizadores.bulkCreate(certificadosUtilizador);
-
+        await models.certificadosutilizadores.bulkCreate(
+          certificadosUtilizador
+        );
       }
-      
     } catch (error) {
-
       logger.error("Erro ao adicionar certificados ao utilizador:", error);
-      
     }
 
-
+    // Notificação individual para o formando
+    try {
+      const formandoObject = await models.formando.findByPk(formando);
+      if (formandoObject && formandoObject.utilizador) {
+        await sendNotificationToUtilizador(
+          formandoObject.utilizador,
+          "Nova avaliação final disponível",
+          "A sua avaliação final foi lançada."
+        );
+      }
+    } catch (error) {
+      logger.error(
+        "Erro ao enviar notificação individual de avaliação final:",
+        error
+      );
+    }
     return res.status(201).json(created);
-
   } catch (error) {
     logger.error("Erro ao adicionar avaliação final:", error);
-    return res.status(500).json({ error: "Erro interno ao adicionar avaliação final." });
+    return res
+      .status(500)
+      .json({ error: "Erro interno ao adicionar avaliação final." });
   }
 };
 
-
 controllers.editAvaliacaoFinal = async (req, res) => {
-
   const { id, formando } = req.params;
   const { nota } = req.body;
 
-
-  const admin = req.user.roles.find((roleEntry) => roleEntry.role === "admin")?.id || 0;
+  const admin =
+    req.user.roles.find((roleEntry) => roleEntry.role === "admin")?.id || 0;
 
   const formadorId =
     req.user.roles.find((roleEntry) => roleEntry.role === "formador")?.id || 0;
 
-  logger.debug(`Recebida requisição para editar nota final do formando ${formando} no curso ${id}.`);
+  logger.debug(
+    `Recebida requisição para editar nota final do formando ${formando} no curso ${id}.`
+  );
 
   try {
-    const cursoSincrono = await models.cursosincrono.findOne({ where: { curso: id } });
+    const cursoSincrono = await models.cursosincrono.findOne({
+      where: { curso: id },
+    });
 
     if (!admin && (!cursoSincrono || cursoSincrono.formador !== formadorId)) {
       return res.status(403).json({ error: "Acesso negado." });
     }
-
 
     if (cursoSincrono.fim) {
       const dataFimCurso = new Date(cursoSincrono.fim);
@@ -2560,11 +2573,11 @@ controllers.editAvaliacaoFinal = async (req, res) => {
 
       if (dataAtual > dataLimite) {
         return res.status(403).json({
-          error: "Não é possível fazer operações com avaliações finais. O prazo de 30 dias após o término do curso expirou.",
+          error:
+            "Não é possível fazer operações com avaliações finais. O prazo de 30 dias após o término do curso expirou.",
         });
       }
     }
-
 
     const avaliacao = await models.avaliacaofinal.findOne({
       where: {
@@ -2581,74 +2594,89 @@ controllers.editAvaliacaoFinal = async (req, res) => {
     await avaliacao.save();
 
     try {
-
-
-      const certificados = await models.certificados.findAll({where : { cursosinc : cursoSincrono.idcursosincrono } });
+      const certificados = await models.certificados.findAll({
+        where: { cursosinc: cursoSincrono.idcursosincrono },
+      });
       const formandoObject = await models.formando.findByPk(formando);
       const utilizador = formandoObject.utilizador;
 
-      if(avaliacao.nota < 0 && nota > 9.5){
-
-
+      if (avaliacao.nota < 0 && nota > 9.5) {
         const certificadosUtilizador = [];
 
-        certificados.forEach(certificadoObject => {
+        certificados.forEach((certificadoObject) => {
           certificadosUtilizador.push({
-              certificado : certificadoObject.idcertificado,
-              utilizador
+            certificado: certificadoObject.idcertificado,
+            utilizador,
           });
         });
 
-        await models.certificadosutilizadores.bulkCreate(certificadosUtilizador,{ignoreDuplicates: true});
-
+        await models.certificadosutilizadores.bulkCreate(
+          certificadosUtilizador,
+          { ignoreDuplicates: true }
+        );
       } else {
-
-        const idCertificadosDoCurso = certificados.map((certificado) => certificado.idcertificado );
+        const idCertificadosDoCurso = certificados.map(
+          (certificado) => certificado.idcertificado
+        );
         await models.certificadosutilizadores.destroy({
-          where : {
-            utilizador, 
-            certificado : { [Sequelize.Op.in]: idCertificadosDoCurso } 
-          } 
+          where: {
+            utilizador,
+            certificado: { [Sequelize.Op.in]: idCertificadosDoCurso },
+          },
         });
-
       }
-      
     } catch (error) {
-
       logger.error("Erro ao atualizar certificados:", error);
-      
     }
 
-    return res.status(200).json({ message: "Nota atualizada com sucesso.", nota });
-
+    // Notificação individual para o formando
+    try {
+      const formandoObject = await models.formando.findByPk(formando);
+      if (formandoObject && formandoObject.utilizador) {
+        await sendNotificationToUtilizador(
+          formandoObject.utilizador,
+          "Avaliação final atualizada",
+          "A sua nota final foi alterada."
+        );
+      }
+    } catch (error) {
+      logger.error(
+        "Erro ao enviar notificação individual de edição de avaliação final:",
+        error
+      );
+    }
+    return res
+      .status(200)
+      .json({ message: "Nota atualizada com sucesso.", nota });
   } catch (error) {
     logger.error("Erro ao editar avaliação final:", error);
-    return res.status(500).json({ error: "Erro interno ao editar avaliação final." });
+    return res
+      .status(500)
+      .json({ error: "Erro interno ao editar avaliação final." });
   }
 };
 
-
-
-
 controllers.rmAvaliacaoFinal = async (req, res) => {
-
   const { id, formando } = req.params;
 
-
-  const admin = req.user.roles.find((roleEntry) => roleEntry.role === "admin")?.id || 0;
+  const admin =
+    req.user.roles.find((roleEntry) => roleEntry.role === "admin")?.id || 0;
 
   const formadorId =
     req.user.roles.find((roleEntry) => roleEntry.role === "formador")?.id || 0;
 
-  logger.debug(`Recebida requisição para remover avaliação final do formando ${formando} no curso ${id}.`);
+  logger.debug(
+    `Recebida requisição para remover avaliação final do formando ${formando} no curso ${id}.`
+  );
 
   try {
-    const cursoSincrono = await models.cursosincrono.findOne({ where: { curso: id } });
+    const cursoSincrono = await models.cursosincrono.findOne({
+      where: { curso: id },
+    });
 
     if (!admin && (!cursoSincrono || cursoSincrono.formador !== formadorId)) {
       return res.status(403).json({ error: "Acesso negado." });
     }
-
 
     if (cursoSincrono.fim) {
       const dataFimCurso = new Date(cursoSincrono.fim);
@@ -2659,7 +2687,8 @@ controllers.rmAvaliacaoFinal = async (req, res) => {
 
       if (dataAtual > dataLimite) {
         return res.status(403).json({
-          error: "Não é possível fazer operações com avaliações finais. O prazo de 30 dias após o término do curso expirou.",
+          error:
+            "Não é possível fazer operações com avaliações finais. O prazo de 30 dias após o término do curso expirou.",
         });
       }
     }
@@ -2678,35 +2707,37 @@ controllers.rmAvaliacaoFinal = async (req, res) => {
     await avaliacao.destroy();
 
     try {
-
-      const certificados = await models.certificados.findAll({where : { cursosinc : cursoSincrono.idcursosincrono } });
+      const certificados = await models.certificados.findAll({
+        where: { cursosinc: cursoSincrono.idcursosincrono },
+      });
       const formandoObject = await models.formando.findByPk(formando);
       const utilizador = formandoObject.utilizador;
 
-
-      const idCertificadosDoCurso = certificados.map((certificado) => certificado.idcertificado );
+      const idCertificadosDoCurso = certificados.map(
+        (certificado) => certificado.idcertificado
+      );
       await models.certificadosutilizadores.destroy({
-        where : {
-          utilizador, 
-          certificado : { [Sequelize.Op.in]: idCertificadosDoCurso } 
-        } 
+        where: {
+          utilizador,
+          certificado: { [Sequelize.Op.in]: idCertificadosDoCurso },
+        },
       });
-      
     } catch (error) {
       logger.error("Erro ao remover certificados:", error);
     }
 
-    return res.status(200).json({ message: "Avaliação final removida com sucesso." });
-
+    return res
+      .status(200)
+      .json({ message: "Avaliação final removida com sucesso." });
   } catch (error) {
     logger.error("Erro ao remover avaliação final:", error);
-    return res.status(500).json({ error: "Erro interno ao remover avaliação final." });
+    return res
+      .status(500)
+      .json({ error: "Erro interno ao remover avaliação final." });
   }
 };
 
-
 controllers.addSubmissao = async (req, res) => {
-
   const { id, idavalicao } = req.params;
   const file = req.file;
 
@@ -2759,7 +2790,9 @@ controllers.addSubmissao = async (req, res) => {
     const agora = new Date();
 
     const inicioSub = new Date(avaliacao.iniciodesubmissoes);
-    const fimSub = avaliacao.fimdesubmissoes ? new Date(avaliacao.fimdesubmissoes) : null;
+    const fimSub = avaliacao.fimdesubmissoes
+      ? new Date(avaliacao.fimdesubmissoes)
+      : null;
 
     if (agora < inicioSub) {
       return res.status(400).json({
@@ -2788,10 +2821,12 @@ controllers.addSubmissao = async (req, res) => {
       submissao: filePath,
     });
 
-    novaSubmissao.dataValues.submissao = await generateSASUrl(filePath, "submissoes");
+    novaSubmissao.dataValues.submissao = await generateSASUrl(
+      filePath,
+      "submissoes"
+    );
 
     return res.status(201).json(novaSubmissao);
-
   } catch (error) {
     logger.error("Erro ao submeter avaliação:", error);
     return res.status(500).json({
@@ -2800,9 +2835,7 @@ controllers.addSubmissao = async (req, res) => {
   }
 };
 
-
 controllers.updateSubmissao = async (req, res) => {
-
   const { id, idavalicao } = req.params;
   const file = req.file;
 
@@ -2819,10 +2852,14 @@ controllers.updateSubmissao = async (req, res) => {
     });
 
     if (!inscricao) {
-      return res.status(403).json({ error: "Formando não inscrito neste curso." });
+      return res
+        .status(403)
+        .json({ error: "Formando não inscrito neste curso." });
     }
 
-    const cursoSincrono = await models.cursosincrono.findOne({ where: { curso: id } });
+    const cursoSincrono = await models.cursosincrono.findOne({
+      where: { curso: id },
+    });
 
     if (!cursoSincrono) {
       return res.status(404).json({ error: `Curso síncrono não encontrado.` });
@@ -2841,14 +2878,20 @@ controllers.updateSubmissao = async (req, res) => {
 
     const agora = new Date();
     const inicioSub = new Date(avaliacao.iniciodesubmissoes);
-    const fimSub = avaliacao.fimdesubmissoes ? new Date(avaliacao.fimdesubmissoes) : null;
+    const fimSub = avaliacao.fimdesubmissoes
+      ? new Date(avaliacao.fimdesubmissoes)
+      : null;
 
     if (agora < inicioSub) {
-      return res.status(400).json({ error: "Período de submissão ainda não começou." });
+      return res
+        .status(400)
+        .json({ error: "Período de submissão ainda não começou." });
     }
 
     if (fimSub && agora > fimSub) {
-      return res.status(400).json({ error: "Período de submissão já terminou." });
+      return res
+        .status(400)
+        .json({ error: "Período de submissão já terminou." });
     }
 
     if (!file) {
@@ -2864,7 +2907,9 @@ controllers.updateSubmissao = async (req, res) => {
     });
 
     if (!existing) {
-      return res.status(404).json({ error: "Submissão anterior não encontrada." });
+      return res
+        .status(404)
+        .json({ error: "Submissão anterior não encontrada." });
     }
 
     const filePath = await updateFile(file, "submissoes");
@@ -2872,19 +2917,21 @@ controllers.updateSubmissao = async (req, res) => {
     existing.submissao = filePath;
     await existing.save();
 
-    existing.dataValues.submissao = await generateSASUrl(filePath, "submissoes");
+    existing.dataValues.submissao = await generateSASUrl(
+      filePath,
+      "submissoes"
+    );
 
     return res.status(200).json(existing);
-
   } catch (error) {
     logger.error("Erro ao atualizar submissão:", error);
-    return res.status(500).json({ error: "Erro interno ao atualizar submissão." });
+    return res
+      .status(500)
+      .json({ error: "Erro interno ao atualizar submissão." });
   }
 };
 
-
 controllers.listSubmissoes = async (req, res) => {
-
   const { id, idavalicao } = req.params;
 
   const formador =
@@ -2895,7 +2942,9 @@ controllers.listSubmissoes = async (req, res) => {
   );
 
   try {
-    const cursoSincrono = await models.cursosincrono.findOne({ where: { curso: id } });
+    const cursoSincrono = await models.cursosincrono.findOne({
+      where: { curso: id },
+    });
 
     if (!cursoSincrono || cursoSincrono.formador !== formador) {
       return res.status(403).json({ error: "Acesso negado." });
@@ -2917,24 +2966,26 @@ controllers.listSubmissoes = async (req, res) => {
         avaliacaocontinua: idavalicao,
         cursosincrono: cursoSincrono.idcursosincrono,
       },
-      include: [{ model: models.formando, as: "formando_formando" }]
+      include: [{ model: models.formando, as: "formando_formando" }],
     });
 
     for (const sub of submissoes) {
-      sub.dataValues.submissao = await generateSASUrl(sub.submissao, "submissoes");
+      sub.dataValues.submissao = await generateSASUrl(
+        sub.submissao,
+        "submissoes"
+      );
     }
 
     return res.status(200).json(submissoes);
-
   } catch (error) {
     logger.error("Erro ao listar submissões:", error);
-    return res.status(500).json({ error: "Erro interno ao listar submissões." });
+    return res
+      .status(500)
+      .json({ error: "Erro interno ao listar submissões." });
   }
 };
 
-
 controllers.gradeSubmissao = async (req, res) => {
-
   const { id, idavalicao } = req.params;
   const { idsubmissao, nota } = req.body;
 
@@ -2946,7 +2997,9 @@ controllers.gradeSubmissao = async (req, res) => {
   );
 
   try {
-    const cursoSincrono = await models.cursosincrono.findOne({ where: { curso: id } });
+    const cursoSincrono = await models.cursosincrono.findOne({
+      where: { curso: id },
+    });
 
     if (!cursoSincrono || cursoSincrono.formador !== formador) {
       return res.status(403).json({ error: "Acesso negado." });
@@ -2978,14 +3031,34 @@ controllers.gradeSubmissao = async (req, res) => {
     submissao.nota = nota;
     await submissao.save();
 
-    return res.status(200).json({ message: "Nota atribuída com sucesso.", nota });
-
+    // Notificação individual para o formando da submissão
+    try {
+      if (submissao && submissao.formando) {
+        const formandoObject = await models.formando.findByPk(
+          submissao.formando
+        );
+        if (formandoObject && formandoObject.utilizador) {
+          await sendNotificationToUtilizador(
+            formandoObject.utilizador,
+            "Submissão corrigida",
+            "A sua submissão foi avaliada."
+          );
+        }
+      }
+    } catch (error) {
+      logger.error(
+        "Erro ao enviar notificação individual de submissão corrigida:",
+        error
+      );
+    }
+    return res
+      .status(200)
+      .json({ message: "Nota atribuída com sucesso.", nota });
   } catch (error) {
     logger.error("Erro ao atribuir nota:", error);
     return res.status(500).json({ error: "Erro interno ao atribuir nota." });
   }
 };
-
 
 controllers.addLicao = async (req, res) => {
   const { idcursoassinc } = req.params;
@@ -3036,25 +3109,16 @@ controllers.addLicao = async (req, res) => {
     );
 
     try {
-
       await sendNotification(
         cursoassinc.curso_curso.canal,
         `Nova licão criada para o curso ${cursoassinc.curso}`,
         titulo
       );
-      
     } catch (error) {
-
-      logger.error(
-        `Nao foi possivel enviar notificao : ${error.message}`,
-        {
-          stack: error.stack,
-        }
-      );
-      
+      logger.error(`Nao foi possivel enviar notificao : ${error.message}`, {
+        stack: error.stack,
+      });
     }
-
-
 
     return res.status(201).json(createdRow);
   } catch (error) {
@@ -3071,7 +3135,6 @@ controllers.addLicao = async (req, res) => {
 };
 
 controllers.rmLicao = async (req, res) => {
-
   const { idlicao } = req.params;
   logger.debug(`Recebida requisição para remover lição com ID: ${idlicao}`);
   try {
@@ -3102,9 +3165,7 @@ controllers.rmLicao = async (req, res) => {
   }
 };
 
-
 controllers.updateLicao = async (req, res) => {
-
   const { idlicao } = req.params;
   const { titulo, descricao } = req.body;
   logger.debug(`Recebida requisição para atualizar lição com ID: ${idlicao}`);
@@ -3118,7 +3179,7 @@ controllers.updateLicao = async (req, res) => {
         error: "Lição não encontrada.",
       });
     }
-    licao = await updateLicao(idlicao, {titulo,descricao});
+    licao = await updateLicao(idlicao, { titulo, descricao });
     logger.info(`Lição com ID ${idlicao} atualizada com sucesso.`);
     return res.status(200).json(licao);
   } catch (error) {
@@ -3135,7 +3196,6 @@ controllers.updateLicao = async (req, res) => {
 };
 
 controllers.addLicaoContent = async (req, res) => {
-
   const { idlicao } = req.params;
   logger.debug(
     `Recebida requisição para adicionar material à lição ${idlicao}. Body: ${req.body.info}`
@@ -3176,53 +3236,38 @@ controllers.addLicaoContent = async (req, res) => {
   }
 };
 
-
 controllers.rmLicaoContent = async (req, res) => {
-
   const { idlicao, idmaterial } = req.params;
-  logger.debug(
-    `Recebida requisição para remover material à lição ${idlicao}.`
-  );
+  logger.debug(`Recebida requisição para remover material à lição ${idlicao}.`);
 
   if (!idlicao || !idmaterial) {
-    logger.warn(
-      `Tentativa de remover material com campos faltando.`
-    );
+    logger.warn(`Tentativa de remover material com campos faltando.`);
     return res.status(400).json({
-      error:
-        'Os campos "idlicao" e "idmaterial" são obrigatórios.',
+      error: 'Os campos "idlicao" e "idmaterial" são obrigatórios.',
     });
   }
 
   try {
-
     await rmLicaoContent(idlicao, idmaterial);
 
     logger.info(
       `Conteudo da licao ${idlicao} e id ${idmaterial} removido com sucesso`
     );
 
-    return res.status(201).json({message:"material removido com sucesso"});
-    
+    return res.status(201).json({ message: "material removido com sucesso" });
   } catch (error) {
-
     return res.status(500).json({
       error: "Ocorreu um erro interno ao criar o material.",
     });
-    
   }
-
 };
 
-
 controllers.addCertificado = async (req, res) => {
-
   const id = req.params.id;
 
   const { nome, descricao } = req.body;
 
   try {
-
     const cursoSincrono = await models.cursosincrono.findOne({
       where: {
         curso: id,
@@ -3235,32 +3280,27 @@ controllers.addCertificado = async (req, res) => {
       });
     }
 
-    const certificado = await models.certificados.create({nome,descricao,cursosinc : cursoSincrono.idcursosincrono });
+    const certificado = await models.certificados.create({
+      nome,
+      descricao,
+      cursosinc: cursoSincrono.idcursosincrono,
+    });
     return res.status(201).json(certificado);
-
-    
   } catch (error) {
-
     return res.status(500).json({
       error: "Ocorreu um erro interno ao criar certificado.",
     });
-    
   }
-
-
 };
 
-
 controllers.updateCertificado = async (req, res) => {
-
   const { idcertificado } = req.params;
 
   const { nome, descricao } = req.body;
 
-
   const updateData = {};
 
-  if(nome === null || descricao === null)  
+  if (nome === null || descricao === null)
     return res.status(404).json({
       message: "Campos não devem ser nulos",
     });
@@ -3269,57 +3309,46 @@ controllers.updateCertificado = async (req, res) => {
   if (descricao != undefined) updateData.descricao = descricao;
 
   try {
-
     let certificado = await models.certificados.findByPk(idcertificado);
     certificado = await certificado.update(updateData);
     return res.status(201).json(certificado);
-
-    
   } catch (error) {
-
     return res.status(500).json({
       error: "Ocorreu um erro interno ao atualizar certificado.",
     });
-    
   }
-
 };
 
-
 controllers.deleteCertificado = async (req, res) => {
-
   const { idcertificado } = req.params;
 
   try {
-
     const certificado = await models.certificados.findByPk(idcertificado);
 
-    if(!certificado){
-      return res.status(404).json({sucess:false,message : "Nenhum certificado com o id fornecido encontrado"});
+    if (!certificado) {
+      return res
+        .status(404)
+        .json({
+          sucess: false,
+          message: "Nenhum certificado com o id fornecido encontrado",
+        });
     }
 
     await certificado.destroy();
-    return res.status(200).json({sucess:true,message : "Certificado eleminado com sucesso"});
-
-    
+    return res
+      .status(200)
+      .json({ sucess: true, message: "Certificado eleminado com sucesso" });
   } catch (error) {
-
     return res.status(500).json({
       error: "Ocorreu um erro interno ao eleminar certificado.",
     });
-    
   }
-
 };
 
-
 controllers.getCertificados = async (req, res) => {
-
   const id = req.params.id;
 
-
   try {
-
     const cursoSincrono = await models.cursosincrono.findOne({
       where: {
         curso: id,
@@ -3332,20 +3361,15 @@ controllers.getCertificados = async (req, res) => {
       });
     }
 
-    const certificados = await models.certificados.findAll({where : { cursosinc : cursoSincrono.idcursosincrono } });
+    const certificados = await models.certificados.findAll({
+      where: { cursosinc: cursoSincrono.idcursosincrono },
+    });
     return res.status(200).json(certificados);
-
-    
   } catch (error) {
-
     return res.status(500).json({
       error: "Ocorreu um erro interno ao procurar certificados.",
     });
-    
   }
-
-
 };
-
 
 module.exports = controllers;
