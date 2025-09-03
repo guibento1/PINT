@@ -11,6 +11,7 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
+  overflow-x: hidden;
 }
 
 main {
@@ -259,12 +260,11 @@ nav.navbar {
 
 @media (max-width: 991.98px) {
   .navbar-collapse .navbar-nav {
-    flex-direction: row !important;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 0.5rem;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 0.25rem;
     padding-top: 0.25rem;
-    padding-bottom: 0.25rem;
+    padding-bottom: 0.5rem;
   }
 }
 
@@ -318,6 +318,109 @@ footer {
   border-top-right-radius: 30px;
   color: var(--text-light);
   margin-top: auto;
+}
+
+/* Responsividade mobile alvo ~386x824 */
+@media (max-width: 420px) {
+  html,
+  body {
+    width: 100%;
+  }
+  .container,
+  .container-fluid {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  /* Navbar: compactar zonas laterais e avatar */
+  .navbar-left-zone {
+    padding-left: 12px !important;
+    min-width: 120px !important;
+  }
+  .navbar-right-zone {
+    padding-right: 12px !important;
+    min-width: 140px !important;
+  }
+  .navbar .navbar-toggler {
+    padding: 0.25rem 0.5rem;
+    font-size: 1rem;
+  }
+  .navbar-username {
+    max-width: 96px !important;
+  }
+
+  /* Evitar que listas na navbar causem overflow */
+  .navbar-nav {
+    gap: 0.25rem !important;
+  }
+  .navbar-nav .nav-link {
+    padding: 0.25rem 0.6rem;
+    font-size: 0.95rem;
+  }
+  .navbar-nav .btn {
+    padding: 0.25rem 0.6rem !important;
+    font-size: 0.95rem;
+  }
+
+  /* Main spacing abaixo da navbar fixa */
+  main {
+    padding-top: 64px;
+  }
+
+  /* Imagens responsivas em cartões/listas */
+  img,
+  svg {
+    max-width: 100%;
+    height: auto;
+  }
+
+  /* Cartões: reduzir padding para caber melhor */
+  .card,
+  .card-rounded,
+  .card-rounded-sm {
+    padding: 1rem;
+  }
+
+  /* Forms: inputs e grupos mais compactos */
+  .form-control,
+  .form-select {
+    font-size: 0.95rem;
+  }
+  label,
+  .form-label {
+    font-size: 0.95rem;
+  }
+
+  /* Botões principais mais compactos */
+  .btn {
+    padding: 0.4rem 0.8rem;
+  }
+}
+
+/* Evita que grids estourem a tela em telefones estreitos */
+.row {
+  --bs-gutter-x: 1rem;
+}
+@media (max-width: 420px) {
+  .row {
+    --bs-gutter-x: 0.75rem;
+  }
+}
+
+/* Garante que elementos com largura fixa não quebrem layout */
+.text-truncate {
+  min-width: 0;
+}
+.navbar .text-truncate {
+  max-width: 50vw;
+}
+
+/* Corrige possível overflow em tabelas no backOffice */
+.table-responsive {
+  overflow-x: auto;
+}
+.table {
+  width: 100%;
 }
 
 @media (max-width: 768px) {

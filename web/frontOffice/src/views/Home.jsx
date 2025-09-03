@@ -1,10 +1,11 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import useUserRole from "@shared/hooks/useUserRole";
 import api from "@shared/services/axios";
 import CardCurso from "../components/CardCurso.jsx";
 import Calendar from "react-calendar";
 import "react-calendar/dist/Calendar.css";
 import "@shared/styles/calendar.css";
+import { getCursoStatus } from "@shared/utils/cursoStatus";
 
 export default function Home() {
   const user = JSON.parse(sessionStorage.getItem("user"));
@@ -22,6 +23,95 @@ export default function Home() {
   const [urlApiSincronos, setUrlApiSincronos] = useState(
     `/curso/formador/${isFormador}`
   );
+
+  // Helpers to determine if we need course detail for accurate status
+  const needsDetail = (c) => {
+    if (!c) return false;
+    const rawSin = c?.sincrono;
+    const tipo = (c?.tipo || "").toString().toLowerCase();
+    let s = null;
+    if (typeof rawSin === "boolean") s = rawSin;
+    else if (typeof rawSin === "number") s = rawSin === 1;
+    else if (typeof rawSin === "string") {
+      const v = rawSin.toLowerCase();
+      if (v === "true" || v === "1") s = true;
+      else if (v === "false" || v === "0") s = false;
+    } else if (tipo.includes("síncrono") || tipo.includes("sincrono")) s = true;
+    else if (tipo.includes("assíncrono") || tipo.includes("assincrono"))
+      s = false;
+
+    const nestedSync = c?.cursosincrono || c?.cursoSincrono || {};
+    const nestedAsync = c?.cursoassincrono || c?.cursoAssincrono || {};
+
+    const hasCursoDates = !!(
+      c?.inicio ||
+      c?.fim ||
+      nestedSync?.inicio ||
+      nestedSync?.fim
+    );
+    const hasInscrDates = !!(
+      c?.iniciodeinscricoes ||
+      c?.fimdeinscricoes ||
+      c?.inicioDeInscricoes ||
+      c?.fimDeInscricoes ||
+      nestedAsync?.iniciodeinscricoes ||
+      nestedAsync?.fimdeinscricoes ||
+      nestedAsync?.inicioDeInscricoes ||
+      nestedAsync?.fimDeInscricoes
+    );
+    const hasDisponivel =
+      typeof (
+        c?.disponivel ??
+        nestedSync?.disponivel ??
+        nestedAsync?.disponivel
+      ) === "boolean";
+
+    if (s === true) {
+      return !hasCursoDates || !hasDisponivel;
+    } else if (s === false) {
+      return !hasInscrDates || !hasDisponivel;
+    } else {
+      return !hasCursoDates && !hasInscrDates && !hasDisponivel;
+    }
+  };
+
+  const mergeMinimalFields = (base, det) => {
+    const d = det || {};
+    const out = { ...base };
+    // Disponível
+    out.disponivel =
+      d?.disponivel ??
+      out?.disponivel ??
+      d?.cursosincrono?.disponivel ??
+      d?.cursoSincrono?.disponivel ??
+      d?.cursoassincrono?.disponivel ??
+      d?.cursoAssincrono?.disponivel;
+    // Datas inscrição (assíncrono)
+    out.iniciodeinscricoes =
+      d?.iniciodeinscricoes ??
+      d?.inicioDeInscricoes ??
+      d?.cursoassincrono?.iniciodeinscricoes ??
+      d?.cursoAssincrono?.iniciodeinscricoes ??
+      out?.iniciodeinscricoes;
+    out.fimdeinscricoes =
+      d?.fimdeinscricoes ??
+      d?.fimDeInscricoes ??
+      d?.cursoassincrono?.fimdeinscricoes ??
+      d?.cursoAssincrono?.fimdeinscricoes ??
+      out?.fimdeinscricoes;
+    // Datas curso (síncrono)
+    out.inicio =
+      d?.inicio ??
+      d?.cursosincrono?.inicio ??
+      d?.cursoSincrono?.inicio ??
+      out?.inicio;
+    out.fim =
+      d?.fim ?? d?.cursosincrono?.fim ?? d?.cursoSincrono?.fim ?? out?.fim;
+    // Tipo/sincrono
+    if (out?.sincrono == null && d?.sincrono != null) out.sincrono = d.sincrono;
+    if (!out?.tipo && d?.tipo) out.tipo = d.tipo;
+    return out;
+  };
 
   const handleTagClickCategoria = (categoria) => {
     setCategoriasAtivas((prevActiveCategorias) => {
@@ -65,15 +155,32 @@ export default function Home() {
   useEffect(() => {
     let cancelled = false;
     setLoadingCursos(true);
-    api
-      .get(urlApi)
-      .then((res) => {
-        if (!cancelled) setCursos(res.data);
-      })
-      .catch((err) => console.error("Erro ao carregar cursos:", err))
-      .finally(() => {
+    const run = async () => {
+      try {
+        const res = await api.get(urlApi);
+        const arr = Array.isArray(res?.data) ? res.data : [];
+        const enriched = await Promise.all(
+          arr.map(async (c) => {
+            if (!needsDetail(c)) return c;
+            const id = c?.idcurso || c?.id;
+            if (!id) return c;
+            try {
+              const det = await api.get(`/curso/${id}`);
+              return mergeMinimalFields(c, det?.data);
+            } catch {
+              return c;
+            }
+          })
+        );
+        if (!cancelled) setCursos(enriched);
+      } catch (err) {
+        console.error("Erro ao carregar cursos:", err);
+        if (!cancelled) setCursos([]);
+      } finally {
         if (!cancelled) setLoadingCursos(false);
-      });
+      }
+    };
+    run();
     return () => {
       cancelled = true;
     };
@@ -82,10 +189,34 @@ export default function Home() {
   // Buscar cursos síncronos que o formador leciona
   useEffect(() => {
     if (!isFormador) return;
-    api
-      .get(urlApiSincronos)
-      .then((res) => setCursosSincronos(res.data))
-      .catch((err) => console.error("Erro ao carregar cursos síncronos:", err));
+    let cancelled = false;
+    const run = async () => {
+      try {
+        const res = await api.get(urlApiSincronos);
+        const arr = Array.isArray(res?.data) ? res.data : [];
+        const enriched = await Promise.all(
+          arr.map(async (c) => {
+            if (!needsDetail(c)) return c;
+            const id = c?.idcurso || c?.id;
+            if (!id) return c;
+            try {
+              const det = await api.get(`/curso/${id}`);
+              return mergeMinimalFields(c, det?.data);
+            } catch {
+              return c;
+            }
+          })
+        );
+        if (!cancelled) setCursosSincronos(enriched);
+      } catch (err) {
+        console.error("Erro ao carregar cursos síncronos:", err);
+        if (!cancelled) setCursosSincronos([]);
+      }
+    };
+    run();
+    return () => {
+      cancelled = true;
+    };
   }, [urlApiSincronos, isFormador]);
 
   useEffect(() => {

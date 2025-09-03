@@ -93,7 +93,6 @@ const CursoSincrono = () => {
     }
   }, [id]);
 
-
   useEffect(() => {
     fetchCertificados();
   }, [fetchCertificados]);
@@ -497,7 +496,6 @@ const CursoSincrono = () => {
     return null;
   }, [curso, resolveUserId, currentFormandoId, myInscricao]);
 
-  
   useEffect(() => {
     const email = user?.email?.toLowerCase?.();
     if (!Array.isArray(avaliacoesContinuas) || !avaliacoesContinuas.length)
@@ -695,18 +693,15 @@ const CursoSincrono = () => {
                 <strong>Tipo de curso:</strong>{" "}
                 {curso?.sincrono === false ? "Assíncrono" : "Síncrono"}
                 <br />
-                {curso?.disponivel !== null &&
-                  curso?.disponivel !== undefined && (
-                    <>
-                      <strong>Disponível:</strong>{" "}
-                      {curso.disponivel ? (
-                        <span className="badge bg-primary">Sim</span>
-                      ) : (
-                        <span className="badge bg-danger">Não</span>
-                      )}
-                      <br />
-                    </>
+                <>
+                  <strong>Disponível:</strong>{" "}
+                  {statusColor?.key === "terminado" ? (
+                    <span className="badge bg-danger">Não</span>
+                  ) : (
+                    <span className="badge bg-primary">Sim</span>
                   )}
+                  <br />
+                </>
                 {(inscricoesPeriod?.inicio || inscricoesPeriod?.fim) && (
                   <>
                     <strong>Inscrições:</strong>{" "}
@@ -767,7 +762,6 @@ const CursoSincrono = () => {
               </p>
             </div>
 
-
             {isFormadorDoCurso ? (
               <div className="d-flex align-items-center my-3 flex-wrap gap-2">
                 <button
@@ -811,8 +805,7 @@ const CursoSincrono = () => {
               </div>
             ) : !inscrito ? (
               <>
-                {statusColor?.key !== "terminado" &&
-                curso?.disponivel !== false ? (
+                {statusColor?.key !== "terminado" ? (
                   <div className="mt-3">
                     <button
                       onClick={handleClickInscrever}
@@ -874,7 +867,6 @@ const CursoSincrono = () => {
                 </div>
               </div>
             )}
-
           </div>
         </div>
 
@@ -940,7 +932,6 @@ const CursoSincrono = () => {
           </div>
         )}
 
-
         {certificados?.length > 0 && (
           <div className="mt-5 card shadow-sm">
             <div className="card-body">
@@ -952,7 +943,10 @@ const CursoSincrono = () => {
               ) : (
                 <ul className="list-group">
                   {certificados.map((certificado) => (
-                    <li key={certificado.idcertificado} className="list-group-item">
+                    <li
+                      key={certificado.idcertificado}
+                      className="list-group-item"
+                    >
                       <div className="d-flex justify-content-between align-items-center">
                         <div>
                           <strong>{certificado.nome}</strong>
@@ -963,9 +957,9 @@ const CursoSincrono = () => {
                           )}
                         </div>
                         {certificado.ficheiro && (
-                          <a 
-                            href={certificado.ficheiro} 
-                            target="_blank" 
+                          <a
+                            href={certificado.ficheiro}
+                            target="_blank"
                             rel="noopener noreferrer"
                             className="btn btn-sm btn-outline-primary"
                           >
@@ -978,7 +972,9 @@ const CursoSincrono = () => {
                 </ul>
               )}
               {!loadingCertificados && certificados.length === 0 && (
-                <div className="alert alert-info mb-0">Nenhum certificado disponível</div>
+                <div className="alert alert-info mb-0">
+                  Nenhum certificado disponível
+                </div>
               )}
             </div>
           </div>

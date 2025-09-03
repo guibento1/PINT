@@ -72,9 +72,36 @@ export default function GerirCursos() {
           (typeof raw === "string" && raw.trim() === "")
         );
       };
+      const hasCourseDates = (c) => {
+        const nested = c?.cursosincrono || c?.cursoSincrono || {};
+        const inicio =
+          c?.inicio ?? nested?.inicio ?? c?.datainicio ?? nested?.datainicio;
+        const fim = c?.fim ?? nested?.fim ?? c?.datafim ?? nested?.datafim;
+        return !!inicio && !!fim;
+      };
+      const hasInscrDates = (c) => {
+        const nested = c?.cursosincrono || c?.cursoSincrono || {};
+        const ini =
+          c?.iniciodeinscricoes ??
+          c?.inicioDeInscricoes ??
+          nested?.iniciodeinscricoes ??
+          nested?.inicioDeInscricoes;
+        const fim =
+          c?.fimdeinscricoes ??
+          c?.fimDeInscricoes ??
+          nested?.fimdeinscricoes ??
+          nested?.fimDeInscricoes;
+        return !!ini && !!fim;
+      };
 
       let list = Array.isArray(data) ? data : [];
-      const toEnrich = list.filter((c) => normalizeIsSyn(c) && !hasMax(c));
+      const toEnrich = list.filter((c) => {
+        const isSyn = normalizeIsSyn(c);
+        const needsMax = isSyn && !hasMax(c);
+        const needsDates = isSyn && !hasCourseDates(c);
+        const needsAsyncDates = isSyn === false && !hasInscrDates(c);
+        return needsMax || needsDates || needsAsyncDates;
+      });
       if (toEnrich.length > 0) {
         const details = await Promise.all(
           toEnrich.map((c) => {
@@ -88,7 +115,7 @@ export default function GerirCursos() {
         const map = new Map(details.filter(Boolean).map((d) => [d.id, d.data]));
         list = list.map((c) => {
           const idc = c.idcurso || c.id;
-          if (normalizeIsSyn(c) && !hasMax(c) && map.has(idc)) {
+          if (map.has(idc)) {
             const d = map.get(idc);
             const max =
               d.maxInscricoes ??
@@ -98,7 +125,38 @@ export default function GerirCursos() {
               d?.cursosincrono?.maxinscricoes ??
               d?.cursosincrono?.maxincricoes ??
               null;
-            return { ...c, maxincricoes: max };
+            const nested = d?.cursosincrono || d?.cursoSincrono || {};
+            const enriched = {
+              inicio:
+                c?.inicio ??
+                d?.inicio ??
+                nested?.inicio ??
+                c?.datainicio ??
+                nested?.datainicio,
+              fim:
+                c?.fim ??
+                d?.fim ??
+                nested?.fim ??
+                c?.datafim ??
+                nested?.datafim,
+              iniciodeinscricoes:
+                c?.iniciodeinscricoes ??
+                c?.inicioDeInscricoes ??
+                d?.iniciodeinscricoes ??
+                d?.inicioDeInscricoes ??
+                nested?.iniciodeinscricoes ??
+                nested?.inicioDeInscricoes,
+              fimdeinscricoes:
+                c?.fimdeinscricoes ??
+                c?.fimDeInscricoes ??
+                d?.fimdeinscricoes ??
+                d?.fimDeInscricoes ??
+                nested?.fimdeinscricoes ??
+                nested?.fimDeInscricoes,
+              disponivel: c?.disponivel ?? d?.disponivel,
+              maxincricoes: max,
+            };
+            return { ...c, ...enriched };
           }
           return c;
         });
@@ -289,54 +347,50 @@ export default function GerirCursos() {
                   </td>
                   <td>
                     {(() => {
-                      const now = new Date();
-                      const fim = curso.fimdeinscricoes
-                        ? new Date(curso.fimdeinscricoes)
-                        : null;
-                      const terminou = fim && now >= fim;
-
-                      if (curso.sincrono === false && terminou) {
-                        return (
-                          <span
-                            className="badge bg-danger"
-                            title="Oculto para formandos (Terminado). Reativar definindo novas datas."
-                          >
-                            Não
-                          </span>
-                        );
-                      }
-
-                      if (curso.sincrono === true && terminou) {
-                        return (
-                          <span
-                            className="badge bg-danger"
-                            title="Curso síncrono terminado: inscrições/visibilidade geral fechadas. Formandos inscritos continuam a ter acesso aos conteúdos."
-                          >
-                            Não
-                          </span>
-                        );
-                      }
-
-                      if (curso.disponivel) {
-                        return (
-                          <span
-                            className="badge bg-primary"
-                            title={
-                              curso.sincrono === false
-                                ? "Visível para formandos enquanto não atingir a data de fim."
-                                : "Visível para formandos."
-                            }
-                          >
-                            Sim
-                          </span>
-                        );
-                      }
+                      const st = getCursoStatus(curso);
+                      // Normalizar tipo
+                      const normalizeType = () => {
+                        const s = curso?.sincrono;
+                        if (typeof s === "boolean") return s;
+                        if (typeof s === "number") return s === 1;
+                        if (typeof s === "string") {
+                          const v = s.toLowerCase();
+                          if (v === "true" || v === "1") return true;
+                          if (v === "false" || v === "0") return false;
+                        }
+                        const t = (curso?.tipo || "").toLowerCase();
+                        if (t.includes("sincrono") || t.includes("síncrono"))
+                          return true;
+                        if (
+                          t.includes("assincrono") ||
+                          t.includes("assíncrono")
+                        )
+                          return false;
+                        return null;
+                      };
+                      const isSyn = normalizeType();
+                      // Disponível por regras do helper
+                      const available =
+                        isSyn === true
+                          ? st.key !== "terminado"
+                          : isSyn === false
+                          ? st.key === "em_curso"
+                          : st.key === "em_curso";
+                      const title = available
+                        ? isSyn === true
+                          ? "Visível para formandos até ao fim; após terminar, fica oculto para novos."
+                          : "Visível para formandos enquanto não atingir a data de fim."
+                        : isSyn === true
+                        ? "Curso síncrono terminado: inscrições/visibilidade geral fechadas. Inscritos mantêm acesso."
+                        : "Oculto: terminou período de inscrições ou foi desativado.";
                       return (
                         <span
-                          className="badge bg-danger"
-                          title="Indisponível manualmente."
+                          className={`badge ${
+                            available ? "bg-primary" : "bg-danger"
+                          }`}
+                          title={title}
                         >
-                          Não
+                          {available ? "Sim" : "Não"}
                         </span>
                       );
                     })()}
@@ -344,16 +398,31 @@ export default function GerirCursos() {
                   <td>
                     {(() => {
                       const st = getCursoStatus(curso);
-                      const terminou =
-                        curso.fimdeinscricoes &&
-                        new Date(curso.fimdeinscricoes) <= new Date();
-                      const tooltip = terminou
-                        ? curso.sincrono
-                          ? "Terminado pela data de fim. Conteúdos continuam acessíveis aos inscritos."
-                          : "Terminado automaticamente pela data de fim (oculto para formandos)."
-                        : curso.disponivel === false
-                        ? "Indisponível manualmente (antes do fim)."
-                        : "Estado calculado pelas datas de início/fim.";
+                      // Usar mesma normalização para tooltips
+                      const s = curso?.sincrono;
+                      let isSyn = null;
+                      if (typeof s === "boolean") isSyn = s;
+                      else if (typeof s === "number") isSyn = s === 1;
+                      else if (typeof s === "string") {
+                        const v = s.toLowerCase();
+                        if (v === "true" || v === "1") isSyn = true;
+                        if (v === "false" || v === "0") isSyn = false;
+                      } else {
+                        const t = (curso?.tipo || "").toLowerCase();
+                        if (t.includes("sincrono") || t.includes("síncrono"))
+                          isSyn = true;
+                        if (
+                          t.includes("assincrono") ||
+                          t.includes("assíncrono")
+                        )
+                          isSyn = false;
+                      }
+                      const tooltip =
+                        st.key === "terminado"
+                          ? isSyn === true
+                            ? "Terminado pela data de fim. Conteúdos permanecem acessíveis aos inscritos."
+                            : "Terminado pela data de fim das inscrições (oculto aos formandos)."
+                          : "Estado calculado por datas e disponibilidade.";
                       return (
                         <span
                           className={`badge ${st.badgeClass}`}

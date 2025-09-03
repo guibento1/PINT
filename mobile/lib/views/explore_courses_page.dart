@@ -4,6 +4,7 @@ import '../middleware.dart';
 import '../components/course_filter.dart';
 import '../components/course_card.dart';
 import '../backend/shared_preferences.dart' as my_prefs;
+import '../utils/curso_status.dart';
 
 class ExploreCoursesPage extends StatefulWidget {
   const ExploreCoursesPage({super.key});
@@ -115,10 +116,32 @@ class _ExploreCoursesPageState extends State<ExploreCoursesPage> {
     _filteredCourses =
         _allCourses.where((course) {
           final int? id = _parseIdCurso(course['idcurso']);
-          if (id == null)
-            return true; 
+          if (id == null) return true; // manter se não der para ler id
           return !_subscribedCourseIds.contains(id);
         }).toList();
+
+    int statusRank(Map<String, dynamic> c) {
+      final st = getCursoStatus(c);
+      switch (st.key) {
+        case 'em_curso':
+          return 0;
+        case 'pendente':
+          return 1;
+        case 'terminado':
+          return 2;
+        default:
+          return 3;
+      }
+    }
+
+    _filteredCourses.sort((a, b) {
+      final ra = statusRank(a);
+      final rb = statusRank(b);
+      if (ra != rb) return ra.compareTo(rb);
+      final na = (a['nome'] ?? '').toString().toLowerCase();
+      final nb = (b['nome'] ?? '').toString().toLowerCase();
+      return na.compareTo(nb);
+    });
   }
 
   void _handleApplyFilters(Map<String, dynamic> newFilters) {

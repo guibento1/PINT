@@ -30,7 +30,7 @@ const EditarCursoSincrono = () => {
     maxinscricoes: "",
     topicos: [],
     formador: "",
-    disponivel: true
+    disponivel: true,
   });
   const [thumbnailFile, setThumbnailFile] = useState(null);
   const [currentThumbnail, setCurrentThumbnail] = useState("");
@@ -144,6 +144,17 @@ const EditarCursoSincrono = () => {
     fetchData();
   }, [fetchData]);
 
+  // Regras: quando fim já passou, indisponibiliza e bloqueia switch
+  const now = new Date();
+  const fimDate = formData.fim ? new Date(formData.fim) : null;
+  const terminou = !!fimDate && !isNaN(fimDate) && fimDate <= now;
+
+  useEffect(() => {
+    if (terminou && formData.disponivel) {
+      setFormData((prev) => ({ ...prev, disponivel: false }));
+    }
+  }, [terminou]);
+
   // Manipulação do formulário do curso
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -195,7 +206,7 @@ const EditarCursoSincrono = () => {
           ? parseInt(formData.maxinscricoes)
           : null,
         topicos: formData.topicos,
-        disponivel: formData.disponivel
+        disponivel: formData.disponivel,
       };
       if (formData.formador) info.formador = parseInt(formData.formador);
       fd.append("info", JSON.stringify(info));
@@ -256,7 +267,8 @@ const EditarCursoSincrono = () => {
   };
 
   const deleteCertificado = async (certId) => {
-    if (!window.confirm("Tem a certeza que pretende excluir este certificado?")) return;
+    if (!window.confirm("Tem a certeza que pretende excluir este certificado?"))
+      return;
     try {
       await api.delete(`/curso/certificado/${certId}`);
       await fetchCertificados();
@@ -492,10 +504,17 @@ const EditarCursoSincrono = () => {
                     disponivel: e.target.checked,
                   }))
                 }
+                disabled={terminou}
               />
               <label className="form-check-label" htmlFor="disponivel">
                 Curso disponível
               </label>
+              {terminou && (
+                <div className="form-text text-danger">
+                  O curso terminou. Para reativar, ajuste a data de fim para o
+                  futuro.
+                </div>
+              )}
             </div>
           </div>
 
@@ -591,7 +610,9 @@ const EditarCursoSincrono = () => {
         </div>
 
         {certificados.length === 0 ? (
-          <div className="text-muted">Nenhum certificado encontrado para este curso.</div>
+          <div className="text-muted">
+            Nenhum certificado encontrado para este curso.
+          </div>
         ) : (
           certificados.map((cert) => (
             <div key={cert.idcertificado} className="card mb-2">
@@ -605,7 +626,10 @@ const EditarCursoSincrono = () => {
                     className="btn btn-sm btn-primary me-2"
                     onClick={() => {
                       setCertEditing(cert);
-                      setCertForm({ nome: cert.nome, descricao: cert.descricao });
+                      setCertForm({
+                        nome: cert.nome,
+                        descricao: cert.descricao,
+                      });
                       setCertModalOpen(true);
                     }}
                   >

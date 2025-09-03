@@ -138,6 +138,12 @@ const EditarCursoAssincrono = () => {
     fetchCursoAndRelatedData();
   }, [fetchCursoAndRelatedData]);
 
+  // Assíncronos: seguir regras do getCursoStatus
+  // - Se fim de inscrições passou e disponivel !== true => "Terminado"
+  // - Admin pode reativar manualmente (disponivel === true) mesmo após o fim
+  // Por isso, NÃO forçamos a alterar o campo "disponivel" automaticamente aqui.
+  // Mantemos o valor trazido do backend e o que o admin definir no formulário.
+
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     setFormData((prev) => ({

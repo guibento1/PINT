@@ -39,19 +39,25 @@ class _TopHeaderBarState extends State<TopHeaderBar> {
   Future<void> _updateAvatarFromPrefs() async {
     final user = my_prefs.currentUserNotifier.value;
 
-    final perfil = user;
     String? foto;
-
-    if (perfil is Map<String, dynamic>) {
-      foto =
-          (perfil['foto'] != null && perfil['foto'].toString().isNotEmpty)
-              ? perfil['foto'] as String
+    if (user is Map<String, dynamic>) {
+      // Extrai de várias localizações possíveis
+      foto = _extractAvatarFromMap(user);
+      // fallback direto em 'foto'
+      foto ??=
+          (user['foto'] != null && user['foto'].toString().isNotEmpty)
+              ? user['foto'].toString()
               : null;
     }
 
     if (mounted) {
       setState(() {
-        _avatarUrl = foto ?? '';
+        // Evita limpar visualmente se não encontrarmos foto neste ciclo
+        if (foto != null && foto.isNotEmpty) {
+          _avatarUrl = foto;
+        } else if (_avatarUrl.isEmpty) {
+          _avatarUrl = '';
+        }
       });
     }
 
@@ -93,10 +99,26 @@ class _TopHeaderBarState extends State<TopHeaderBar> {
       if (userId == null || userId.isEmpty) return;
       final fresh = await _middleware.fetchUserProfile(userId);
       final newFoto = _extractAvatarFromMap(fresh);
-      if (newFoto != null && newFoto.isNotEmpty && mounted) {
-        setState(() {
-          _avatarUrl = newFoto;
-        });
+      if (newFoto != null && newFoto.isNotEmpty) {
+        if (mounted) {
+          setState(() {
+            _avatarUrl = newFoto;
+          });
+        }
+        // Persistir no utilizador para sobreviver a rebuilds/rotas
+        final existing = await my_prefs.getUser();
+        final Map<String, dynamic> updated =
+            existing != null
+                ? Map<String, dynamic>.from(existing)
+                : <String, dynamic>{};
+        updated['foto'] = newFoto; // topo para acesso rápido
+        for (final container in const ['perfil', 'utilizador', 'user']) {
+          final nested = updated[container];
+          if (nested is Map<String, dynamic>) {
+            nested['foto'] = newFoto;
+          }
+        }
+        await my_prefs.saveUser(updated);
       }
     } catch (_) {
     } finally {

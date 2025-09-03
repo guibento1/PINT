@@ -106,30 +106,45 @@ export default function NavbarBack() {
         }}
       >
         <div
-          className="container-fluid d-flex align-items-center"
+          className="container-fluid d-flex flex-column flex-lg-row align-items-stretch align-items-lg-center"
           style={{ minHeight: "60px" }}
         >
-          {/* Logo SoftSkills (esquerda) */}
-          <div
-            className="d-flex align-items-center justify-content-start"
-            style={{ minWidth: "180px", paddingLeft: "30px" }}
-          >
-            <Link to="/">
-              <img
-                src={logoSoftskills}
-                alt="SoftSkills"
-                style={{ height: "48px" }}
-              />
-            </Link>
+          {/* Top row: logo + (desktop toggler area for symmetry) */}
+          <div className="d-flex align-items-center justify-content-between w-100">
+            <div
+              className="d-flex align-items-center justify-content-start navbar-left-zone"
+              style={{ minWidth: "180px", paddingLeft: "30px" }}
+            >
+              <Link to="/">
+                <img
+                  src={logoSoftskills}
+                  alt="SoftSkills"
+                  style={{ height: "48px" }}
+                />
+              </Link>
+            </div>
+            <div
+              className="d-none d-lg-flex align-items-center justify-content-end navbar-right-zone"
+              style={{ minWidth: "260px", paddingRight: "24px" }}
+            >
+              <button
+                className="navbar-toggler ms-2"
+                type="button"
+                onClick={toggleMenu}
+              >
+                {menuAberto ? (
+                  <i className="ri-close-line"></i>
+                ) : (
+                  <i className="ri-menu-line"></i>
+                )}
+              </button>
+            </div>
           </div>
 
-          {/* Itens da navbar (direita) */}
-          <div
-            className="d-flex align-items-center justify-content-end"
-            style={{ minWidth: "260px", paddingRight: "24px" }}
-          >
+          {/* Toggler below logo on mobile */}
+          <div className="d-flex d-lg-none justify-content-end px-3 pb-2">
             <button
-              className="navbar-toggler ms-2"
+              className="navbar-toggler"
               type="button"
               onClick={toggleMenu}
             >
@@ -139,12 +154,14 @@ export default function NavbarBack() {
                 <i className="ri-menu-line"></i>
               )}
             </button>
-            <div
-              className={`collapse navbar-collapse justify-content-end ${
-                menuAberto ? "show" : ""
-              }`}
-              id="navbarBackContent"
-            >
+          </div>
+
+          <div
+            className={`collapse navbar-collapse ${menuAberto ? "show" : ""}`}
+            id="navbarBackContent"
+          >
+            <div className="w-100 d-flex flex-column flex-lg-row">
+              <div className="flex-grow-1" />
               {user ? (
                 <ul className="navbar-nav align-items-center gap-2 flex-nowrap">
                   <li className="nav-item">
@@ -269,7 +286,12 @@ export default function NavbarBack() {
                         }}
                         aria-hidden="true"
                       />
-                      <span>{nomeUsuario}</span>
+                      <span
+                        className="d-inline-block text-truncate navbar-username"
+                        style={{ maxWidth: 140 }}
+                      >
+                        {nomeUsuario}
+                      </span>
                     </NavLink>
                   </li>
                   <li className="nav-item">

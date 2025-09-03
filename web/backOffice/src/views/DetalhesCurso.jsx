@@ -1,5 +1,6 @@
 import { useParams, useNavigate } from "react-router-dom";
 import React, { useEffect, useState, useCallback } from "react";
+import { getCursoStatus } from "@shared/utils/cursoStatus";
 import api from "@shared/services/axios";
 import "@shared/styles/curso.css";
 import Modal from "@shared/components/Modal";
@@ -29,7 +30,6 @@ const DetalhesCurso = () => {
   // Certificados (existe pedido anterior) - mantemos leitura
   const [certificados, setCertificados] = useState([]);
   const [loadingCertificados, setLoadingCertificados] = useState(false);
-
 
   const handleEditCurso = () => {
     navigate(`/editar/curso/${id}`);
@@ -191,6 +191,29 @@ const DetalhesCurso = () => {
 
   // Helpers de renderização
   const isSincrono = curso?.sincrono;
+  const status = curso ? getCursoStatus(curso) : null;
+  // Disponibilidade lida pelas regras do helper
+  const normalizeType = () => {
+    const s = curso?.sincrono;
+    if (typeof s === "boolean") return s;
+    if (typeof s === "number") return s === 1;
+    if (typeof s === "string") {
+      const v = s.toLowerCase();
+      if (v === "true" || v === "1") return true;
+      if (v === "false" || v === "0") return false;
+    }
+    const t = (curso?.tipo || "").toLowerCase();
+    if (t.includes("sincrono") || t.includes("síncrono")) return true;
+    if (t.includes("assincrono") || t.includes("assíncrono")) return false;
+    return null;
+  };
+  const isSyn = normalizeType();
+  const available =
+    isSyn === true
+      ? status?.key !== "terminado"
+      : isSyn === false
+      ? status?.key === "em_curso"
+      : status?.key === "em_curso";
 
   const formatData = (dataStr) => {
     if (!dataStr) return "N/A";
@@ -261,10 +284,15 @@ const DetalhesCurso = () => {
           key={sessao.idsessao}
           className="list-group-item list-group-item-action mb-2 rounded shadow-sm"
         >
-          <div className="d-flex justify-content-between align-items-center" style={{ cursor: "default" }}>
+          <div
+            className="d-flex justify-content-between align-items-center"
+            style={{ cursor: "default" }}
+          >
             <h5 className="mb-1">{sessao.titulo}</h5>
             <small className="text-muted">
-              {sessao.datahora ? new Date(sessao.datahora).toLocaleString() : ""}
+              {sessao.datahora
+                ? new Date(sessao.datahora).toLocaleString()
+                : ""}
             </small>
           </div>
           <p className="mb-1">{sessao.descricao}</p>
@@ -275,7 +303,12 @@ const DetalhesCurso = () => {
                 {sessao.materiais.map((m) => (
                   <li key={m.idmaterial} className="mb-1">
                     {getMaterialIcon(m.tipo)}
-                    <a href={m.referencia} target="_blank" rel="noreferrer" className="text-decoration-none ms-1">
+                    <a
+                      href={m.referencia}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-decoration-none ms-1"
+                    >
                       {m.titulo}
                     </a>
                   </li>
@@ -296,7 +329,10 @@ const DetalhesCurso = () => {
           key={licao.idlicao}
           className="list-group-item list-group-item-action mb-2 rounded shadow-sm"
         >
-          <div className="d-flex justify-content-between align-items-center" style={{ cursor: "default" }}>
+          <div
+            className="d-flex justify-content-between align-items-center"
+            style={{ cursor: "default" }}
+          >
             <h5 className="mb-1">{licao.titulo}</h5>
             <small className="text-muted" />
           </div>
@@ -308,7 +344,12 @@ const DetalhesCurso = () => {
                 {licao.materiais.map((m) => (
                   <li key={m.idmaterial} className="mb-1">
                     {getMaterialIcon(m.tipo)}
-                    <a href={m.referencia} target="_blank" rel="noreferrer" className="ms-1 text-decoration-none">
+                    <a
+                      href={m.referencia}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="ms-1 text-decoration-none"
+                    >
                       {m.titulo}
                     </a>
                   </li>
@@ -331,15 +372,18 @@ const DetalhesCurso = () => {
             <strong>{av.titulo}</strong>
             {av.enunciado && (
               <div>
-                <a href={av.enunciado} target="_blank" rel="noreferrer" className="text-decoration-none">
+                <a
+                  href={av.enunciado}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-decoration-none"
+                >
                   Enunciado
                 </a>
               </div>
             )}
             {av.submissao && (
-              <div className="small text-muted">
-                Submissões disponíveis
-              </div>
+              <div className="small text-muted">Submissões disponíveis</div>
             )}
           </li>
         ))}
@@ -356,7 +400,9 @@ const DetalhesCurso = () => {
     if (isSincrono) {
       return (
         <>
-          {curso?.sessoes?.length > 0 ? renderSessions() : (
+          {curso?.sessoes?.length > 0 ? (
+            renderSessions()
+          ) : (
             <div className="alert alert-info" role="alert">
               Não há sessões cadastradas para este curso síncrono.
             </div>
@@ -367,7 +413,9 @@ const DetalhesCurso = () => {
     } else {
       return (
         <>
-          {curso?.licoes?.length > 0 ? renderLicoes() : (
+          {curso?.licoes?.length > 0 ? (
+            renderLicoes()
+          ) : (
             <div className="alert alert-info" role="alert">
               Não há lições cadastradas para este curso assíncrono.
             </div>
@@ -532,12 +580,20 @@ const DetalhesCurso = () => {
           <p className="mb-2">
             <strong>ID do Curso:</strong> {curso?.idcurso}
             <br />
-            <strong>Disponível:</strong>{" "}
-            {curso?.disponivel ? (
-              <span className="badge bg-success">Sim</span>
-            ) : (
-              <span className="badge bg-danger">Não</span>
+            {/* Estado e Disponibilidade (via helper) */}
+            {status && (
+              <>
+                <strong>Estado:</strong>{" "}
+                <span className={`badge ${status.badgeClass}`}>
+                  {status.label}
+                </span>
+                <br />
+              </>
             )}
+            <strong>Disponível:</strong>{" "}
+            <span className={`badge ${available ? "bg-primary" : "bg-danger"}`}>
+              {available ? "Sim" : "Não"}
+            </span>
             <br />
             <strong>Síncrono:</strong>{" "}
             {curso?.sincrono ? (
@@ -644,12 +700,8 @@ const DetalhesCurso = () => {
         </div>
       </div>
 
-
-
       <div className="mt-4">
-        <h2 className="h4">
-          {isSincrono ? "Sessões" : "Lições"}
-        </h2>
+        <h2 className="h4">{isSincrono ? "Sessões" : "Lições"}</h2>
         <SectionLicoesOuSessoes />
       </div>
 

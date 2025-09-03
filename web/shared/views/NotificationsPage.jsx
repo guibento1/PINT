@@ -81,26 +81,29 @@ const NotificationsPage = () => {
     );
   }
 
-  // Separar notificações em 'Hoje' e 'Anteriores'
+  // Separar notificações em 'Hoje' e 'Anteriores' usando qualquer campo de data
   const today = new Date();
-  const isToday = (dateStr) => {
-    const d = new Date(dateStr);
-    return (
+  const getNotifDate = (n) => {
+    const v = n?.instante || n?.data || n?.createdAt || n?.at;
+    if (!v) return null;
+    const d = new Date(v);
+    return isNaN(d.getTime()) ? null : d;
+  };
+  const isToday = (n) => {
+    const d = getNotifDate(n);
+    return d &&
       d.getDate() === today.getDate() &&
       d.getMonth() === today.getMonth() &&
-      d.getFullYear() === today.getFullYear()
-    );
+      d.getFullYear() === today.getFullYear();
   };
-  const notificationsToday = notifications.filter(
-    (n) => n.data && isToday(n.data)
-  );
-  const notificationsOlder = notifications.filter(
-    (n) => !n.data || !isToday(n.data)
-  );
+  const notificationsToday = notifications.filter(isToday);
+  const notificationsOlder = notifications.filter((n) => !isToday(n));
 
   // Função para formatar data/hora
-  const formatDateTime = (dateStr) => {
-    const d = new Date(dateStr);
+  const formatDateTime = (dateVal) => {
+    if (!dateVal) return "-";
+    const d = new Date(dateVal);
+    if (isNaN(d.getTime())) return "-";
     const date = d.toLocaleDateString("pt-PT");
     const time = d.toLocaleTimeString("pt-PT", {
       hour: "2-digit",
@@ -118,56 +121,60 @@ const NotificationsPage = () => {
     </div>
   );
 
-  const NotificationCard = ({ notif }) => (
-    <div
-      className="card mb-3 shadow-sm border-0"
-      style={{ borderRadius: "16px", background: "#ECECEC" }}
-    >
-      <div className="d-flex align-items-start p-3 gap-3">
-        <div
-          className="d-flex align-items-center justify-content-center"
-          style={{
-            background: "#e3f2fd",
-            borderRadius: "12px",
-            padding: "12px",
-          }}
-        >
-          <i
-            className="ri-notification-3-line text-primary"
-            style={{ fontSize: "2rem" }}
-          ></i>
-        </div>
-        <div className="flex-grow-1">
+  const NotificationCard = ({ notif }) => {
+    // Use the most reliable date field for display
+    const notifTimeRaw = notif?.instante || notif?.data || notif?.createdAt || notif?.at;
+    return (
+      <div
+        className="card mb-3 shadow-sm border-0"
+        style={{ borderRadius: "16px", background: "#ECECEC" }}
+      >
+        <div className="d-flex align-items-start p-3 gap-3">
           <div
+            className="d-flex align-items-center justify-content-center"
             style={{
-              fontSize: "1.08rem",
-              fontWeight: "bold",
-              color: "#1D1B20",
-              fontFamily: "ADLaM Display, sans-serif",
+              background: "#e3f2fd",
+              borderRadius: "12px",
+              padding: "12px",
             }}
           >
-            {notif.titulo || "Notificação"}
+            <i
+              className="ri-notification-3-line text-primary"
+              style={{ fontSize: "2rem" }}
+            ></i>
           </div>
-          <div
-            style={{
-              fontSize: "0.98rem",
-              color: "#49454F",
-              marginTop: "4px",
-              fontFamily: "Roboto, sans-serif",
-            }}
-          >
-            {notif.mensagem || notif.conteudo || "—"}
-          </div>
-          <div
-            className="text-end mt-2"
-            style={{ fontSize: "0.85rem", color: "#888" }}
-          >
-            {formatDateTime(notif.instante)}
+          <div className="flex-grow-1">
+            <div
+              style={{
+                fontSize: "1.08rem",
+                fontWeight: "bold",
+                color: "#1D1B20",
+                fontFamily: "ADLaM Display, sans-serif",
+              }}
+            >
+              {notif.titulo || "Notificação"}
+            </div>
+            <div
+              style={{
+                fontSize: "0.98rem",
+                color: "#49454F",
+                marginTop: "4px",
+                fontFamily: "Roboto, sans-serif",
+              }}
+            >
+              {notif.mensagem || notif.conteudo || "—"}
+            </div>
+            <div
+              className="text-end mt-2"
+              style={{ fontSize: "0.85rem", color: "#888" }}
+            >
+              {formatDateTime(notifTimeRaw)}
+            </div>
           </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <div

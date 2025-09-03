@@ -1,5 +1,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
+import { getCursoStatus } from "@shared/utils/cursoStatus";
 
 function CardCurso({
   curso,
@@ -8,10 +9,20 @@ function CardCurso({
   lecionado = null,
   notipo = false,
   variant = "bootstrap", // "bootstrap" | "ag"
+  statusLabel = null,
+  statusClass = "btn-primary",
 }) {
   // Dados do curso
   const { nome, thumbnail, sincrono } = curso;
   const id = curso.idcurso;
+
+  // Status via helper (fallback if props not provided)
+  const st = getCursoStatus ? getCursoStatus(curso) : null;
+  const computedStatusLabel = st?.label || null;
+  const computedStatusClass =
+    st?.key === "terminado" ? "btn-dark" : "btn-primary";
+  const finalStatusLabel = statusLabel ?? computedStatusLabel;
+  const finalStatusClass = statusClass ?? computedStatusClass;
 
   // Rota do curso (síncrono ou assíncrono)
   const route = sincrono ? `/curso-sincrono/${id}` : `/curso/${id}`;
@@ -51,6 +62,11 @@ function CardCurso({
             />
           </div>
           <h3 className="ag-courses-item_title">{nome}</h3>
+          {finalStatusLabel && (
+            <div className="ag-courses-item_date-box" style={{ marginTop: 6 }}>
+              <span className="ag-courses-item_date">{finalStatusLabel}</span>
+            </div>
+          )}
           {!notipo && typeof sincrono === "boolean" && (
             <div className="ag-courses-item_date-box">
               <span className="ag-courses-item_date">
@@ -91,6 +107,11 @@ function CardCurso({
         <div className="card-body">
           <h5 className="card-title mb-2">{nome}</h5>
           <div className="d-flex flex-wrap gap-2">
+            {finalStatusLabel && (
+              <div className={`btn ${finalStatusClass} static-button`}>
+                {finalStatusLabel}
+              </div>
+            )}
             {disponivel !== null && disponivel !== undefined && !disponivel && (
               <div className="btn btn-primary static-button">Arquivado</div>
             )}

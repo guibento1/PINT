@@ -225,7 +225,6 @@ const CursoAssincrono = () => {
     });
   };
 
-
   if (loading) {
     return (
       <div className="container mt-5">
@@ -245,24 +244,30 @@ const CursoAssincrono = () => {
     );
   }
 
-  // Status badge (Pendente/Em curso/Terminado) — mesmo para assíncronos
+  // Status (Pendente/Em curso/Terminado) — usa disponivel e datas de inscrições
+  const inicioInscricoes =
+    curso?.iniciodeinscricoes ??
+    curso?.inicioDeInscricoes ??
+    curso?.cursoassincrono?.iniciodeinscricoes ??
+    curso?.cursoassincrono?.inicioDeInscricoes;
+  const fimInscricoes =
+    curso?.fimdeinscricoes ??
+    curso?.fimDeInscricoes ??
+    curso?.cursoassincrono?.fimdeinscricoes ??
+    curso?.cursoassincrono?.fimDeInscricoes;
+
   const statusColor = getCursoStatus(
-    { sincrono: false, disponivel: curso?.disponivel },
+    {
+      sincrono: false,
+      disponivel: curso?.disponivel,
+      iniciodeinscricoes: inicioInscricoes,
+      fimdeinscricoes: fimInscricoes,
+    },
     new Date()
   );
   const hasEnded = statusColor?.key === "terminado";
 
-  // Datas de inscrições (mostrar apenas este período para assíncronos)
-  const inicioInscricoes =
-    curso?.iniciodeinscricoes ??
-    curso?.inicioDeInscricoes ??
-    curso?.cursosincrono?.iniciodeinscricoes ??
-    curso?.cursosincrono?.inicioDeInscricoes;
-  const fimInscricoes =
-    curso?.fimdeinscricoes ??
-    curso?.fimDeInscricoes ??
-    curso?.cursosincrono?.fimdeinscricoes ??
-    curso?.cursosincrono?.fimDeInscricoes;
+  // Datas de inscrições (mostrar na UI)
 
   return (
     <>
@@ -337,18 +342,15 @@ const CursoAssincrono = () => {
                 <strong>Tipo de curso:</strong>{" "}
                 {curso?.sincrono === true ? "Síncrono" : "Assíncrono"}
                 <br />
-                {curso?.disponivel !== null &&
-                  curso?.disponivel !== undefined && (
-                    <>
-                      <strong>Disponível:</strong>{" "}
-                      {curso.disponivel ? (
-                        <span className="badge bg-primary">Sim</span>
-                      ) : (
-                        <span className="badge bg-danger">Não</span>
-                      )}
-                      <br />
-                    </>
+                <>
+                  <strong>Disponível:</strong>{" "}
+                  {statusColor?.key === "em_curso" ? (
+                    <span className="badge bg-primary">Sim</span>
+                  ) : (
+                    <span className="badge bg-danger">Não</span>
                   )}
+                  <br />
+                </>
                 {(inicioInscricoes || fimInscricoes) && (
                   <>
                     <strong>Inscrições:</strong>{" "}
@@ -372,7 +374,7 @@ const CursoAssincrono = () => {
               </div>
             ) : !inscrito ? (
               <>
-                {!hasEnded && curso?.disponivel !== false ? (
+                {!hasEnded ? (
                   <>
                     <button
                       onClick={handleClickInscrever}

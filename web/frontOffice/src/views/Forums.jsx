@@ -328,7 +328,7 @@ export default function Forums() {
     return content.length > 150 ? content.substring(0, 150) + "..." : content;
   };
 
-  const currentUser = JSON.parse(localStorage.getItem("user")); 
+  const currentUser = JSON.parse(localStorage.getItem("user"));
 
   const getPostTopic = (post) => {
     try {
@@ -357,8 +357,42 @@ export default function Forums() {
 
   return (
     <div className="d-flex">
-      {/* Sidebar esquerda */}
-      <div style={{ flex: "0 0 320px" }}>
+      {/* Mobile filters toggle + inline sidebar */}
+      <div className="d-lg-none w-100 px-2 mt-2">
+        <button
+          className="btn btn-outline-primary w-100 mb-2"
+          type="button"
+          data-bs-toggle="collapse"
+          data-bs-target="#forumFilters"
+          aria-expanded="false"
+          aria-controls="forumFilters"
+        >
+          Filtros e Tópicos
+        </button>
+        <div className="collapse" id="forumFilters">
+          <div className="card card-body p-0">
+            <LeftSidebar
+              inline
+              categorias={categorias}
+              areas={areas}
+              topicos={topicos}
+              selectedCategoria={selectedCategoria}
+              setSelectedCategoria={setSelectedCategoria}
+              selectedArea={selectedArea}
+              setSelectedArea={setSelectedArea}
+              selectedTopico={selectedTopico}
+              setSelectedTopico={setSelectedTopico}
+              topicSearch={topicSearch}
+              setTopicSearch={setTopicSearch}
+              subscribedTopics={subscribedTopics}
+              toggleSubscribeTopic={toggleSubscribeTopic}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Sidebar esquerda desktop */}
+      <div className="d-none d-lg-block" style={{ flex: "0 0 320px" }}>
         <LeftSidebar
           categorias={categorias}
           areas={areas}

@@ -8,12 +8,39 @@ export const getCursoStatus = (cursoLike, nowDate) => {
   const c = cursoLike || {};
   const now = nowDate ? new Date(nowDate) : new Date();
 
-  // Normalize
-  const sincrono = c?.sincrono;
-  const inicioInsc =
-    parseDate(c?.iniciodeinscricoes || c?.inicioDeInscricoes) || null;
-  const fimInsc = parseDate(c?.fimdeinscricoes || c?.fimDeInscricoes) || null;
+  const normalizeSincrono = () => {
+    if (typeof c?.sincrono === "boolean") return c.sincrono;
+    if (typeof c?.sincrono === "number") {
+      if (c.sincrono === 1) return true;
+      if (c.sincrono === 0) return false;
+    }
+    if (typeof c?.sincrono === "string") {
+      const s = c.sincrono.toLowerCase();
+      if (s === "true" || s === "1") return true;
+      if (s === "false" || s === "0") return false;
+    }
+    const t = (c?.tipo || "").toString().toLowerCase();
+    if (t.includes("sincrono") || t.includes("síncrono")) return true;
+    if (t.includes("assincrono") || t.includes("assíncrono")) return false;
+    return null; 
+  };
+  const sincrono = normalizeSincrono();
   const nested = c?.cursosincrono || c?.cursoSincrono || {};
+  const nestedAsync = c?.cursoassincrono || c?.cursoAssincrono || {};
+  const inicioInsc =
+    parseDate(
+      c?.iniciodeinscricoes ||
+        c?.inicioDeInscricoes ||
+        nestedAsync?.iniciodeinscricoes ||
+        nestedAsync?.inicioDeInscricoes
+    ) || null;
+  const fimInsc =
+    parseDate(
+      c?.fimdeinscricoes ||
+        c?.fimDeInscricoes ||
+        nestedAsync?.fimdeinscricoes ||
+        nestedAsync?.fimDeInscricoes
+    ) || null;
   const inicioCurso =
     parseDate(
       c?.inicio || c?.datainicio || nested?.inicio || nested?.datainicio
@@ -21,50 +48,57 @@ export const getCursoStatus = (cursoLike, nowDate) => {
   const fimCurso =
     parseDate(c?.fim || c?.datafim || nested?.fim || nested?.datafim) || null;
 
-  const disponivel = c?.disponivel;
+  const disponivel =
+    c?.disponivel ?? nested?.disponivel ?? nestedAsync?.disponivel;
 
   let key = "pendente";
 
   if (sincrono === true) {
-    // Síncronos:
-    // Pendente só aparece quando as inscrições estão abertas E ainda não existem datas de início e fim do curso.
-    // Depois de existirem ambas as datas, nunca mais volta a Pendente: fica Em curso (até ao fim) ou Terminado.
+    // Síncronos (estado baseado nas datas do curso):
+    // - Pendente: existem datas de inscrições (início e fim) mas faltam datas de curso (início e/ou fim)
+    // - Em curso: existem datas de curso e fim ainda não passou
+    // - Terminado: fim do curso já passou OU marcado como indisponível
     const hasBothDates = !!inicioCurso && !!fimCurso;
-    const inscricoesAbertas =
-      !!inicioInsc && now >= inicioInsc && (!fimInsc || now < fimInsc);
+    const hasInscricaoDates = !!inicioInsc && !!fimInsc;
 
-    if (hasBothDates) {
-      if (fimCurso && now >= fimCurso) {
-        key = "terminado";
-      } else if (disponivel === false) {
-        // Indisponibilizado pelo admin/formador após datas definidas
-        key = "terminado";
-      } else {
-        key = "em_curso"; // Antes do início ou entre datas, mantém "Em curso"
-      }
+    if (disponivel === false) {
+      key = "terminado";
+    } else if (hasBothDates) {
+      key = fimCurso && now >= fimCurso ? "terminado" : "em_curso";
     } else {
-      if (inscricoesAbertas) {
-        key = "pendente"; // Sem datas de curso e inscrições abertas
-      } else if (disponivel === false) {
-        key = "terminado"; // Forçado a terminado se indisponível
-      } else {
-        key = "em_curso"; // Default visual quando não cumpre condição de pendente
-      }
+      key = hasInscricaoDates ? "pendente" : "pendente";
     }
   } else if (sincrono === false) {
     // Assíncronos:
-    // - disponivel === true  -> Em curso
-    // - disponivel === false -> Terminado (arquivado)
-    // - caso contrário       -> Pendente
-    if (disponivel === false) key = "terminado";
-    else if (disponivel === true) key = "em_curso";
-    else key = "pendente";
-  } else {
-    if (fimInsc && now >= fimInsc) {
-      key = "terminado";
+    // - Em curso: fim de inscrições ainda não passou OU admin reativou manualmente (disponivel === true)
+    // - Terminado: fim de inscrições passou e não foi reativado (disponivel !== true) OU marcado indisponível
+    // - Pendente: sem datas definidas e sem override de disponibilidade
+    if (fimInsc) {
+      key =
+        now < fimInsc
+          ? "em_curso"
+          : disponivel === true
+          ? "em_curso"
+          : "terminado";
+    } else if (disponivel === true) {
+      key = "em_curso";
     } else if (disponivel === false) {
+      key = "terminado";
+    } else {
       key = "pendente";
+    }
+  } else {
+    // Tipo desconhecido: inferir pelo melhor sinal disponível
+    // Preferir datas de curso se existirem
+    if (inicioCurso && fimCurso) {
+      key = now >= fimCurso ? "terminado" : "em_curso";
+    } else if (fimInsc && now >= fimInsc) {
+      key = "terminado";
     } else if (inicioInsc && now >= inicioInsc) {
+      key = "em_curso";
+    } else if (disponivel === false) {
+      key = "terminado";
+    } else if (disponivel === true) {
       key = "em_curso";
     } else {
       key = "pendente";

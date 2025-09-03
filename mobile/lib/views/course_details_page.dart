@@ -6,6 +6,7 @@ import '../middleware.dart';
 import '../components/confirmation_dialog.dart';
 import '../backend/shared_preferences.dart' as my_prefs;
 import '../components/submission_file_preview.dart';
+import '../utils/curso_status.dart';
 
 class CourseDetailsPage extends StatefulWidget {
   final int id;
@@ -94,8 +95,8 @@ class _CourseDetailsPageState extends State<CourseDetailsPage> {
   }
 
   Future<void> _subscribeToCourse() async {
-    if (_courseData == null || _courseData!['canal'] == null) {
-      _showSnackBar('Não foi possível obter o canal do curso.', Colors.red);
+    if (_courseData == null) {
+      _showSnackBar('Dados do curso indisponíveis.', Colors.red);
       return;
     }
 
@@ -112,6 +113,8 @@ class _CourseDetailsPageState extends State<CourseDetailsPage> {
 
     if (confirmou) {
       setState(() => _isSubmittingAction = true);
+      final prevInscrito = _isInscrito;
+      setState(() => _isInscrito = true);
       try {
         final userId = await my_prefs.getUserId();
         if (userId == null) {
@@ -124,8 +127,13 @@ class _CourseDetailsPageState extends State<CourseDetailsPage> {
           int.parse(userId),
         );
         if (response['success'] == true ||
-            (response['message'] as String?)?.contains('sucesso') == true) {
-          final int? canalId = int.tryParse(_courseData!['canal'].toString());
+            (response['message'] as String?)?.toLowerCase().contains(
+                  'sucesso',
+                ) ==
+                true) {
+          final canalRaw = _courseData!['canal'];
+          final int? canalId =
+              canalRaw == null ? null : int.tryParse(canalRaw.toString());
           if (canalId != null) {
             await _notificationService.subscribeToCourseTopic(canalId);
           }
@@ -136,9 +144,11 @@ class _CourseDetailsPageState extends State<CourseDetailsPage> {
             response['message'] ?? 'Erro na inscrição.',
             Colors.red,
           );
+          if (mounted) setState(() => _isInscrito = prevInscrito);
         }
       } catch (e) {
         _showSnackBar('Ocorreu um erro ao inscrever-se.', Colors.red);
+        if (mounted) setState(() => _isInscrito = prevInscrito);
       } finally {
         if (mounted) setState(() => _isSubmittingAction = false);
       }
@@ -146,8 +156,8 @@ class _CourseDetailsPageState extends State<CourseDetailsPage> {
   }
 
   Future<void> _unsubscribeFromCourse() async {
-    if (_courseData == null || _courseData!['canal'] == null) {
-      _showSnackBar('Não foi possível obter o canal do curso.', Colors.red);
+    if (_courseData == null) {
+      _showSnackBar('Dados do curso indisponíveis.', Colors.red);
       return;
     }
 
@@ -164,6 +174,8 @@ class _CourseDetailsPageState extends State<CourseDetailsPage> {
 
     if (confirmou) {
       setState(() => _isSubmittingAction = true);
+      final prevInscrito = _isInscrito;
+      setState(() => _isInscrito = false);
       try {
         final userId = await my_prefs.getUserId();
         if (userId == null) {
@@ -176,8 +188,13 @@ class _CourseDetailsPageState extends State<CourseDetailsPage> {
           int.parse(userId),
         );
         if (response['success'] == true ||
-            (response['message'] as String?)?.contains('sucesso') == true) {
-          final int? canalId = int.tryParse(_courseData!['canal'].toString());
+            (response['message'] as String?)?.toLowerCase().contains(
+                  'sucesso',
+                ) ==
+                true) {
+          final canalRaw = _courseData!['canal'];
+          final int? canalId =
+              canalRaw == null ? null : int.tryParse(canalRaw.toString());
           if (canalId != null) {
             await _notificationService.unsubscribeFromCourseTopic(canalId);
           }
@@ -188,9 +205,11 @@ class _CourseDetailsPageState extends State<CourseDetailsPage> {
             response['message'] ?? 'Erro ao sair do curso.',
             Colors.red,
           );
+          if (mounted) setState(() => _isInscrito = prevInscrito);
         }
       } catch (e) {
         _showSnackBar('Ocorreu um erro ao sair do curso.', Colors.red);
+        if (mounted) setState(() => _isInscrito = prevInscrito);
       } finally {
         if (mounted) setState(() => _isSubmittingAction = false);
       }
@@ -269,38 +288,8 @@ class _CourseDetailsPageState extends State<CourseDetailsPage> {
   }
 
   String _resolveEstado(Map<String, dynamic> d) {
-    try {
-      final nested = (d['cursosincrono'] ?? d['cursoSincrono']) as Map?;
-      final startRaw =
-          d['inicio'] ??
-          d['datainicio'] ??
-          (nested is Map ? (nested['inicio'] ?? nested['datainicio']) : null);
-      final endRaw =
-          d['fim'] ??
-          d['datafim'] ??
-          (nested is Map ? (nested['fim'] ?? nested['datafim']) : null);
-      DateTime? start;
-      DateTime? end;
-      if (startRaw != null) {
-        try {
-          start = DateTime.parse(startRaw.toString());
-        } catch (_) {}
-      }
-      if (endRaw != null) {
-        try {
-          end = DateTime.parse(endRaw.toString());
-        } catch (_) {}
-      }
-      final now = DateTime.now();
-      if (end != null && now.isAfter(end)) return 'Terminado';
-      if (start != null && now.isBefore(start)) return 'Pendente';
-      if (start != null && (end == null || !now.isAfter(end)))
-        return 'Em curso';
-      if (d['disponivel'] == false) return 'Pendente';
-      return 'Em curso';
-    } catch (_) {
-      return 'Em curso';
-    }
+    final st = getCursoStatus(d);
+    return st.label;
   }
 
   String _resolveNumeroHoras(Map<String, dynamic> d) {

@@ -26,27 +26,27 @@ export default function VerPost() {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
   const [votingPost, setVotingPost] = useState(false);
-  const [replyOpen, setReplyOpen] = useState({}); 
-  const [replyText, setReplyText] = useState({}); 
+  const [replyOpen, setReplyOpen] = useState({});
+  const [replyText, setReplyText] = useState({});
   const threadRef = useRef(null);
-  const avatarRefs = useRef({}); 
-  const [connectors, setConnectors] = useState([]); 
-  const [layoutTick, setLayoutTick] = useState(0); 
-  const [votingComments, setVotingComments] = useState({}); 
-  
+  const avatarRefs = useRef({});
+  const [connectors, setConnectors] = useState([]);
+  const [layoutTick, setLayoutTick] = useState(0);
+  const [votingComments, setVotingComments] = useState({});
+
   const [collapsed, setCollapsed] = useState({});
 
   const [myAvatar, setMyAvatar] = useState(null);
-  const [topicMap, setTopicMap] = useState(new Map()); 
+  const [topicMap, setTopicMap] = useState(new Map());
 
   // Denúncias
-  const [tiposDenuncia, setTiposDenuncia] = useState([]); 
+  const [tiposDenuncia, setTiposDenuncia] = useState([]);
   const [denunciaOpen, setDenunciaOpen] = useState(false);
   const [denunciaTipo, setDenunciaTipo] = useState("");
   const [denunciaDescricao, setDenunciaDescricao] = useState("");
-  const [denunciaTarget, setDenunciaTarget] = useState(null); 
+  const [denunciaTarget, setDenunciaTarget] = useState(null);
 
-  const [denunciaStatus, setDenunciaStatus] = useState(null); 
+  const [denunciaStatus, setDenunciaStatus] = useState(null);
 
   // Modal de confirmação
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -80,7 +80,7 @@ export default function VerPost() {
         const res = await api.get(`/utilizador/id/${myId}`);
         const foto = res?.data?.foto || null;
         setMyAvatar(foto);
-  } catch (e) {}
+      } catch (e) {}
     };
     loadMyAvatar();
   }, []);
@@ -520,7 +520,7 @@ export default function VerPost() {
           return next;
         });
       } catch {}
-      setCommentsLoading(false); 
+      setCommentsLoading(false);
 
       const concurrency = 4;
       const queue = [...root];
@@ -562,8 +562,7 @@ export default function VerPost() {
               } catch {}
               return next;
             });
-          } catch {
-          }
+          } catch {}
         }
       };
 
@@ -848,7 +847,7 @@ export default function VerPost() {
           })
         : list;
 
-  // Atualização otimista
+    // Atualização otimista
     setComments((prev) =>
       updateCommentById(prev, commentId, (c) => ({
         ...c,
@@ -1184,7 +1183,7 @@ export default function VerPost() {
 
   return (
     <div className="d-flex">
-  {/* Modal de denúncia */}
+      {/* Modal de denúncia */}
       <Modal
         isOpen={denunciaOpen}
         onClose={closeDenunciaModal}
@@ -1244,7 +1243,7 @@ export default function VerPost() {
         </div>
       </Modal>
 
-  {/* Modal de confirmação */}
+      {/* Modal de confirmação */}
       <Modal
         isOpen={confirmOpen}
         onClose={closeConfirmModal}
@@ -1275,8 +1274,42 @@ export default function VerPost() {
         </div>
       </Modal>
 
-  {/* Sidebar esquerda */}
-      <div style={{ flex: "0 0 320px" }}>
+      {/* Mobile filters toggle + inline sidebar */}
+      <div className="d-lg-none w-100 px-2 mt-2">
+        <button
+          className="btn btn-outline-primary w-100 mb-2"
+          type="button"
+          data-bs-toggle="collapse"
+          data-bs-target="#postFilters"
+          aria-expanded="false"
+          aria-controls="postFilters"
+        >
+          Filtros e Tópicos
+        </button>
+        <div className="collapse" id="postFilters">
+          <div className="card card-body p-0">
+            <LeftSidebar
+              inline
+              categorias={categorias}
+              areas={areas}
+              topicos={topicos}
+              selectedCategoria={selectedCategoria}
+              setSelectedCategoria={setSelectedCategoria}
+              selectedArea={selectedArea}
+              setSelectedArea={setSelectedArea}
+              selectedTopico={selectedTopico}
+              setSelectedTopico={setSelectedTopico}
+              topicSearch={topicSearch}
+              setTopicSearch={setTopicSearch}
+              toggleSubscribeTopic={toggleSubscribeTopic}
+              subscribedTopics={subscribedTopics}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Sidebar esquerda desktop */}
+      <div className="d-none d-lg-block" style={{ flex: "0 0 320px" }}>
         <LeftSidebar
           categorias={categorias}
           areas={areas}

@@ -107,6 +107,19 @@ const EditarCursoSincrono = () => {
     fetchCursoAndTopicos();
   }, [fetchCursoAndTopicos]);
 
+  // Regras: se o curso já terminou (fim passado), força disponivel=false e bloqueia reativação
+  const nowIso = new Date();
+  const fimDate = formData.fim ? new Date(formData.fim) : null;
+  const inicioDate = formData.inicio ? new Date(formData.inicio) : null;
+  const terminou = !!fimDate && !isNaN(fimDate) && fimDate <= nowIso;
+  const iniciou = !!inicioDate && !isNaN(inicioDate) && inicioDate <= nowIso;
+
+  useEffect(() => {
+    if (terminou && formData.disponivel) {
+      setFormData((prev) => ({ ...prev, disponivel: false }));
+    }
+  }, [terminou]);
+
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     setFormData((prev) => ({
@@ -400,10 +413,17 @@ const EditarCursoSincrono = () => {
                 name="disponivel"
                 checked={formData.disponivel}
                 onChange={handleChange}
+                disabled={terminou || (iniciou && terminou)}
               />
               <label className="form-check-label" htmlFor="disponivel">
                 Curso disponível
               </label>
+              {terminou && (
+                <div className="form-text text-danger">
+                  O curso terminou. Altere a data de fim para um momento futuro
+                  para reativar.
+                </div>
+              )}
             </div>
           </div>
 

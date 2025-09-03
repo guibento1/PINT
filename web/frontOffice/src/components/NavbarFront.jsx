@@ -113,28 +113,45 @@ export default function NavbarFront() {
         }}
       >
         <div
-          className="container-fluid d-flex align-items-center"
+          className="container-fluid d-flex flex-column flex-lg-row align-items-stretch align-items-lg-center"
           style={{ minHeight: "60px" }}
         >
-          <div
-            className="d-flex align-items-center justify-content-start"
-            style={{ minWidth: "180px", paddingLeft: "30px" }}
-          >
-            <Link to="/">
-              <img
-                src={logoSoftskills}
-                alt="SoftSkills"
-                style={{ height: "48px" }}
-              />
-            </Link>
+          <div className="d-flex align-items-center justify-content-between w-100">
+            <div
+              className="d-flex align-items-center justify-content-start navbar-left-zone"
+              style={{ minWidth: "180px", paddingLeft: "30px" }}
+            >
+              <Link to="/">
+                <img
+                  src={logoSoftskills}
+                  alt="SoftSkills"
+                  style={{ height: "48px" }}
+                />
+              </Link>
+            </div>
+            {/* Right zone only visible on lg+ */}
+            <div
+              className="d-none d-lg-flex align-items-center justify-content-end navbar-right-zone"
+              style={{ width: "180px", paddingRight: "24px" }}
+            >
+              <button
+                className="navbar-toggler ms-2"
+                type="button"
+                onClick={toggleMenu}
+              >
+                {menuAberto ? (
+                  <i className="ri-close-line"></i>
+                ) : (
+                  <i className="ri-menu-line"></i>
+                )}
+              </button>
+            </div>
           </div>
 
-          <div
-            className="d-flex align-items-center justify-content-end"
-            style={{ width: "180px", paddingRight: "24px" }}
-          >
+          {/* Toggler row below logo on mobile */}
+          <div className="d-flex d-lg-none justify-content-end px-3 pb-2">
             <button
-              className="navbar-toggler ms-2"
+              className="navbar-toggler"
               type="button"
               onClick={toggleMenu}
             >
@@ -144,13 +161,14 @@ export default function NavbarFront() {
                 <i className="ri-menu-line"></i>
               )}
             </button>
+          </div>
 
-            <div
-              className={`collapse navbar-collapse justify-content-end ${
-                menuAberto ? "show" : ""
-              }`}
-              id="navbarFrontContent"
-            >
+          <div
+            className={`collapse navbar-collapse ${menuAberto ? "show" : ""}`}
+            id="navbarFrontContent"
+          >
+            <div className="w-100 d-flex flex-column flex-lg-row">
+              <div className="flex-grow-1" />
               <ul className="navbar-nav align-items-center gap-2 flex-wrap flex-lg-nowrap">
                 {sessionStorage.getItem("user") ? (
                   <>
@@ -254,7 +272,12 @@ export default function NavbarFront() {
                           }}
                           aria-hidden="true"
                         />
-                        <span>{nomeUsuario}</span>
+                        <span
+                          className="d-inline-block text-truncate navbar-username"
+                          style={{ maxWidth: 140 }}
+                        >
+                          {nomeUsuario}
+                        </span>
                       </NavLink>
                     </li>
                     <li className="nav-item">

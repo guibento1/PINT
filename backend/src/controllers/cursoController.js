@@ -1773,27 +1773,21 @@ controllers.createCursoSincrono = async (req, res) => {
     typeof info.nhoras !== "number" ||
     info.nhoras <= 0
   ) {
-    return res
-      .status(400)
-      .json({
-        error: "O campo 'nhoras' é obrigatório e deve ser um número positivo.",
-      });
+    return res.status(400).json({
+      error: "O campo 'nhoras' é obrigatório e deve ser um número positivo.",
+    });
   }
 
   if (!info.inicio || isNaN(new Date(info.inicio))) {
-    return res
-      .status(400)
-      .json({
-        error: "O campo 'inicio' é obrigatório e deve ser uma data válida.",
-      });
+    return res.status(400).json({
+      error: "O campo 'inicio' é obrigatório e deve ser uma data válida.",
+    });
   }
 
   if (!info.fim || isNaN(new Date(info.fim))) {
-    return res
-      .status(400)
-      .json({
-        error: "O campo 'fim' é obrigatório e deve ser uma data válida.",
-      });
+    return res.status(400).json({
+      error: "O campo 'fim' é obrigatório e deve ser uma data válida.",
+    });
   }
 
   if (new Date(info.inicio) >= new Date(info.fim)) {
@@ -2002,14 +1996,17 @@ controllers.addSessao = async (req, res) => {
 
     const result = await formatSessao(createdRow);
 
+    // Notificação para o canal do curso (tópico FCM)
     try {
-      await sendNotification(
-        cursosinc.curso_curso.canal,
-        `Nova licão criada para o curso ${cursosinc.curso}`,
-        titulo
-      );
+      if (cursosinc.curso_curso && cursosinc.curso_curso.canal) {
+        await sendNotification(
+          cursosinc.curso_curso.canal,
+          `Nova sessão criada para o curso ${cursosinc.curso}`,
+          titulo
+        );
+      }
     } catch (error) {
-      logger.error(`Nao foi possivel enviar notificao : ${error.message}`, {
+      logger.error(`Nao foi possivel enviar notificacao : ${error.message}`, {
         stack: error.stack,
       });
     }
@@ -2253,19 +2250,28 @@ controllers.createAvaliacaoContinua = async (req, res) => {
       "enunciadosavaliacao"
     );
 
-    // Notificação para todos os inscritos no curso (canal do curso)
     try {
-      const curso = await models.curso.findOne({ where: { idcurso: id } });
-      if (curso && curso.canal) {
-        await sendNotification(
-          curso.canal,
-          `Nova avaliação contínua disponível`,
-          `Foi criada uma nova avaliação contínua no curso ${curso.nome}.`
-        );
+      const cursosincObj = await models.cursosincrono.findOne({
+        where: { curso: id },
+      });
+      if (cursosincObj) {
+        const inscritos = await models.inscricao.findAll({
+          where: { curso: id },
+        });
+        for (const inscrito of inscritos) {
+          const formandoObj = await models.formando.findByPk(inscrito.formando);
+          if (formandoObj && formandoObj.utilizador) {
+            await sendNotificationToUtilizador(
+              formandoObj.utilizador,
+              `Nova avaliação contínua disponível`,
+              `Foi criada uma nova avaliação contínua no curso.`
+            );
+          }
+        }
       }
     } catch (error) {
       logger.error(
-        `Erro ao enviar notificação de avaliação contínua: ${error.message}`,
+        `Erro ao enviar notificações individuais de avaliação contínua: ${error.message}`,
         { stack: error.stack }
       );
     }
@@ -3326,12 +3332,10 @@ controllers.deleteCertificado = async (req, res) => {
     const certificado = await models.certificados.findByPk(idcertificado);
 
     if (!certificado) {
-      return res
-        .status(404)
-        .json({
-          sucess: false,
-          message: "Nenhum certificado com o id fornecido encontrado",
-        });
+      return res.status(404).json({
+        sucess: false,
+        message: "Nenhum certificado com o id fornecido encontrado",
+      });
     }
 
     await certificado.destroy();
