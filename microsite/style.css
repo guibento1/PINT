@@ -105,6 +105,29 @@ ul {
   color: #333;
 }
 
+#btnTopo {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  z-index: 999;
+  background-color: #004aad;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 45px;
+  height: 45px;
+  font-size: 24px;
+  cursor: pointer;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+  display: none; /* escondido por defeito */
+  transition: opacity 0.3s ease;
+}
+
+#btnTopo:hover {
+  background-color: #002f6c;
+}
+
+
 /* Rodapé */
 footer {
   background-color: #004aad;
