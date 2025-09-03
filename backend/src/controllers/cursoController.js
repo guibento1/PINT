@@ -1996,7 +1996,6 @@ controllers.addSessao = async (req, res) => {
 
     const result = await formatSessao(createdRow);
 
-    // Notificação para o canal do curso (tópico FCM)
     try {
       if (cursosinc.curso_curso && cursosinc.curso_curso.canal) {
         await sendNotification(
