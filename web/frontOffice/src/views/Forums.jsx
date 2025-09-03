@@ -46,7 +46,6 @@ export default function Forums() {
     Array.isArray(subscribedTopics) &&
     subscribedTopics.some((t) => String(t.idtopico) === String(selectedTopico));
 
-  // Vote icons shared with VerPost (colors via currentColor)
   const UpIcon = ({ filled, size = 22, color = "#28a745" }) =>
     filled ? (
       <svg
@@ -143,7 +142,6 @@ export default function Forums() {
       </svg>
     );
 
-  // Comments icon (from comments.svg), colorized via currentColor like Reply/Report in VerPost
   const CommentsIcon = ({ size = 20, color = "#6c757d" }) => (
     <svg
       width={size}
@@ -182,7 +180,6 @@ export default function Forums() {
   }
 
   useEffect(() => {
-    // Preload all topics to resolve names even when not in current area
     (async () => {
       try {
         const all = await fetchTopicosCached();
@@ -331,24 +328,20 @@ export default function Forums() {
     return content.length > 150 ? content.substring(0, 150) + "..." : content;
   };
 
-  const currentUser = JSON.parse(localStorage.getItem("user")); // Retrieve current user from localStorage
+  const currentUser = JSON.parse(localStorage.getItem("user")); 
 
-  // Resolve the topic for a given post: try post.topico.designacao, then map by id via preloaded topicMap, then Sidebar topics
   const getPostTopic = (post) => {
     try {
       const rawTopico = post?.topico;
-      // If backend returns an embedded object with designacao
       if (rawTopico && typeof rawTopico === "object") {
         const id = parseInt(rawTopico.idtopico ?? rawTopico.id);
         const name = rawTopico.designacao ?? "";
         return { id: Number.isFinite(id) ? id : null, name };
       }
-      // Otherwise try to infer id from common fields
       let id = post?.idtopico ?? post?.idTopico ?? rawTopico;
       id = parseInt(id);
       if (!Number.isFinite(id)) return { id: null, name: "" };
       let name = "";
-      // Prefer global topic map
       if (topicMap && topicMap.size) {
         name = topicMap.get(String(id)) || "";
       }
@@ -364,7 +357,7 @@ export default function Forums() {
 
   return (
     <div className="d-flex">
-      {/* Sidebar esquerda fixa na largura do layout flex */}
+      {/* Sidebar esquerda */}
       <div style={{ flex: "0 0 320px" }}>
         <LeftSidebar
           categorias={categorias}
@@ -383,7 +376,7 @@ export default function Forums() {
         />
       </div>
 
-      {/* Conteúdo principal centrado no espaço à direita da sidebar */}
+      {/* Conteúdo principal */}
       <main
         className="flex-grow-1"
         style={{ padding: "1rem", minWidth: 0, marginTop: "20px" }}

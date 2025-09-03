@@ -12,7 +12,6 @@ class Servidor {
           if (Platform.isAndroid) return 'http://10.0.2.2:3000';
           return 'http://localhost:3000';
         } catch (_) {
-          // Fallback if Platform is not available
           return 'http://localhost:3000';
         }
       })();
@@ -30,7 +29,6 @@ class Servidor {
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> responseBody = json.decode(response.body);
-        // Try multiple common token keys
         final String? token =
             (responseBody['accessToken'] ??
                     responseBody['token'] ??
@@ -70,7 +68,6 @@ class Servidor {
     await prefs_utils.removeToken();
   }
 
-  // Small helper to build URIs with query parameters safely
   Uri _buildUri(String endpoint, {Map<String, dynamic>? queryParameters}) {
     Uri uri = Uri.parse('$urlAPI/$endpoint');
     if (queryParameters != null && queryParameters.isNotEmpty) {
@@ -262,7 +259,6 @@ class Servidor {
     }
   }
 
-  // Multipart request with only fields (no file). Useful to always send FormData like the web does.
   Future<Map<String, dynamic>?> postMultipartFieldsOnly(
     String endpoint,
     Map<String, String> fields,
@@ -290,7 +286,6 @@ class Servidor {
     }
   }
 
-  // Multipart request using in-memory bytes for the file (when a path is not available)
   Future<Map<String, dynamic>?> postMultipartDataBytes(
     String endpoint,
     Map<String, String> fields,
@@ -367,8 +362,6 @@ class Servidor {
     }
   }
 
-  // ========= High-level helpers (mirror web frontOffice patterns) =========
-  // Catalog hierarchy
   Future<List<dynamic>> fetchCategorias() async {
     final res = await getData('categoria/list');
     return res is List ? res : [];
@@ -406,7 +399,6 @@ class Servidor {
 
   // Comments
   Future<List<dynamic>> getPostRootComments(int idPost) async {
-    // Matches web: GET /forum/post/:id/comment
     final res = await getData('forum/post/$idPost/comment');
     if (res is Map && res.containsKey('comments'))
       return (res['comments'] as List?) ?? [];
@@ -443,7 +435,6 @@ class Servidor {
     required String idTopico,
     required Map<String, dynamic> payload,
   }) async {
-    // Web uses: POST /forum/post/topico/:idtopico
     return await postData('forum/post/topico/$idTopico', payload);
   }
 
@@ -462,7 +453,7 @@ class Servidor {
     return await deleteData('forum/post/$idPost/unvote');
   }
 
-  // Reporting (denúncias)
+  // Denúncias
   Future<List<dynamic>> fetchReportTypes() async {
     final res = await getData('forum/denuncias/tipos');
     return res is List ? res : [];

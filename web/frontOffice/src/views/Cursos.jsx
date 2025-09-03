@@ -1,4 +1,3 @@
-// src/pages/Cursos/CursosPage.jsx
 import React, { useState, useEffect, useCallback } from "react";
 import api from "@shared/services/axios";
 import FiltrosCursos from "@shared/components/FilterCursos.jsx";
@@ -96,31 +95,30 @@ export default function CursosPage() {
         </div>
       )}
 
-      <div className="row g-4">
-        {(() => {
-          if (loading || error) return null;
-          const visibleCursos = cursos.filter((c) => {
-            const isAsync = c.sincrono === false;
-            const notAvailable = c.disponivel === false;
-            const isEnrolled = c.inscrito === true;
-            if (isEnrolled) return false;
-            return !(isAsync && notAvailable);
-          });
-          return visibleCursos.map((curso) => (
-            <div
-              className="col-sm-6 col-md-4 col-lg-3"
-              key={curso.idcurso || curso.id}
-            >
+      <section className="ag-format-container">
+        <div className="ag-courses_box">
+          {(() => {
+            if (loading || error) return null;
+            const visibleCursos = cursos.filter((c) => {
+              const isAsync = c.sincrono === false;
+              const notAvailable = c.disponivel === false;
+              const isEnrolled = c.inscrito === true;
+              if (isEnrolled) return false;
+              return !(isAsync && notAvailable);
+            });
+            return visibleCursos.map((curso) => (
               <CardCurso
+                key={curso.idcurso || curso.id}
+                variant="ag"
                 curso={curso}
                 inscrito={curso.inscrito}
                 lecionado={curso.lecionado}
                 disponivel={curso.disponivel}
               />
-            </div>
-          ));
-        })()}
-      </div>
+            ));
+          })()}
+        </div>
+      </section>
     </div>
   );
 }

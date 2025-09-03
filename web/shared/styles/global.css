@@ -1,10 +1,8 @@
-/* ================================
-   🌐 VARIÁVEIS GLOBAIS DE TEMA
-================================== */
+/* Variáveis globais de tema */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
 
 html,
 body {
-  /* font-family: 'Adam Display', sans-serif; */
   color: var(--text-dark);
   background-color: var(--background-light);
   margin: 0;
@@ -15,34 +13,44 @@ body {
   text-rendering: optimizeLegibility;
 }
 
-@font-face {
-  font-family: "Adam Display";
-  src: url("../assets/ADLaMDisplay-Regular.ttf") format("truetype");
-  font-weight: normal;
-  font-style: normal;
-}
-
 main {
   flex: 1;
   min-height: 100vh;
 }
 
 :root {
-  --primary-blue: #00b0da; /* Mantido como base */
-  --primary-blue-hover: #00c4f2; /* Mantido */
-  --softinsa-blue: #00b0da; /* Azul principal do logo e botões */
-  --softinsa-blue-dark: #007bff; /* Usado no footer e para hover em alguns botões */
-  --softinsa-blue-light: #00c4f2; /* Para hover mais suave */
-  --navbar-bg: #ffffff; /* Fundo da Navbar - cinza escuro do protótipo */
-  --text-dark: #495057; /* Texto principal escuro */
-  --text-muted: #6c757d; /* Texto secundário */
-  --text-light: #ffffff; /* Texto branco */
+  --primary-blue: #00b0da;
+  --primary-blue-hover: #00c4f2;
+  --softinsa-blue: #00b0da;
+  --softinsa-blue-dark: #007bff;
+  --softinsa-blue-light: #00c4f2;
+  --navbar-bg: #ffffff;
+  --text-dark: #495057;
+  --text-muted: #6c757d;
+  --text-light: #ffffff;
 
-  --background-light: #f8f9fa; /* Fundo geral claro */
-  --card-bg: #ffffff; /* Fundo de cartões e elementos brancos */
-  --border-light: #e0e0e0; /* Borda clara para elementos como cartões */
-  --border-medium: #ced4da; /* Borda um pouco mais escura (gray-light original) */
-  --shadow-light: rgba(0, 0, 0, 0.08); /* Sombra suave para os cartões */
+  --background-light: #f8f9fa;
+  --card-bg: #ffffff;
+  --border-light: #e0e0e0;
+  --border-medium: #ced4da;
+  --shadow-light: rgba(0, 0, 0, 0.08);
+
+  /* Aliases Bootstrap */
+  --bs-primary: var(--softinsa-blue);
+  --bs-primary-rgb: 0, 176, 218;
+  --bs-secondary: #6c757d;
+  --bs-success: #22c55e;
+  --bs-danger: #ef4444;
+  --bs-warning: #f59e0b;
+  --bs-info: #0ea5e9;
+  --bs-light: var(--background-light);
+  --bs-dark: #0f172a;
+  --bs-body-color: var(--text-dark);
+  --bs-body-bg: var(--background-light);
+
+  /* Tipografia */
+  --font-secondary: "Inter", ui-sans-serif, system-ui, -apple-system, Segoe UI,
+    Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
 }
 
 .app-container {
@@ -52,7 +60,6 @@ main {
 }
 
 .dark {
-  /* modo escuro futuro (ajustar conforme as novas variáveis) */
   --primary-blue: #00a0c4;
   --primary-blue-hover: #008db1;
   --softinsa-blue: #00a0c4;
@@ -75,34 +82,30 @@ main {
   border-radius: 30px;
 }
 
-/* =======================================
-   🧱 CONTAINERS PADRÃO COM BORDA E RAIO
-========================================== */
+/* Containers e cartões */
 .card-rounded {
-  background-color: var(--card-bg); /* Usar nova variável */
-  border: 1px solid var(--border-light); /* Usar nova variável */
+  background-color: var(--card-bg);
+  border: 1px solid var(--border-light);
   border-radius: 15px;
   padding: 2rem;
   margin-bottom: 2rem;
-  box-shadow: 0 4px 8px var(--shadow-light); /* Adicionado sombra */
+  box-shadow: 0 4px 8px var(--shadow-light);
 }
 
 .card-rounded-sm {
-  background-color: var(--card-bg); /* Usar nova variável */
-  border: 1px solid var(--border-light); /* Usar nova variável */
+  background-color: var(--card-bg);
+  border: 1px solid var(--border-light);
   border-radius: 15px;
   padding: 1.5rem;
   margin-bottom: 1.5rem;
   text-align: center;
-  box-shadow: 0 2px 4px var(--shadow-light); /* Adicionado sombra */
+  box-shadow: 0 2px 4px var(--shadow-light);
 }
 
-/* ================================
-   🔘 BOTÕES
-================================== */
+/* Botões */
 
 .btn-soft {
-  background-color: var(--softinsa-blue); /* Usar nova variável */
+  background-color: var(--softinsa-blue);
   color: var(--text-light);
   border-radius: 50px;
   padding: 0.4rem 1.5rem;
@@ -118,24 +121,24 @@ main {
 }
 
 .btn-outline-soft {
-  background-color: var(--card-bg); /* Usar nova variável */
+  background-color: var(--card-bg);
   color: var(--text-muted);
-  border: 2px solid var(--border-medium); /* Usar nova variável */
+  border: 2px solid var(--border-medium);
   border-radius: 50px;
   padding: 0.4rem 1.5rem;
   font-weight: 500;
   font-size: 1rem;
-  transition: all 0.2s ease; /* Adicionada transição para hover */
+  transition: all 0.2s ease;
 }
 
 .btn-outline-soft:hover {
-  background-color: var(--background-light); /* Mais suave */
-  color: var(--text-dark);
+  background-color: var(--softinsa-blue);
+  color: var(--text-light);
   border-color: var(--softinsa-blue); /* Alinhar com o tema */
 }
 
 .footer-btn {
-  background-color: var(--softinsa-blue); /* Usar nova variável */
+  background-color: var(--softinsa-blue);
   color: var(--text-light);
   border-radius: 50px;
   padding: 0.2rem 0.8rem;
@@ -152,7 +155,7 @@ main {
 .btn-icon-sm {
   background-color: transparent;
   color: var(--text-muted);
-  border: 1px solid var(--border-medium); /* Usar nova variável */
+  border: 1px solid var(--border-medium);
   padding: 0.1rem 0.6rem;
   font-size: 0.85rem;
   border-radius: 30px;
@@ -182,17 +185,7 @@ main {
   border-color: #dc3545;
 }
 
-/* ================================
-   🔗 LINKS
-================================== */
-
-a {
-  text-decoration: none !important;
-}
-
-/* ================================
-   🔗 NAVBAR LINKS ESTILO "PILL"
-================================== */
+/* Navbar: links */
 
 .navbar-nav .nav-link {
   color: var(--header-text-light); /* Texto branco na navbar escura */
@@ -203,46 +196,43 @@ a {
   transition: all 0.2s ease;
 }
 
-.navbar-nav .nav-link:hover,
-.navbar-nav .nav-link.active {
-  background-color: var(--softinsa-blue); /* Azul Softinsa para ativo/hover */
-  color: white !important;
+/* Hover e ativo */
+.navbar-nav .nav-link:hover {
+  background-color: var(--softinsa-blue);
+  color: #fff !important;
   border-color: var(--softinsa-blue);
 }
-
-/* Efeito de hover especial no link já ativo (igual aos botões selecionados) */
-.navbar-nav .nav-link.active:hover {
-  background-color: var(--softinsa-blue-light);
-  transform: translateY(-1px);
-  box-shadow: 0 2px 6px var(--shadow-light);
+.navbar-nav .nav-link.active {
+  background-color: var(--softinsa-blue-dark) !important;
+  border-color: var(--softinsa-blue-dark) !important;
+  color: #fff !important;
 }
 
-/* ================================
-   🖼️ LOGO RESPONSIVA NA NAVBAR
-================================== */
+/* Consistência quando ativo e em hover */
+.navbar-nav .nav-link.active:hover {
+  background-color: var(--softinsa-blue-dark) !important;
+  border-color: var(--softinsa-blue-dark) !important;
+  color: #fff !important;
+}
+
+/* Navbar: logo */
 
 .navbar-brand img {
   height: 100%;
-  max-height: 40px; /* Ajustado ligeiramente para caber melhor */
+  max-height: 40px;
   object-fit: contain;
-  /* IMPORTANTE: TESTE REMOVENDO OU AJUSTANDO ESTE FILTRO SE O SEU LOGO JÁ FOR BRANCO OU TIVER O FUNDO AZUL */
-  /* filter: brightness(0) invert(1); */
 }
 
-/* ================================
-   👤 USUÁRIO SEMPRE VISÍVEL
-================================== */
+/* Navbar: utilizador */
 
-/* Ajuste para os ícones dentro dos NavLinks na Navbar para que fiquem bem */
+/* Ícones na navbar */
 .navbar-nav .nav-link i {
-  font-size: 1.3rem; /* Tamanho ligeiramente maior para os ícones */
-  vertical-align: middle; /* Ajuda a alinhar o ícone com o texto */
-  line-height: 1; /* Para evitar problemas de altura da linha */
-  display: inline-block; /* Garante que as propriedades de alinhamento funcionem */
-  margin-right: 0.25rem; /* Pequena margem à direita do ícone */
-  color: var(
-    --header-text-light
-  ); /* Cor branca para ícones normais na navbar */
+  font-size: 1.3rem;
+  vertical-align: middle;
+  line-height: 1;
+  display: inline-block;
+  margin-right: 0.25rem;
+  color: var(--header-text-light);
 }
 
 /* Para o ícone de notificação que tem um ponto, ajustar se necessário */
@@ -256,16 +246,13 @@ a {
   font-size: 1.5rem; /* Pode ser maior para o perfil */
 }
 
-/* ================================
-   🟦 NAVBAR ESTILOS
-================================== */
+/* Navbar */
 
 nav.navbar {
-  background-color: var(--navbar-bg); /* Fundo cinza escuro */
+  background-color: var(--navbar-bg);
   border-bottom-left-radius: 15px;
   border-bottom-right-radius: 15px;
-  box-shadow: 0 2px 4px var(--shadow-light); /* Sombra suave para a navbar */
-  /* Adicione padding vertical para dar mais ar à navbar */
+  box-shadow: 0 2px 4px var(--shadow-light);
   padding-top: 0.75rem;
   padding-bottom: 0.75rem;
 }
@@ -315,27 +302,21 @@ nav.navbar {
   background-color: #00b0da;
 }
 
-/* ================================
-   🦶 LINKS
-================================== */
+/* Links */
 
 a {
   color: inherit;
   text-decoration: none;
 }
 
-/* ================================
-   🦶 FOOTER
-================================== */
+/* Footer */
 
 footer {
-  background-color: var(
-    --softinsa-blue-dark
-  ); /* Azul mais escuro para o footer */
+  background-color: var(--softinsa-blue-dark);
   font-size: 0.85rem;
   border-top-left-radius: 30px;
   border-top-right-radius: 30px;
-  color: var(--text-light); /* Texto branco no footer */
+  color: var(--text-light);
   margin-top: auto;
 }
 
@@ -356,11 +337,9 @@ footer {
   }
 }
 
-/* =======================================
-   🎯 BOTÃO DE CURSO PADRONIZADO (estático)
-========================================== */
+/* Botão de curso (estático) */
 .btn-primary-blue {
-  background-color: var(--softinsa-blue-dark); /* Usar azul mais escuro */
+  background-color: var(--softinsa-blue-dark);
   color: var(--text-light);
   border-radius: 12px;
   padding: 1rem;
@@ -371,43 +350,37 @@ footer {
   width: 100%;
   text-align: left;
   transition: background-color 0.2s ease;
-  box-shadow: 0 2px 4px var(--shadow-light); /* Sombra para o botão */
+  box-shadow: 0 2px 4px var(--shadow-light);
 }
 
 .btn-primary-blue:hover {
-  background-color: var(--softinsa-blue); /* Azul principal no hover */
+  background-color: var(--softinsa-blue);
   color: var(--text-light);
 }
 
-/* =======================================
-   🧱 GRUPO DE BOTÕES RESPONSIVO
-========================================== */
+/* Grupo de botões responsivo */
 .btn-group-responsive {
   display: flex;
   flex-wrap: wrap;
   gap: 1rem;
 }
 
-/* Cada botão do grupo ocupa metade do espaço, com mínimo */
+/* Botões com largura mínima */
 .btn-group-responsive .btn-primary-blue {
   flex: 1 1 250px;
   min-width: 240px;
 }
 
-/* =======================================
-   🛠️ BOTÃO COM LARGURA FIXA (como os de curso)
-========================================== */
+/* Botão com largura fixa */
 .btn-fixed-width {
   max-width: 240px;
   width: 100%;
 }
 
-/* =======================================
-   🔍 BOTÃO DE PESQUISA DE CURSOS
-========================================== */
+/* Botão de pesquisa de cursos */
 .btn-search-curso {
-  background-color: var(--background-light); /* Fundo claro */
-  border: 1px solid var(--border-light); /* Borda clara */
+  background-color: var(--background-light);
+  border: 1px solid var(--border-light);
   border-radius: 12px;
   padding: 0.7rem;
   gap: 1rem;
@@ -416,18 +389,16 @@ footer {
   width: 100%;
   text-align: left;
   transition: background-color 0.2s ease;
-  box-shadow: 0 1px 2px var(--shadow-light); /* Sombra mais leve */
+  box-shadow: 0 1px 2px var(--shadow-light);
 }
 
 .btn-search-curso:hover {
-  background-color: var(--border-light); /* Um pouco mais escuro no hover */
+  background-color: var(--border-light);
 }
 
-/* =======================================
-   🛠️ BOTÃO QUE SE ADAPTA AO CONTEÚDO (SEM FORÇAR WIDTH)
-========================================== */
+/* Botão com largura automática */
 .btn-primary-blue-auto {
-  background-color: var(--softinsa-blue-dark); /* Usar azul mais escuro */
+  background-color: var(--softinsa-blue-dark);
   color: var(--text-light);
   border-radius: 12px;
   padding: 1rem;
@@ -440,17 +411,15 @@ footer {
   white-space: nowrap;
   min-width: 280px;
   max-width: 100%;
-  box-shadow: 0 2px 4px var(--shadow-light); /* Sombra para o botão */
+  box-shadow: 0 2px 4px var(--shadow-light);
 }
 
 .btn-primary-blue-auto:hover {
-  background-color: var(--softinsa-blue); /* Azul principal no hover */
+  background-color: var(--softinsa-blue);
   color: var(--text-light);
 }
 
-/* =======================================
-   🛠️ Modal
-========================================== */
+/* Modal */
 
 .modal-overlay {
   position: fixed;
@@ -463,7 +432,7 @@ footer {
 }
 
 .modal-content-box {
-  background-color: var(--card-bg); /* Usar variável de cor */
+  background-color: var(--card-bg);
   padding: 20px;
   border-radius: 8px;
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
@@ -481,9 +450,7 @@ footer {
   }
 }
 
-/* =======================================
-   🛠️ CardCurso
-========================================== */
+/* CardCurso */
 
 .ratio-box {
   position: relative;
@@ -492,9 +459,7 @@ footer {
   overflow: hidden;
   border-top-left-radius: 0.375rem;
   border-top-right-radius: 0.375rem;
-  background-color: var(
-    --background-light
-  ); /* Fundo claro para o placeholder */
+  background-color: var(--background-light);
 }
 
 .ratio-img {
@@ -506,13 +471,10 @@ footer {
   object-fit: cover;
 }
 
-/* =======================================
-   ✨ TOQUES DE FLARE ADICIONAIS (Novas Regras)
-========================================== */
+/* Ajustes de UI adicionais */
 
 /* Estilo para os "botões" de Tópicos */
 .btn.btn-primary {
-  /* Alvo os botões com .btn e .btn-primary */
   background-color: var(--softinsa-blue); /* Azul vibrante */
   color: var(--text-light);
   border-radius: 50px; /* Mais arredondado, estilo pílula */
@@ -530,7 +492,7 @@ footer {
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15); /* Sombra mais proeminente */
 }
 
-/* Estilo para os links "Mostrar mais/menos" */
+/* Links "Mostrar mais/menos" */
 .btn-link.mt-2 {
   color: var(--softinsa-blue); /* Azul Softinsa para links */
   font-weight: 500;
@@ -543,7 +505,7 @@ footer {
   text-decoration: underline;
 }
 
-/* Estilo para as lições (list-group-item) */
+/* Lições (list-group-item) */
 .list-group-item.list-group-item-action {
   background-color: var(--card-bg);
   border: 1px solid var(--border-light);
@@ -554,38 +516,36 @@ footer {
 }
 
 .list-group-item.list-group-item-action:hover {
-  background-color: var(
-    --background-light
-  ); /* Levemente mais escuro no hover */
+  background-color: var(--background-light);
   transform: translateY(-2px); /* Efeito de elevação */
   box-shadow: 0 4px 8px var(--shadow-light);
 }
 
-/* Estilo para os ícones de expansão/colapso nas lições */
+/* Ícones de expansão/colapso nas lições */
 .list-group-item small.text-muted i {
-  font-size: 1.2em; /* Tamanho do ícone */
-  color: var(--text-muted); /* Cor para ser discreto */
+  font-size: 1.2em;
+  color: var(--text-muted);
   transition: transform 0.2s ease;
 }
 
 .list-group-item small.text-muted i.ri-arrow-up-s-line {
-  transform: rotate(0deg); /* Garante que a seta para cima não esteja rodada */
+  transform: rotate(0deg);
 }
 
 .list-group-item small.text-muted i.ri-arrow-down-s-line {
-  transform: rotate(0deg); /* Garante que a seta para baixo não esteja rodada */
+  transform: rotate(0deg);
 }
 
-/* Estilo para os títulos das lições */
+/* Títulos das lições */
 .list-group-item h5 {
   color: var(--text-dark); /* Cor de texto principal */
   font-weight: 600;
 }
 
-/* Estilo para os materiais da lição (sub-itens) */
+/* Materiais da lição */
 .list-group-item ul.list-unstyled {
   margin-top: 1rem;
-  padding-left: 0; /* Remover padding padrão da lista */
+  padding-left: 0;
 }
 
 .list-group-item ul.list-unstyled li {
@@ -595,22 +555,22 @@ footer {
 }
 
 .list-group-item ul.list-unstyled li i {
-  font-size: 1.1rem; /* Tamanho do ícone do material */
-  color: var(--softinsa-blue); /* Cor do ícone */
+  font-size: 1.1rem;
+  color: var(--softinsa-blue);
   margin-right: 0.5rem;
 }
 
 .list-group-item ul.list-unstyled li a {
-  color: var(--text-dark); /* Cor do link */
+  color: var(--text-dark);
   font-weight: 500;
   transition: color 0.2s ease;
 }
 
 .list-group-item ul.list-unstyled li a:hover {
-  color: var(--softinsa-blue); /* Cor no hover do link */
+  color: var(--softinsa-blue);
 }
 
-/* Ajustes gerais de padding e margem para consistência */
+/* Ajustes gerais de espaçamento */
 .container.mt-5 {
   padding-top: 3rem !important; /* Mais padding no topo para o conteúdo principal */
   padding-bottom: 3rem !important; /* Padding na parte inferior */
@@ -628,21 +588,59 @@ h3,
 h4,
 h5,
 h6 {
-  color: var(--text-dark); /* Cores dos títulos */
+  color: var(--text-dark);
+  font-weight: 800;
+  letter-spacing: -0.015em;
+}
+
+/* Tamanhos responsivos para headings */
+h1 {
+  font-size: clamp(28px, 4.5vw, 40px);
+}
+h2 {
+  font-size: clamp(24px, 3.8vw, 34px);
+}
+h3 {
+  font-size: clamp(22px, 3.2vw, 30px);
+}
+h4 {
+  font-size: clamp(20px, 2.6vw, 26px);
+}
+h5 {
+  font-size: clamp(18px, 2.2vw, 22px);
+}
+h6 {
+  font-size: clamp(16px, 1.8vw, 18px);
+}
+
+/* Subtítulos padrão */
+.subtitle {
+  color: var(--text-muted);
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  font-family: var(--font-secondary);
+}
+
+/* Tipografia secundária */
+.text-muted,
+.text-secondary,
+small,
+.small,
+.form-text,
+.caption,
+.meta {
+  font-family: var(--font-secondary);
 }
 
 .static-button {
-  /* Anula o comportamento padrão do botão no hover */
-  pointer-events: none; /* Desativa completamente eventos do rato nesta div */
-  cursor: default; /* Define o cursor para o padrão */
-  opacity: 1 !important; /* Garante que a opacidade não muda se houver transições */
-  box-shadow: none !important; /* Remove qualquer sombra de foco/hover */
-  transform: none !important; /* Evita qualquer transição de transformação */
-
-  /* Opcional: Se quiser que ele se pareça sempre com o estado normal */
-  background-color: var(--bs-secondary); /* ou a cor do seu btn-secondary */
+  pointer-events: none;
+  cursor: default;
+  opacity: 1 !important;
+  box-shadow: none !important;
+  transform: none !important;
+  background-color: var(--bs-secondary);
   border-color: var(--bs-secondary);
-  color: var(--bs-white); /* ou a cor do texto do seu btn-secondary */
+  color: var(--bs-white);
 }
 
 /* Opcional: Para ter certeza absoluta que não há efeitos de hover */
@@ -666,9 +664,87 @@ h6 {
   box-shadow: none;
 }
 
-/* ================================
-   🎯 EFEITOS DE HOVER & FOCUS EM CONTROLOS DE FORMULÁRIO
-================================== */
+/* Páginas de autenticação */
+.bg-custom-grey {
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklab, var(--background-light), white 20%) 0%,
+    var(--background-light) 100%
+  );
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 420px;
+  background: var(--card-bg);
+  border: 1px solid var(--border-light);
+  border-radius: 20px;
+  padding: 1.5rem;
+  box-shadow: 0 8px 24px var(--shadow-light);
+}
+
+.auth-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* Floating labels + inputs arredondados */
+.form-floating > .form-control.rounded-pill {
+  padding-left: 1.1rem;
+  padding-right: 1.1rem;
+  height: calc(3.1rem + 2px);
+}
+.form-floating > label {
+  padding-left: 1.1rem;
+}
+.form-floating > .form-control.rounded-pill::placeholder {
+  color: transparent;
+}
+.form-floating > .form-control.rounded-pill:focus + label {
+  opacity: 0.85;
+}
+.form-floating.has-toggle > .form-control.rounded-pill {
+  padding-right: 3.25rem;
+}
+.password-toggle {
+  position: absolute;
+  top: 50%;
+  right: 0.75rem;
+  transform: translateY(-50%);
+  height: 32px;
+  padding: 0 0.5rem;
+  font-size: 0.85rem;
+  line-height: 1;
+  white-space: nowrap;
+  color: var(--text-muted);
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.password-toggle:hover {
+  color: var(--text-dark);
+  background: rgba(0, 0, 0, 0.03);
+}
+.password-toggle:focus-visible {
+  outline: 2px solid var(--softinsa-blue);
+  outline-offset: 2px;
+}
+
+/* Ajuste de label */
+.auth-card .form-floating > label {
+  padding-left: 0.8rem !important;
+}
+.form-control.is-invalid,
+.form-select.is-invalid {
+  border-color: var(--bs-danger) !important;
+}
+.form-control.is-valid,
+.form-select.is-valid {
+  border-color: var(--bs-success) !important;
+}
+
+/* Formulários: hover e focus */
 .form-control,
 .form-select,
 .form-select-hover-effect {
@@ -692,9 +768,7 @@ h6 {
   background-color: #fff;
 }
 
-/* ================================
-   🔧 Botões de filtro estáveis
-================================== */
+/* Filtros: botões */
 .filter-tipo-btn {
   min-height: 32px;
   line-height: 1.2;
@@ -712,12 +786,8 @@ h6 {
   transform: none !important; /* remove lift que causa sensação de tremor */
 }
 
-/* ================================
-   🔔 Notificações: ícone branco quando ativo
-   Força fill/stroke a branco mesmo que o SVG tenha cores hardcoded
-================================== */
-/* Estado idle: cor do sino (vazio e com ponto) = var(--text-dark).
-   Não mexe no círculo do ponto (normalmente um <circle> preenchido a vermelho). */
+/* Notificações */
+/* Estado idle */
 .navbar-nav .nav-link .noti-icon path,
 .navbar-nav .nav-link .noti-icon rect,
 .navbar-nav .nav-link .noti-icon line,
@@ -741,7 +811,7 @@ h6 {
   color: #fff !important;
 }
 
-/* Hover: tornar o ícone branco cheio como o resto da navbar */
+/* Hover */
 .navbar-nav .nav-link:hover .notificacoes-active,
 .navbar-nav .nav-link:hover .notificacoes-active *,
 .navbar-nav .nav-link:hover .notificacoes-active svg,
@@ -757,7 +827,7 @@ h6 {
   transition: fill 0.15s ease, stroke 0.15s ease, color 0.15s ease;
 }
 
-/* NOVO: aplicar a mesma regra ao wrapper .noti-icon para hover/active mesmo quando não há .notificacoes-active */
+/* Regras para wrapper .noti-icon */
 .navbar-nav .nav-link:hover .noti-icon,
 .navbar-nav .nav-link:hover .noti-icon *,
 .navbar-nav .nav-link:hover .noti-icon svg,
@@ -787,7 +857,7 @@ h6 {
   color: #fff !important;
 }
 
-/* Escala o wrapper para que o sino e o ponto cresçam juntos */
+/* Escala do wrapper */
 .navbar-nav .nav-link .noti-icon {
   display: inline-block;
   transform-origin: center center;
@@ -798,7 +868,7 @@ h6 {
   transform: scale(1.05);
 }
 
-/* Ponto vermelho para não lidas: mantém-se vermelho em idle, hover e active */
+/* Ponto vermelho para não lidas */
 .navbar-nav .nav-link .noti-icon.has-unread circle {
   fill: #dc3545 !important; /* vermelho bootstrap-like */
   stroke: #dc3545 !important;
@@ -809,21 +879,19 @@ h6 {
   stroke: #dc3545 !important;
 }
 
-/* Evita pixelização de SVGs e imagens em diferentes browsers */
+/* Renderização SVG/Imagens */
 svg,
 img {
-  /* Para SVGs, deixe o browser gerir o anti‑aliasing nativo */
   shape-rendering: optimizeQuality;
-  /* Para <img> (inclui SVG como imagem), use o default */
   image-rendering: auto !important;
 }
 
-/* Evita serrilhado em strokes finos dentro de SVGs */
+/* Strokes finos em SVGs */
 svg * {
   vector-effect: non-scaling-stroke;
 }
 
-/* Remove transform que pode causar blur e ajusta a borda */
+/* Evitar blur em transform */
 .btn-custom-logout {
   border: 1px solid #dc3545 !important; /* Usa um valor inteiro para a borda */
   color: #dc3545 !important;
@@ -836,15 +904,13 @@ svg * {
   background-color: #dc3545 !important;
 }
 
-/* Botão estático para evitar interações e manter a aparência */
+/* Botão estático */
 .static-button {
   pointer-events: none;
   cursor: default;
 }
 
-/* ================================
-        Scrollbar hidden by default:
-================================== */
+/* Scrollbars (ocultas por defeito) */
 aside::-webkit-scrollbar,
 main::-webkit-scrollbar {
   width: 6px; /* Maintain a stable width */
@@ -852,47 +918,45 @@ main::-webkit-scrollbar {
   opacity: 0; /* Hide scrollbar visually */
 }
 
-/* Show scrollbar on hover */
+/* Mostrar no hover */
 aside:hover::-webkit-scrollbar,
 main:hover::-webkit-scrollbar {
   opacity: 1; /* Make scrollbar visible */
 }
 
-/* Style the scrollbar thumb */
+/* Thumb */
 aside::-webkit-scrollbar-thumb,
 main::-webkit-scrollbar-thumb {
   background-color: rgba(0, 0, 0, 0.5);
   border-radius: 3px;
 }
 
-/* Style the scrollbar track */
+/* Track */
 aside::-webkit-scrollbar-track,
 main::-webkit-scrollbar-track {
   background: transparent;
 }
 
-/* ================================
-   🧵 ESTILOS PARA THREADS 
-================================== */
+/* Threads (fórum) */
 
-/* Layout do Post Principal */
+/* Post principal */
 .post-container {
   display: flex;
   gap: 10px;
 }
 
-/* Contêiner para um comentário e todas as suas respostas */
+/* Comentário + respostas */
 .comment-container {
   position: relative;
 }
 
-/* Um único comentário */
+/* Comentário */
 .comment-item {
   display: flex;
   position: relative;
 }
 
-/* Wrapper para a linha conectora, para posicionamento */
+/* Wrapper da linha conectora */
 .comment-connector-wrapper {
   position: absolute;
   top: 0;
@@ -902,7 +966,7 @@ main::-webkit-scrollbar-track {
   z-index: 1;
 }
 
-/* A linha vertical cinza */
+/* Linha vertical */
 .comment-connector {
   width: 100%;
   height: 100%;
@@ -915,7 +979,7 @@ main::-webkit-scrollbar-track {
   background-color: var(--softinsa-blue);
 }
 
-/* Conteúdo do comentário (votos + texto) */
+/* Conteúdo do comentário */
 .comment-content {
   display: flex;
   gap: 10px;
@@ -923,7 +987,7 @@ main::-webkit-scrollbar-track {
   padding-top: 1rem; /* Espaço para o comentário */
 }
 
-/* Coluna dedicada para avatar (permite desenhar conectores mais limpos) */
+/* Coluna do avatar */
 .avatar-col {
   display: flex;
   align-items: flex-start;
@@ -937,19 +1001,19 @@ main::-webkit-scrollbar-track {
   height: 28px;
 }
 
-/* Conteúdo principal (meta, corpo, ações) */
+/* Conteúdo principal */
 .comment-main {
   flex-grow: 1;
 }
 
-/* Bloco para as respostas (filhos) de um comentário */
+/* Respostas (filhos) */
 .comment-children {
   padding-left: 36px; /* Mais indentação para as respostas para abrir espaço à linha em L */
   position: relative;
   z-index: 2; /* Garante que os filhos fiquem por cima da linha do pai */
 }
 
-/* Coluna de votação (setas e pontuação) */
+/* Votação */
 .vote-column {
   display: flex;
   flex-direction: column;
@@ -994,12 +1058,12 @@ main::-webkit-scrollbar-track {
   color: var(--text-dark);
 }
 
-/* Bigger score for the main post vote column to match larger icons */
+/* Score maior no post principal */
 .post-container .vote-column .vote-score {
   font-size: 1.2rem;
 }
 
-/* Avatar do autor */
+/* Avatar */
 .avatar-sm {
   width: 28px;
   height: 28px;
@@ -1007,7 +1071,7 @@ main::-webkit-scrollbar-track {
   object-fit: cover;
 }
 
-/* Meta-informação do comentário (autor, tempo) */
+/* Meta do comentário */
 .comment-meta {
   display: flex;
   align-items: center;
@@ -1024,33 +1088,31 @@ main::-webkit-scrollbar-track {
 .comment-body {
   padding: 2px 0;
   line-height: 1.5;
-  /* Evitar que palavras muito longas quebrem o layout */
   overflow-wrap: anywhere;
   word-break: break-word;
 }
 
-/* Links de ações (Responder, Partilhar) */
+/* Ações (responder, partilhar) */
 .comment-actions .btn.btn-link {
   color: var(--text-muted);
   font-size: 0.8rem;
   font-weight: 600;
   text-decoration: none !important;
   padding: 0.2rem 0.4rem;
-  margin-left: -0.4rem; /* Alinhamento visual */
+  margin-left: -0.4rem;
 }
 
 .comment-actions .btn.btn-link:hover {
   background-color: var(--background-light);
 }
 
-/* Caixa para responder */
+/* Caixa de resposta */
 .reply-box {
   margin-top: 0.5rem;
 }
 
-/* Tornar a caixa de resposta mais larga dentro de comentários (compensa avatar + gap) */
+/* Caixa de resposta mais larga */
 .comment-item .reply-box {
-  /* empurrar ligeiramente para a direita (sem sobrepor linhas em L) */
   margin-left: 10px;
   width: calc(100% - 10px);
 }
@@ -1059,14 +1121,14 @@ main::-webkit-scrollbar-track {
   width: 100%;
 }
 
-/* Corpo do post: envolver texto longo e preservar quebras */
+/* Corpo do post */
 .post-body {
   overflow-wrap: anywhere;
   word-break: break-word;
   white-space: pre-wrap;
 }
 
-/* ======= Avatar & Connectors (Reddit-like) ======= */
+/* Ligações (tipo Reddit) */
 .comment-thread {
   position: relative;
 }
@@ -1075,7 +1137,7 @@ main::-webkit-scrollbar-track {
   position: absolute;
   overflow: visible;
   pointer-events: none;
-  z-index: 1; /* abaixo do conteúdo e acima do fundo */
+  z-index: 1;
 }
 
 .connector-svg path {
@@ -1107,5 +1169,190 @@ main::-webkit-scrollbar-track {
   color: var(--text-dark);
 }
 .comment-actions-row .icon-btn.active {
+  color: var(--softinsa-blue);
+}
+
+/* Ajustes Bootstrap */
+
+/* Botões */
+.btn {
+  border-radius: 12px;
+  font-weight: 600;
+  transition: transform 150ms ease, box-shadow 150ms ease,
+    background-color 150ms ease, border-color 150ms ease, color 150ms ease;
+}
+.btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.12);
+}
+.btn:active {
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+.btn-primary,
+.btn-outline-primary:hover {
+  background-color: var(--softinsa-blue) !important;
+  border-color: var(--softinsa-blue) !important;
+  color: #fff !important;
+}
+.btn-primary:hover {
+  background-color: color-mix(
+    in oklab,
+    var(--softinsa-blue),
+    black 8%
+  ) !important;
+  border-color: color-mix(in oklab, var(--softinsa-blue), black 8%) !important;
+}
+.btn-outline-primary {
+  color: var(--softinsa-blue) !important;
+  border-color: var(--softinsa-blue) !important;
+  background: transparent !important;
+}
+.btn-outline-primary:hover {
+  background: var(--softinsa-blue) !important;
+  color: #fff !important;
+  border-color: var(--softinsa-blue) !important;
+}
+.btn-link {
+  color: var(--softinsa-blue);
+  text-underline-offset: 2px;
+}
+.btn-link:hover {
+  color: color-mix(in oklab, var(--softinsa-blue), black 10%);
+}
+
+/* Cartões genéricos */
+.card,
+.card-rounded,
+.card-rounded-sm {
+  border-radius: 16px;
+  border: 1px solid var(--border-light);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.06);
+}
+
+/* Formulários */
+.form-control,
+.form-select,
+.input-group .form-control {
+  border-radius: 12px;
+  border-color: var(--border-medium);
+  transition: border-color 150ms ease, box-shadow 150ms ease,
+    background-color 150ms ease;
+}
+.form-control:hover,
+.form-select:hover {
+  border-color: var(--softinsa-blue);
+}
+.form-control:focus,
+.form-select:focus {
+  border-color: var(--softinsa-blue);
+  outline: none;
+  box-shadow: 0 0 0 0.2rem rgba(0, 176, 218, 0.25),
+    0 1px 2px rgba(0, 0, 0, 0.06);
+}
+
+/* Nav pills */
+.nav-pills .nav-link {
+  border-radius: 999px;
+  color: var(--text-dark);
+}
+.nav-pills .nav-link.active,
+.nav-pills .show > .nav-link {
+  background-color: var(--softinsa-blue);
+  color: #fff;
+}
+
+/* Badges */
+.badge {
+  border-radius: 999px;
+  font-weight: 600;
+}
+.badge.text-bg-primary {
+  background-color: var(--softinsa-blue) !important;
+}
+
+/* Progress */
+.progress {
+  height: 10px;
+  border-radius: 999px;
+}
+.progress .progress-bar {
+  background: linear-gradient(
+    90deg,
+    var(--softinsa-blue),
+    color-mix(in oklab, var(--softinsa-blue), white 12%)
+  );
+}
+
+/* Alerts */
+.alert {
+  border-radius: 14px;
+  border: 1px solid currentColor;
+}
+.alert-primary {
+  color: rgba(0, 176, 218, 0.9);
+  background-color: rgba(0, 176, 218, 0.08);
+  border-color: rgba(0, 176, 218, 0.2);
+}
+
+/* Paginação */
+.page-link {
+  border-radius: 8px;
+}
+.page-item.active .page-link {
+  background-color: var(--softinsa-blue);
+  border-color: var(--softinsa-blue);
+}
+
+/* Tabelas */
+.table {
+  --_border: var(--border-light);
+  border-color: var(--_border);
+}
+.table > :not(caption) > * > * {
+  border-bottom-color: var(--_border);
+}
+.table-hover > tbody > tr:hover {
+  background-color: color-mix(in oklab, var(--background-light), white 50%);
+}
+
+/* Utilidades */
+.u-lift {
+  transition: transform 150ms ease, box-shadow 150ms ease;
+}
+.u-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.12);
+}
+.u-rounded {
+  border-radius: 14px;
+}
+
+/* Acessibilidade global */
+:focus-visible {
+  outline: 2px solid var(--softinsa-blue);
+  outline-offset: 2px;
+}
+
+/* Movimento reduzido */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+  .spinner-border {
+    animation: 0.75s linear infinite spinner-border !important;
+  }
+  .spinner-grow {
+    animation: 0.75s linear infinite spinner-grow !important;
+  }
+}
+
+/* Spinners na cor do tema */
+.refresh-indicator,
+.spinner-border,
+.spinner-grow {
   color: var(--softinsa-blue);
 }

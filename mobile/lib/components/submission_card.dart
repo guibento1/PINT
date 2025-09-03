@@ -4,9 +4,9 @@ import 'package:url_launcher/url_launcher.dart';
 
 class SubmissionCard extends StatelessWidget {
   final String filename;
-  final String? type; // mime or extension label
+  final String? type;
   final DateTime? date;
-  final String? url; // http(s) link to file
+  final String? url; 
   final String? statusLabel;
   final bool dense;
 
@@ -22,7 +22,6 @@ class SubmissionCard extends StatelessWidget {
 
   String _format(DateTime? d) {
     if (d == null) return '';
-    // Match web format: dd/MM/yyyy, HH:mm
     final f = DateFormat('dd/MM/yyyy, HH:mm', 'pt_PT');
     return f.format(d);
   }
@@ -31,7 +30,6 @@ class SubmissionCard extends StatelessWidget {
     final uri = Uri.tryParse(u);
     if (uri == null) return;
     if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
-      // fallback try in-app
       await launchUrl(uri, mode: LaunchMode.platformDefault);
     }
   }

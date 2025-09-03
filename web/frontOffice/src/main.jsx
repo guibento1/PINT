@@ -1,4 +1,3 @@
-//web\frontend\frontOffice\src\main.jsx
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import {
@@ -8,11 +7,13 @@ import {
 } from "@shared/services/firebase";
 import App from "./App.jsx";
 import "@shared/styles/file-upload.css";
-import "../../shared/styles/global.css";
+import "@shared/styles/global.css";
+import "@shared/styles/curso.css";
 
 // Listener FCM foreground
 onMessage(messaging, (payload) => {
   console.log("[FrontOffice] Foreground message received:", payload);
+
   // Propagar evento para páginas que possam querer atualizar
   window.dispatchEvent(new Event("novaNotificacao"));
 });
@@ -70,6 +71,7 @@ if ("serviceWorker" in navigator) {
     .register("/firebase-messaging-sw.js")
     .then(async (registration) => {
       console.log("[FrontOffice] Service Worker registered:", registration);
+      
       // Tentar subscrever imediatamente se já autenticado
       if (sessionStorage.getItem("token") && sessionStorage.getItem("user")) {
         await subscribeToTopics();

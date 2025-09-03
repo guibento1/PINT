@@ -137,7 +137,6 @@ const CursoSincrono = () => {
     return Number.isFinite(n) ? n : null;
   }, [curso]);
 
-  // Normalize inscription window, course period and hours across possible keys/nesting
   const inscricoesPeriod = useMemo(() => {
     const c = curso || {};
     const nested = c?.cursosincrono || c?.cursoSincrono || {};
@@ -174,7 +173,6 @@ const CursoSincrono = () => {
     );
   }, [curso]);
 
-  // Only for status mapping (same rules as backoffice)
   const statusColor = useMemo(() => {
     return getCursoStatus(
       {
@@ -254,8 +252,6 @@ const CursoSincrono = () => {
     if (actionToConfirm === "sair") await executeSairCurso();
   };
 
-  // gestão de sessões movida para a página Agendar.jsx
-
   const formatDataHora = (dt) => {
     if (!dt) return "";
     const date = new Date(dt);
@@ -282,8 +278,6 @@ const CursoSincrono = () => {
     });
   };
 
-  // Student-centric helpers
-  // Persist my submissions locally so they remain visible after refresh
   const uploadsCacheKey = useMemo(
     () =>
       `studentUploads_${id}_${
@@ -317,7 +311,6 @@ const CursoSincrono = () => {
       return avaliacoesRemote;
     }
     const d = curso || {};
-    // Preferir 'avaliacoes' pois inclui a submissao embebida
     return (
       (Array.isArray(d.avaliacoes) && d.avaliacoes) ||
       (Array.isArray(d.avaliacaocontinua) && d.avaliacaocontinua) ||
@@ -327,11 +320,9 @@ const CursoSincrono = () => {
   }, [curso, avaliacoesRemote]);
 
   const getAvaliacaoWindow = (av) => {
-    // Prefer server field names for gating
     const inicioSubRaw = av?.iniciodesubmissoes || av?.inicioDeSubmissoes;
     const fimSubRaw =
       av?.fimdesubmissoes || av?.fimDeSubmissoes || av?.deadline;
-    // Availability (display only)
     const inicioDisp = av?.iniciodisponibilidade || av?.inicioDisponibilidade;
     const fimDisp = av?.fimdisponibilidade || av?.fimDisponibilidade;
     return { inicioDisp, fimDisp, inicioSub: inicioSubRaw, fimSub: fimSubRaw };
@@ -349,15 +340,12 @@ const CursoSincrono = () => {
     return !isNaN(dt.getTime()) && now > dt;
   };
 
-  // Finals: try to detect student's grade from course payload
   const resolveUserId = useMemo(() => {
     return (
       user?.idformando || user?.idutilizador || user?.utilizador || user?.id
     );
   }, [user]);
-  // moved studentFinal below currentFormandoId
 
-  // Resolve current formando ID from inscritos for accurate matching
   const inscritosList = useMemo(() => {
     const d = curso || {};
     return (
@@ -509,12 +497,7 @@ const CursoSincrono = () => {
     return null;
   }, [curso, resolveUserId, currentFormandoId, myInscricao]);
 
-  // Evitar chamadas extra: confiar no payload de /curso/:id para nota final
-
-  // Evitar chamada às submissões: usar apenas os campos embebidos no payload
-
-  // No per-formando GET for finals to avoid 404; rely on course payload
-  // Merge any embedded per-student submission from the course payload into the local cache
+  
   useEffect(() => {
     const email = user?.email?.toLowerCase?.();
     if (!Array.isArray(avaliacoesContinuas) || !avaliacoesContinuas.length)
@@ -569,11 +552,8 @@ const CursoSincrono = () => {
     setOperationMessage("");
     try {
       const fd = new FormData();
-      // Backend expects single file field named 'ficheiro'
       fd.append("ficheiro", file);
-      // Use course id for cursosincrono endpoints (server expects :id to be the curso id)
       const cursoId = id;
-      // Correct endpoint path spelling: avalicaocontinua (server routes)
       const url = `/curso/cursosincrono/${cursoId}/avalicaocontinua/${idavaliacao}/submeter`;
       let resp;
       try {
@@ -583,7 +563,6 @@ const CursoSincrono = () => {
           resp = await api.post(url, fd);
         }
       } catch (primaryErr) {
-        // Fallback: if update fails with 404/400, try create; if create fails with 409/400, try update
         const status = primaryErr?.response?.status;
         if (isUpdate && (status === 404 || status === 400)) {
           resp = await api.post(url, fd);
@@ -593,7 +572,6 @@ const CursoSincrono = () => {
           throw primaryErr;
         }
       }
-      // Keep local marker so UI shows submitted
       const subUrl =
         resp?.data?.submissao ||
         resp?.data?.url ||
@@ -711,7 +689,6 @@ const CursoSincrono = () => {
               </>
             )}
 
-            {/* Always-visible course details (for inscritos and não inscritos) */}
             <div className="mt-2">
               <p className="mb-2">
                 {/* Tipo de curso e Estado */}
@@ -895,17 +872,12 @@ const CursoSincrono = () => {
                     {loading ? "A sair..." : "Sair do Curso"}
                   </button>
                 </div>
-                {/* Plano Curricular já apresentado acima para todos */}
               </div>
             )}
 
-            {/* Plano Curricular já apresentado acima para todos */}
-
-            {/* gestão de agenda movida para /curso-sincrono/:id/agendar */}
           </div>
         </div>
 
-        {/* Plano Curricular — Tópicos (sempre visível, como nos assíncronos) */}
         <div className="mt-2 row g-4">
           {topicosList?.length > 0 && (
             <div className="col-12">
@@ -945,7 +917,6 @@ const CursoSincrono = () => {
           )}
         </div>
 
-        {/* Plano Curricular — agora imediatamente abaixo dos tópicos (visível para todos) */}
         {curso?.planocurricular && (
           <div className="row g-4 mt-1">
             <div className="col-12">
@@ -1152,12 +1123,10 @@ const CursoSincrono = () => {
                         av.codigo;
                       const { inicioDisp, fimDisp, inicioSub, fimSub } =
                         getAvaliacaoWindow(av);
-                      // Gate exactly like the server: only submission window matters
                       const beforeStart = isBefore(inicioSub);
                       const closed = isAfter(fimSub);
                       const isOpen = !beforeStart && !closed;
                       const localSub = studentUploads[idav];
-                      // try embedded per-student info in av (common patterns)
                       const mySubObj =
                         av?.minhasubmissao ||
                         av?.minhaSubmissao ||

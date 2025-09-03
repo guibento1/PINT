@@ -4,7 +4,7 @@ const TTL_MS = 5 * 60 * 1000;
 const cache = {
   topicos: { data: null, ts: 0 },
   formadores: { data: null, ts: 0 },
-  commentsByPost: {}, // { [postId]: { data: commentsTree, ts } }
+  commentsByPost: {}, 
 };
 
 const isFresh = (ts) => Date.now() - ts < TTL_MS;
@@ -42,7 +42,7 @@ export async function fetchFormadoresCached() {
   return data;
 }
 
-// Helpers for forum comments caching
+//Cache de comentários do fórum
 async function fetchRepliesRecursively(comment) {
   try {
     const commentId = comment.idcomentario || comment.id;
@@ -80,18 +80,17 @@ export function updatePostCommentsCache(postId, commentsTree) {
   cache.commentsByPost[key] = { data: commentsTree, ts: Date.now() };
 }
 
-// Progressive loading utilities
-// 1) Fetch only top-level comments (no children) fast
+
+// Utils de carregamento progressivo
+// 1) Busca apenas comentários de nível superior (sem filhos) rapidamente
 export async function fetchPostRootCommentsCached(postId) {
   const key = String(postId);
   const entry = cache.commentsByPost[key];
   if (entry && entry.data && isFresh(entry.ts)) {
-    // If we already have a full tree, reuse it; otherwise return current cached snapshot
     return entry.data;
   }
   const res = await api.get(`/forum/post/${postId}/comment`);
   const root = res.data?.comments || res.data?.data || res.data || [];
-  // Ensure children arrays exist to avoid undefined checks downstream
   const rootWithPlaceholders = root.map((c) => ({
     ...c,
     children: c.children || [],
@@ -100,7 +99,7 @@ export async function fetchPostRootCommentsCached(postId) {
   return rootWithPlaceholders;
 }
 
-// 2) Given a comment object, fetch its full subtree recursively
+// 2) Dado um objeto de comentário, procure a sua subárvore completa recursivamente
 export async function fetchCommentWithReplies(comment) {
   return fetchRepliesRecursively(comment);
 }

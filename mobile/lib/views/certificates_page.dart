@@ -46,15 +46,12 @@ class _CertificatesPageState extends State<CertificatesPage> {
         return;
       }
 
-      // Always refresh profile for freshest data
       final perfil = await _middleware.fetchUserProfile(userId);
 
-      // Resolve idFormando from various possible shapes
       final idFormando = _resolveIdFormando(perfil) ?? _resolveIdFormando(user);
 
       List<Map<String, dynamic>> certs = [];
 
-      // Prefer certificados from forming endpoint if we have idFormando
       if (idFormando != null) {
         final endpoints = [
           'utilizador/formando/id/$idFormando',
@@ -71,7 +68,6 @@ class _CertificatesPageState extends State<CertificatesPage> {
         }
       }
 
-      // Fallback: try to get certificados directly from profile payload
       if (certs.isEmpty) {
         final list = _extractCertificados(perfil) + _extractCertificados(user);
         if (list.isNotEmpty) certs = list;
@@ -95,7 +91,6 @@ class _CertificatesPageState extends State<CertificatesPage> {
 
   String? _resolveIdFormando(Map<String, dynamic>? m) {
     if (m == null) return null;
-    // Direct keys first
     final candidates = [
       m['idformando'],
       m['formando'],
@@ -118,7 +113,6 @@ class _CertificatesPageState extends State<CertificatesPage> {
       if (s.isNotEmpty && int.tryParse(s) != null) return s;
     }
 
-    // Check roles array like the web does (role object with id)
     String? scanRoles(dynamic src) {
       if (src is Map && src['roles'] is List) {
         for (final r in (src['roles'] as List)) {
@@ -140,7 +134,6 @@ class _CertificatesPageState extends State<CertificatesPage> {
       return null;
     }
 
-    // Try roles on root and common nests
     for (final scope in [
       m,
       m['perfil'],
@@ -161,7 +154,6 @@ class _CertificatesPageState extends State<CertificatesPage> {
     if (asMap == null) return [];
     dynamic v = asMap['certificados'] ?? asMap['certificates'];
     if (v == null) {
-      // Sometimes nested under forming/profile or data
       for (final k in ['data', 'formando', 'perfil', 'user', 'utilizador']) {
         final n = asMap[k];
         if (n is Map) {

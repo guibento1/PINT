@@ -55,11 +55,9 @@ class _TopHeaderBarState extends State<TopHeaderBar> {
       });
     }
 
-    // If we have a SAS URL with an expiry and it's expired or close to expiring, refresh profile
     if (_avatarUrl.isNotEmpty && _looksLikeSasUrl(_avatarUrl)) {
       final exp = _extractSasExpiry(_avatarUrl);
       final now = DateTime.now().toUtc();
-      // Refresh if expired or expiring within 10 minutes
       if (exp != null && exp.isBefore(now.add(const Duration(minutes: 10)))) {
         _attemptRefreshProfileOnce();
       }
@@ -75,7 +73,6 @@ class _TopHeaderBarState extends State<TopHeaderBar> {
       final uri = Uri.parse(url);
       final se = uri.queryParameters['se'];
       if (se == null || se.isEmpty) return null;
-      // se is typically UTC in ISO-8601
       return DateTime.parse(se).toUtc();
     } catch (_) {
       return null;
@@ -102,7 +99,6 @@ class _TopHeaderBarState extends State<TopHeaderBar> {
         });
       }
     } catch (_) {
-      // ignore
     } finally {
       _refreshing = false;
     }
@@ -120,7 +116,6 @@ class _TopHeaderBarState extends State<TopHeaderBar> {
       final v = map[key];
       if (v != null && v.toString().isNotEmpty) return v.toString();
     }
-    // try nested common keys
     for (final container in const ['perfil', 'utilizador', 'user']) {
       final nested = map[container];
       if (nested is Map<String, dynamic>) {
@@ -181,7 +176,6 @@ class _TopHeaderBarState extends State<TopHeaderBar> {
                             height: 48,
                             fit: BoxFit.cover,
                             errorBuilder: (context, error, stack) {
-                              // Likely expired SAS or network issue; try one refresh
                               _attemptRefreshProfileOnce();
                               return const CircleAvatar(
                                 radius: 24,

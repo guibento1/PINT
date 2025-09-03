@@ -1,4 +1,3 @@
-// web/shared/hooks/useUserRole.js
 import { useEffect, useState } from 'react';
 
 export default function useUserRole() {

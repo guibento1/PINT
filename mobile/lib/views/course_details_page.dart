@@ -62,7 +62,6 @@ class _CourseDetailsPageState extends State<CourseDetailsPage> {
           _errorMessage = null;
           _isLoading = false;
         });
-        // Fetch inscritos count from API as source-of-truth if needed
         _ensureInscritosCount();
       }
     } catch (e) {
@@ -78,7 +77,6 @@ class _CourseDetailsPageState extends State<CourseDetailsPage> {
   Future<void> _ensureInscritosCount() async {
     if (!mounted || _courseData == null) return;
     if (!_isSincrono(_courseData!)) return;
-    // If payload already has a number, skip network call
     final local = _resolveInscritosCount(_courseData!);
     if (local != '-' && int.tryParse(local) != null) return;
     if (_loadingInscritosCount) return;
@@ -90,7 +88,6 @@ class _CourseDetailsPageState extends State<CourseDetailsPage> {
         setState(() => _inscritosCountRemote = v);
       }
     } catch (_) {
-      // ignore
     } finally {
       if (mounted) setState(() => _loadingInscritosCount = false);
     }
@@ -211,8 +208,6 @@ class _CourseDetailsPageState extends State<CourseDetailsPage> {
     );
   }
 
-  // Removed legacy material icon resolver and URL launcher for lessons; unified on SubmissionFilePreview
-
   String _formatDate(String? dateString) {
     if (dateString == null || dateString.isEmpty) return '-';
     try {
@@ -247,8 +242,6 @@ class _CourseDetailsPageState extends State<CourseDetailsPage> {
   String _tipoLabel(Map<String, dynamic> d) =>
       _isSincrono(d) ? 'Síncrono' : 'Assíncrono';
 
-  // Removed old chips helpers (horasText/numSessoes/numLicoes/periodoCurso)
-
   String _inscricoesPeriodoDT(Map<String, dynamic> d) {
     final ini =
         d['iniciodeinscricoes'] ??
@@ -275,7 +268,6 @@ class _CourseDetailsPageState extends State<CourseDetailsPage> {
     return '$si até $sf';
   }
 
-  // Estado do curso: Em curso, Terminado, Pendente
   String _resolveEstado(Map<String, dynamic> d) {
     try {
       final nested = (d['cursosincrono'] ?? d['cursoSincrono']) as Map?;
@@ -311,7 +303,6 @@ class _CourseDetailsPageState extends State<CourseDetailsPage> {
     }
   }
 
-  // Resolve total hours, inscritos count, and max inscrições from flexible payloads
   String _resolveNumeroHoras(Map<String, dynamic> d) {
     final nested = (d['cursosincrono'] ?? d['cursoSincrono']) as Map?;
     final raw =
@@ -334,12 +325,10 @@ class _CourseDetailsPageState extends State<CourseDetailsPage> {
     if (raw != null) {
       final s = raw.toString();
       if (s.isEmpty) return '-';
-      // Try to extract numeric part if string like "10h" or "10 horas"
       final match = RegExp(r"(\d+(?:[\.,]\d+)?)").firstMatch(s);
       if (match != null) return match.group(1)!.replaceAll(',', '.');
       return s;
     }
-    // Fallback: sum sessions durations
     final sessoes = d['sessoes'];
     if (sessoes is List && sessoes.isNotEmpty) {
       double totalHours = 0;
@@ -450,7 +439,6 @@ class _CourseDetailsPageState extends State<CourseDetailsPage> {
     return '-';
   }
 
-  // Resolve overall course progress percentage (0-100) from flexible payloads
   double? _resolveProgresso(Map<String, dynamic> d) {
     final nested = (d['cursosincrono'] ?? d['cursoSincrono']) as Map?;
     final candidates = [
@@ -471,7 +459,6 @@ class _CourseDetailsPageState extends State<CourseDetailsPage> {
       if (s.isEmpty) continue;
       final n = double.tryParse(s);
       if (n == null) continue;
-      // Accept 0..1 as fraction or 0..100 as percentage
       final pct = n <= 1.0 ? (n * 100.0) : n;
       final clamped = pct.clamp(0.0, 100.0);
       return clamped.toDouble();
@@ -491,12 +478,10 @@ class _CourseDetailsPageState extends State<CourseDetailsPage> {
           if (s.isNotEmpty) return s;
         }
       }
-      // Server may return the final grade directly as a number under these keys
       final directFinalRaw = d['avaliacaofinal'] ?? d['avaliacaoFinal'];
       if (directFinalRaw is num ||
           (directFinalRaw is String && directFinalRaw.trim().isNotEmpty)) {
         final s = directFinalRaw.toString();
-        // Accept numeric strings too
         final isNumeric = num.tryParse(s) != null;
         if (isNumeric) return s;
       }
@@ -507,7 +492,6 @@ class _CourseDetailsPageState extends State<CourseDetailsPage> {
       final String? uid = _currentUserId;
       final String? email = _currentUserEmail?.toLowerCase();
 
-      // Try to resolve current formando id from inscritos list
       String? formingId;
       for (final listKey in const [
         'inscritos',
@@ -569,13 +553,10 @@ class _CourseDetailsPageState extends State<CourseDetailsPage> {
         return (n != null && n.toString().isNotEmpty) ? n.toString() : null;
       }
 
-      // 2) Object under avaliacaofinal may be map of values or map keyed by id
       final af = d['avaliacaofinal'] ?? d['avaliacaoFinal'] ?? d['final'];
       if (af is Map) {
-        // If it itself has a nota, use it
         final n0 = _notaFromObj(af);
         if (n0 != null) return n0;
-        // Else check entries keyed by uid
         if (uid != null && af.containsKey(uid)) {
           final v = af[uid];
           if (v is Map) {
@@ -586,7 +567,6 @@ class _CourseDetailsPageState extends State<CourseDetailsPage> {
             if (s.isNotEmpty) return s;
           }
         }
-        // Or where value references the user id
         for (final e in af.entries) {
           final val = e.value;
           if (val is Map) {
@@ -605,8 +585,6 @@ class _CourseDetailsPageState extends State<CourseDetailsPage> {
           }
         }
       }
-
-      // 3) Arrays of finals
       for (final k in const [
         'avaliacoesFinais',
         'avaliacoesfinal',
@@ -616,7 +594,6 @@ class _CourseDetailsPageState extends State<CourseDetailsPage> {
         final v = d[k];
         if (v is List && v.isNotEmpty) {
           Map? mineObj;
-          // Prefer match by user id
           for (final it in v) {
             if (it is Map) {
               final candidateIds = [
@@ -639,7 +616,6 @@ class _CourseDetailsPageState extends State<CourseDetailsPage> {
             final n = _notaFromObj(mineObj);
             if (n != null) return n;
           }
-          // Fallback: first item with nota
           for (final it in v) {
             if (it is Map) {
               final n = _notaFromObj(it);
@@ -648,8 +624,6 @@ class _CourseDetailsPageState extends State<CourseDetailsPage> {
           }
         }
       }
-
-      // 4) Derive from my inscrição
       Map<String, dynamic>? candidate;
       for (final listKey in const [
         'inscritos',
@@ -678,7 +652,6 @@ class _CourseDetailsPageState extends State<CourseDetailsPage> {
         if (candidate != null) break;
       }
       if (candidate != null) {
-        // Direct fields on inscrição
         final direct =
             candidate['notaFinal'] ??
             candidate['nota'] ??
@@ -687,7 +660,6 @@ class _CourseDetailsPageState extends State<CourseDetailsPage> {
         if (direct != null && direct.toString().isNotEmpty) {
           return direct.toString();
         }
-        // Nested objects
         final nestedObj =
             candidate['avaliacaofinal'] ??
             candidate['avaliacaoFinal'] ??
@@ -753,7 +725,7 @@ class _CourseDetailsPageState extends State<CourseDetailsPage> {
   }
 
   Map<String, dynamic>? _extractAvaliacaoFinal(Map<String, dynamic> d) {
-    // 1) Direct object under common keys
+    // 1) Objeto direto em chaves comuns
     const keys = [
       'avaliacaofinal',
       'avaliacaoFinal',
@@ -767,7 +739,7 @@ class _CourseDetailsPageState extends State<CourseDetailsPage> {
         final first = v.first;
         if (first is Map) return first.cast<String, dynamic>();
       }
-      // If server returns a plain number as the final at top-level
+      // Se o servidor devolver um número simples no topo
       if (k != 'final' && (v is num || (v is String && v.trim().isNotEmpty))) {
         final s = v.toString();
         if (num.tryParse(s) != null) {
@@ -775,7 +747,7 @@ class _CourseDetailsPageState extends State<CourseDetailsPage> {
         }
       }
     }
-    // 2) Nested inside cursoSincrono/cursosincrono
+    // 2) Aninhado em cursoSincrono/cursosincrono
     final nested = d['cursosincrono'] ?? d['cursoSincrono'];
     if (nested is Map) {
       for (final k in keys) {
@@ -787,7 +759,7 @@ class _CourseDetailsPageState extends State<CourseDetailsPage> {
         }
       }
     }
-    // 3) Arrays likely to contain final evaluation
+    // 3) Arrays que podem conter a avaliação final
     const arrayKeys = [
       'avaliacoesFinais',
       'avaliacoesfinal',
@@ -801,7 +773,7 @@ class _CourseDetailsPageState extends State<CourseDetailsPage> {
         if (first is Map) return first.cast<String, dynamic>();
       }
     }
-    // 4) Look inside general 'avaliacoes' for one tagged as final
+    // 4) Procurar em 'avaliacoes' uma marcada como final
     final avals = d['avaliacoes'];
     if (avals is List) {
       for (final it in avals) {
@@ -816,7 +788,7 @@ class _CourseDetailsPageState extends State<CourseDetailsPage> {
         }
       }
     }
-    // 5) If nothing found, but student-level grade exists at top-level, synthesize a minimal object
+    // 5) Se nada encontrado mas existir nota do aluno no topo, sintetizar objeto mínimo
     final notaTop =
         (d['notaFinal'] ??
             d['classificacaoFinal'] ??
@@ -831,10 +803,9 @@ class _CourseDetailsPageState extends State<CourseDetailsPage> {
   @override
   Widget build(BuildContext context) {
     Future<bool> _onWillPop() async {
-      // Rule: enrolled -> home; not enrolled -> explore
       final dest = _isInscrito ? '/home' : '/search_courses';
       if (mounted) context.go(dest);
-      return false; // prevent default pop
+      return false;
     }
 
     return WillPopScope(
@@ -907,7 +878,6 @@ class _CourseDetailsPageState extends State<CourseDetailsPage> {
             ),
           ),
         const SizedBox(height: 28),
-        // Header and primary facts
         Container(
           padding: const EdgeInsets.all(18),
           decoration: BoxDecoration(
@@ -933,13 +903,11 @@ class _CourseDetailsPageState extends State<CourseDetailsPage> {
                 ),
               ),
               const SizedBox(height: 10),
-              // Tipo chip + disponibilidade (responsive)
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
                 crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
-                  // Tipo chip
                   Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 10,
@@ -979,7 +947,6 @@ class _CourseDetailsPageState extends State<CourseDetailsPage> {
                       ],
                     ),
                   ),
-                  // Disponibilidade chip
                   Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 10,
@@ -1024,7 +991,6 @@ class _CourseDetailsPageState extends State<CourseDetailsPage> {
                 ],
               ),
               const SizedBox(height: 14),
-              // Details chips (deduplicated: tipo/estado já estão acima)
               Wrap(
                 spacing: 10,
                 runSpacing: 10,
@@ -1050,7 +1016,6 @@ class _CourseDetailsPageState extends State<CourseDetailsPage> {
                       label: 'Nº de horas',
                       value: _resolveNumeroHoras(_courseData!),
                     ),
-                    // Swap order: show Max inscrições before Inscritos
                     _FactChip(
                       icon: Icons.people_alt,
                       label: 'Máx. inscrições',
@@ -1129,7 +1094,6 @@ class _CourseDetailsPageState extends State<CourseDetailsPage> {
           ),
         ),
         const SizedBox(height: 16),
-        // Tópicos (antes do Plano Curricular)
         if (_courseData!['topicos'] != null &&
             (_courseData!['topicos'] as List).isNotEmpty)
           Container(
@@ -1188,7 +1152,6 @@ class _CourseDetailsPageState extends State<CourseDetailsPage> {
             ),
           ),
         const SizedBox(height: 16),
-        // Descrição / Plano Curricular (após os Tópicos)
         if ((_courseData!['descricao'] ?? '').toString().isNotEmpty ||
             (_courseData!['planocurricular'] ?? '').toString().isNotEmpty)
           Container(
@@ -1253,7 +1216,6 @@ class _CourseDetailsPageState extends State<CourseDetailsPage> {
             ),
           ),
         const SizedBox(height: 24),
-        // Progresso no Curso (entre "Sobre o Curso" e "Conteúdos do Curso")
         if (_isSincrono(_courseData!) &&
             _resolveProgresso(_courseData!) != null)
           Container(
@@ -1542,6 +1504,18 @@ class _CourseDetailsPageState extends State<CourseDetailsPage> {
   }
 }
 
+String _fmtDT(dynamic raw) {
+  if (raw == null) return '-';
+  try {
+    final dt = DateTime.tryParse(raw.toString());
+    if (dt == null) return raw.toString();
+    String two(int n) => n.toString().padLeft(2, '0');
+    return '${two(dt.day)}/${two(dt.month)}/${dt.year} ${two(dt.hour)}:${two(dt.minute)}';
+  } catch (_) {
+    return raw.toString();
+  }
+}
+
 class _FactChip extends StatelessWidget {
   final IconData icon;
   final String label;
@@ -1595,26 +1569,10 @@ class _FactChip extends StatelessWidget {
   }
 }
 
-// Removed old _DetailRow as details are now presented as chips
-
-// --- Tab contents (read-only, no uploads) ---
+// Conteúdo das tabs (só leitura)
 class _SessoesTabDetails extends StatelessWidget {
   final List<Map<String, dynamic>> sessoes;
   const _SessoesTabDetails({required this.sessoes});
-
-  String _fmtDT(dynamic raw) {
-    if (raw == null) return '-';
-    try {
-      final dt = DateTime.tryParse(raw.toString());
-      if (dt == null) return raw.toString();
-      String two(int n) => n.toString().padLeft(2, '0');
-      return '${two(dt.day)}/${two(dt.month)}/${dt.year} ${two(dt.hour)}:${two(dt.minute)}';
-    } catch (_) {
-      return raw.toString();
-    }
-  }
-
-  // Progress bar and status removed per request
 
   @override
   Widget build(BuildContext context) {
@@ -1661,7 +1619,6 @@ class _SessoesTabDetails extends StatelessWidget {
                     .cast<Map<String, dynamic>>()
                     .toList()
                 : const [];
-        // Progress removed
         return Padding(
           padding: const EdgeInsets.symmetric(vertical: 6.0),
           child: Column(
@@ -1735,7 +1692,6 @@ class _SessoesTabDetails extends StatelessWidget {
                   ],
                 ),
               ),
-              // Progress indicator removed
               if (mats.isNotEmpty) ...[
                 const SizedBox(height: 8),
                 const Text(
@@ -1797,18 +1753,6 @@ class _AvaliacoesContinuasTabDetails extends StatelessWidget {
   final List<Map<String, dynamic>> avaliacoes;
   const _AvaliacoesContinuasTabDetails({required this.avaliacoes});
 
-  String _fmtDT(dynamic raw) {
-    if (raw == null) return '-';
-    try {
-      final dt = DateTime.tryParse(raw.toString());
-      if (dt == null) return raw.toString();
-      String two(int n) => n.toString().padLeft(2, '0');
-      return '${two(dt.day)}/${two(dt.month)}/${dt.year} ${two(dt.hour)}:${two(dt.minute)}';
-    } catch (_) {
-      return raw.toString();
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     if (avaliacoes.isEmpty) {
@@ -1841,7 +1785,7 @@ class _AvaliacoesContinuasTabDetails extends StatelessWidget {
         final enunciado =
             (av['enunciado'] ?? av['enunciadoUrl'] ?? av['enunciadoLink'])
                 ?.toString();
-        // Try to detect the current user's submission from common keys (server may embed it)
+        // Tentar detetar submissão do utilizador (o servidor pode embutir)
         final sub =
             (av['minhasubmissao'] ?? av['minhaSubmissao'] ?? av['submissao'])
                 as dynamic;
@@ -1862,7 +1806,7 @@ class _AvaliacoesContinuasTabDetails extends StatelessWidget {
         } else if (sub is String) {
           subUrl = sub;
         }
-        // Some APIs put note at the evaluation level already resolved for the student
+        // Algumas APIs colocam a nota na avaliação já resolvida para o aluno
         subNota ??= (av['nota'] ?? av['classificacao'])?.toString();
 
         return Padding(
@@ -1956,22 +1900,9 @@ class _AvaliacaoFinalTabDetails extends StatelessWidget {
     this.alunoNota,
   });
 
-  String _fmtDT(dynamic raw) {
-    if (raw == null) return '-';
-    try {
-      final dt = DateTime.tryParse(raw.toString());
-      if (dt == null) return raw.toString();
-      String two(int n) => n.toString().padLeft(2, '0');
-      return '${two(dt.day)}/${two(dt.month)}/${dt.year} ${two(dt.hour)}:${two(dt.minute)}';
-    } catch (_) {
-      return raw.toString();
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final data = avaliacaoFinal;
-    // If final object is missing but we have a student grade, still show a small card with the grade
     if ((data == null || data.isEmpty) &&
         (alunoNota == null || alunoNota!.isEmpty)) {
       return const Center(

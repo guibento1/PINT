@@ -19,17 +19,17 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
   Map<String, dynamic>? post;
   List<dynamic> comments = [];
 
-  // Report types cache
+  // Tipos de denúncia (cache)
   List<dynamic> _reportTypes = [];
 
-  // Replies and interactions state
-  final Map<int, List<dynamic>> _replies = {}; // commentId -> replies list
-  final Set<int> _expanded = {}; // expanded comments
-  final Set<int> _loadingReplies = {}; // loading state per comment
-  final Set<int> _replyBoxOpen = {}; // which comments show reply field
-  // Track if a comment is known to have children (replies); null = unknown
+  // Estado de respostas/interações
+  final Map<int, List<dynamic>> _replies = {};
+  final Set<int> _expanded = {};
+  final Set<int> _loadingReplies = {};
+  final Set<int> _replyBoxOpen = {};
+  // Se o comentário tem filhos (true/false); null = desconhecido
   final Map<int, bool> _hasChildren = {};
-  // Global topic name cache (id -> designacao) to resolve names when only the id is present
+  // Cache de nomes de tópicos (id -> designação)
   Map<int, String> _topicMap = {};
 
   Map<String, dynamic>? _currentUser;
@@ -47,7 +47,7 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
     try {
       _reportTypes = await _server.fetchReportTypes();
     } catch (_) {}
-    // Preload topic names to resolve topic label reliably
+    // Pré-carregar nomes dos tópicos
     await _loadTopicMap();
     await _fetch();
   }
@@ -69,7 +69,7 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
         if (mounted) setState(() => _topicMap = map);
       }
     } catch (_) {
-      // ignore; best-effort cache
+      // ignorar; melhor esforço
     }
   }
 
@@ -89,7 +89,7 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
               : (c is Map && c['data'] is List)
               ? List.from(c['data'] as List)
               : [];
-      // Pre-populate has-children cache using any counts/arrays present
+      // Pré-popular _hasChildren com pistas existentes
       for (final e in comments) {
         if (e is Map<String, dynamic>) {
           final id = _asInt(e['idcomentario'] ?? e['id']);
@@ -116,8 +116,7 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
     return null;
   }
 
-  // Computes how much narrower a child reply should be from the left, per depth.
-  // Keeps right edge aligned. Tunable step (12px) and optional cap.
+  // Indentação à esquerda por nível de profundidade (mantém a margem direita alinhada)
   double _leftIndentForDepth(int depth) {
     final d = depth < 0 ? 0 : depth;
     final v = d * 16.0; // 16 logical px per level for clearer step
@@ -143,7 +142,7 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
   }
 
   bool? _inferHasChildren(Map<String, dynamic> m) {
-    // Try a variety of common keys that might be present from the API
+    // Procura chaves comuns que indiquem filhos/respostas
     final candidatesList = [
       m['replies'],
       m['respostas'],
@@ -177,27 +176,52 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
         }
       }
     }
-    return null; // unknown
+    return null; // desconhecido
   }
 
-  // Note: we infer presence/absence via _inferHasChildren and cached flags.
+  // Evidência explícita de não ter filhos
+  bool _explicitlyNoChildren(Map<String, dynamic> m) {
+    // pistas booleanas
+    final b = m['temRespostas'] ?? m['temFilhos'];
+    if (b is bool && b == false) return true;
+    if (b is String) {
+      final s = b.toLowerCase();
+      if (s == 'false' || s == 'no' || s == 'nao' || s == 'não') return true;
+    }
+    // pistas por contagem
+    final countKeys = [
+      'repliesCount',
+      'replyCount',
+      'numRespostas',
+      'qtdRespostas',
+      'countRespostas',
+      'childrenCount',
+      'numeroRespostas',
+    ];
+    for (final k in countKeys) {
+      final v = m[k];
+      if (v is int && v == 0) return true;
+      if (v is String) {
+        final n = int.tryParse(v);
+        if (n != null && n == 0) return true;
+      }
+    }
+    return false;
+  }
 
   bool _shouldShowToggle(Map<String, dynamic> item, int id) {
-    // If already expanded, always show (to allow collapse)
+    // Se já expandido, mostrar para permitir recolher
     if (_expanded.contains(id)) return true;
-    // If we've fetched this branch, show toggle only if it actually has children
+    // Se já carregámos este ramo, só mostrar se houver filhos
     if (_replies.containsKey(id)) {
       final list = _replies[id];
       return (list != null && list.isNotEmpty);
     }
-    // Respect cached knowledge
+    // Cache indica que tem filhos
     if (_hasChildren[id] == true) return true;
-    if (_hasChildren[id] == false) return false;
-    // Try infer directly from the item (lists, counts, booleans)
-    final inferred = _inferHasChildren(item);
-    if (inferred == true) return true;
-    if (inferred == false) return false;
-    // Unknown: show to allow fetching
+    // Evidência explícita que não tem filhos
+    if (_explicitlyNoChildren(item)) return false;
+    // Desconhecido: mostrar para permitir carregar
     return true;
   }
 
@@ -251,7 +275,7 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
     return false;
   }
 
-  // reply counts removed from UI; helpers omitted
+  // Contagens de respostas removidas do UI
 
   String? _topicNameOf(Map<String, dynamic> p) {
     final t = p['topico'];
@@ -259,7 +283,6 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
       final n = (t['designacao'] ?? t['nome'] ?? t['title'])?.toString();
       if (n != null && n.trim().isNotEmpty) return n.trim();
     }
-    // Sometimes backend may flatten
     final flat =
         (p['topicoNome'] ??
             p['nomeTopico'] ??
@@ -267,7 +290,6 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
             p['topic'] ??
             p['topicName']);
     if (flat is String && flat.trim().isNotEmpty) return flat.trim();
-    // Try resolve by id using our preloaded topic map
     int? idtopico = _asInt(
       p['idtopico'] ??
           p['idTopico'] ??
@@ -312,7 +334,6 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
         _replies[commentId] = list;
         _hasChildren[commentId] = list.isNotEmpty;
         if (list.isEmpty) {
-          // Collapse immediately if there are no children
           _expanded.remove(commentId);
         }
       });
@@ -346,10 +367,9 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
         'conteudo': text,
       });
       ctrl.clear();
-      // Refresh only this branch
       if (_expanded.contains(commentId)) {
-        await _toggleReplies(commentId); // collapse
-        await _toggleReplies(commentId); // expand and reload
+        await _toggleReplies(commentId);
+        await _toggleReplies(commentId);
       }
     } catch (_) {}
   }
@@ -381,7 +401,7 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
       } else {
         if (cur == false) {
           newVote = null;
-          delta = 1; // fix: removing a downvote should add back 1
+          delta = 1; // correção: remover downvote soma 1
         } else if (cur == true) {
           newVote = false;
           delta = -2;
@@ -424,7 +444,7 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
     }
   }
 
-  // Optimistic voting for a comment/reply within a parent thread list
+  // Votação optimista (respostas)
   Future<void> _voteReply({
     required int parentId,
     required int commentId,
@@ -462,7 +482,7 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
     } else {
       if (cur == false) {
         newVote = null;
-        delta = 1; // fix symmetrical logic
+        delta = 1; // lógica simétrica
       } else if (cur == true) {
         newVote = false;
         delta = -2;
@@ -472,7 +492,6 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
       }
     }
 
-    // Apply optimistic update
     final updated =
         Map<String, dynamic>.from(item)
           ..['iteracao'] = newVote
@@ -481,7 +500,6 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
       _replies[parentId]![idx] = updated;
     });
 
-    // Sync with server, fallback by refetching this branch on error
     try {
       if (voteType == 'upvote') {
         if (cur == true) {
@@ -503,15 +521,14 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
         }
       }
     } catch (_) {
-      // revert by reloading only this branch if expanded
       if (_expanded.contains(parentId)) {
-        await _toggleReplies(parentId); // collapse
-        await _toggleReplies(parentId); // expand & reload
+        await _toggleReplies(parentId);
+        await _toggleReplies(parentId);
       }
     }
   }
 
-  // Optimistic voting for a top-level comment within the `comments` list
+  // Votação optimista (comentários de topo)
   Future<void> _voteComment({
     required int commentId,
     required String voteType,
@@ -546,7 +563,7 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
     } else {
       if (cur == false) {
         newVote = null;
-        delta = 1; // symmetrical remove downvote
+        delta = 1; // lógica simétrica
       } else if (cur == true) {
         newVote = false;
         delta = -2;
@@ -556,7 +573,6 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
       }
     }
 
-    // Apply optimistic update in the top-level list
     final updated =
         Map<String, dynamic>.from(item)
           ..['iteracao'] = newVote
@@ -565,7 +581,6 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
       comments[idx] = updated;
     });
 
-    // Sync with server
     try {
       if (voteType == 'upvote') {
         if (cur == true) {
@@ -587,7 +602,6 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
         }
       }
     } catch (_) {
-      // fallback by refetching whole page state
       await _fetch();
     }
   }
@@ -773,7 +787,7 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
       if (!mounted) return;
       if (ok) {
         if (parentId == null) {
-          // top-level comment removed locally
+          // comentário de topo removido localmente
           setState(() {
             comments =
                 comments.where((c) {
@@ -782,7 +796,7 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
                 }).toList();
           });
         } else {
-          // child reply deleted; refresh that branch if expanded
+          // resposta filha removida; refrescar o ramo se expandido
           if (_expanded.contains(parentId)) {
             await _toggleReplies(parentId); // collapse
             await _toggleReplies(parentId); // expand reload
@@ -813,7 +827,7 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
             final rav = _authorAvatar(ra);
             final expanded = _expanded.contains(rid);
             final loading = _loadingReplies.contains(rid);
-            // Cache inferred children info for this reply if present
+            // Guardar em cache se tem filhos (se houver pista)
             final inferredChild = _inferHasChildren(ra);
             if (inferredChild != null) {
               _hasChildren[rid] = inferredChild;
@@ -822,7 +836,7 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
               rid,
               () => TextEditingController(),
             );
-            // Right edge stays aligned; reduce width slightly from the left per depth
+            // Mantém a margem direita alinhada; reduz da esquerda por nível
             final double leftIndent = _leftIndentForDepth(depth);
 
             return Padding(
@@ -830,7 +844,7 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Right edge aligned; narrower from the left using a spacer like Reddit
+                  // Estrutura do bloco da resposta
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -1073,7 +1087,7 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
                                     ],
                                   ),
                                 ),
-                              // Child thread stays outside the card
+                              // Sub-thread renderizada abaixo
                             ],
                           ),
                         ),
@@ -1177,7 +1191,7 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Voting column
+                          // Coluna de votação
                           Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
@@ -1311,7 +1325,7 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
                                       ),
                                   ],
                                 ),
-                                // Topic name (if available)
+                                // Nome do tópico (quando disponível)
                                 Builder(
                                   builder: (_) {
                                     final topic = _topicNameOf(post!);
@@ -1366,7 +1380,7 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
                                     color: Color(0xFF49454F),
                                   ),
                                 ),
-                                // Attachment preview (if any)
+                                // Pré-visualização de anexo (se existir)
                                 Builder(
                                   builder: (_) {
                                     final raw =
@@ -1415,7 +1429,7 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    // New comment composer
+                    // Caixa para novo comentário
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
@@ -1628,7 +1642,7 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
                                       },
                                     ),
                                     const SizedBox(width: 2),
-                                    // Voting for top-level comments
+                                    // Votação em comentários de topo
                                     IconButton(
                                       padding: EdgeInsets.zero,
                                       constraints: const BoxConstraints(),

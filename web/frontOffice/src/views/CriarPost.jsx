@@ -30,7 +30,6 @@ export default function CriarPost({ onCancel }) {
 
   const navigate = useNavigate();
 
-  // Resolve selected topic identification and display name
   const selectedTopicoId =
     selectedTopico?.idtopico || selectedTopico?.id || selectedTopico;
   const selectedTopicoObj = topicos?.find(
@@ -82,7 +81,6 @@ export default function CriarPost({ onCancel }) {
         return;
       }
 
-      // Always send FormData so backend validators see expected fields; append anexo only if present
       const fd = new FormData();
       const tituloVal = title.trim();
       const conteudoVal = content.trim();
@@ -115,7 +113,7 @@ export default function CriarPost({ onCancel }) {
 
   return (
     <div className="d-flex">
-      {/* Sidebar esquerda fixa */}
+      {/* Sidebar esquerda*/}
       <div style={{ flex: "0 0 320px" }}>
         <LeftSidebar
           categorias={categorias}
@@ -135,7 +133,7 @@ export default function CriarPost({ onCancel }) {
         />
       </div>
 
-      {/* Conteúdo principal centrado */}
+      {/* Conteúdo principal*/}
       <main
         className="flex-grow-1"
         style={{ padding: "1rem", minWidth: 0, marginTop: "20px" }}

@@ -153,7 +153,6 @@ class _UploadFileState extends State<UploadFile> {
                           ],
                         );
                       }
-                      // Placeholder when no file is selected
                       if (isNarrow) {
                         return Text(
                           'Selecionar ficheiro',

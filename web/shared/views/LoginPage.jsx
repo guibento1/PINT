@@ -1,5 +1,3 @@
-// web/frontend/frontOffice/src/views/LoginPage.jsx
-
 import React, { useState, useEffect } from "react";
 import Modal from "@shared/components/Modal.jsx";
 import logoSoftinsa from "../assets/images/softinsaLogo.svg";
@@ -15,6 +13,7 @@ export default function LoginPage({ admin = false }) {
   const [loginStatus, setLoginStatus] = useState(-1); // 0 - success; 1 - credentials mismatch; 2 - fields missing; 3 - error
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const navigate = useNavigate();
 
@@ -210,24 +209,23 @@ export default function LoginPage({ admin = false }) {
 
       <div className="d-flex flex-column min-vh-100 bg-custom-grey">
         <main className="flex-grow-1 d-flex align-items-center justify-content-center ">
-          <div
-            className="text-center shadow p-3 mb-5 bg-body border-radius"
-            style={{ width: "100%", maxWidth: "400px" }}
-          >
-            <img
-              src={logoSoftinsa}
-              alt="Softinsa"
-              className="mb-3"
-              style={{ maxWidth: "200px" }}
-            />
-            <div className="mb-3">
+          <div className="auth-card text-center">
+            {/*Logo da Softskills*/}
+            <div className="mb-2">
               <img
                 src={logoSoftSkills}
                 alt="The Softskills"
-                className="mb-3"
-                style={{ maxWidth: "200px" }}
+                className="mb-2"
+                style={{ maxWidth: "240px" }}
               />
             </div>
+            {/*Logo da Softinsa*/}
+            <img
+              src={logoSoftinsa}
+              alt="Softinsa"
+              className="mb-5"
+              style={{ maxWidth: "100px" }}
+            />
             <form onSubmit={handleSubmit}>
               <div className="form-floating mb-3">
                 <input
@@ -239,12 +237,17 @@ export default function LoginPage({ admin = false }) {
                   onChange={(e) => setEmail(e.target.value)}
                   required
                   disabled={submitting}
+                  name="email"
+                  autoComplete="email"
+                  inputMode="email"
+                  spellCheck={false}
+                  autoFocus
                 />
-                <label htmlFor="email">Email</label>
+                <label htmlFor="email">Email:</label>
               </div>
-              <div className="form-floating mb-3">
+              <div className="form-floating mb-3 position-relative has-toggle">
                 <input
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   className="form-control rounded-pill"
                   id="password"
                   placeholder="Password"
@@ -252,10 +255,24 @@ export default function LoginPage({ admin = false }) {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   disabled={submitting}
+                  name="password"
+                  autoComplete="current-password"
                 />
-                <label htmlFor="password">Password</label>
+                <label htmlFor="password">Password:</label>
+                <button
+                  type="button"
+                  className="password-toggle"
+                  onClick={() => setShowPassword((v) => !v)}
+                  aria-pressed={showPassword}
+                  aria-label={
+                    showPassword ? "Ocultar password" : "Mostrar password"
+                  }
+                  tabIndex={-1}
+                >
+                  {showPassword ? "Ocultar" : "Mostrar"}
+                </button>
               </div>
-              <div className="d-flex gap-2 justify-content-between">
+              <div className="auth-actions justify-content-between">
                 <button
                   type="submit"
                   className={
@@ -267,7 +284,7 @@ export default function LoginPage({ admin = false }) {
                   {submitting ? (
                     <span className="d-inline-flex align-items-center gap-2">
                       <span
-                        className="spinner-border spinner-border-sm"
+                        className="spinner-border spinner-border-sm text-white"
                         role="status"
                         aria-hidden="true"
                       ></span>

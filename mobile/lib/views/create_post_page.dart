@@ -49,7 +49,6 @@ class _CreatePostPageState extends State<CreatePostPage> {
       if (_file != null) {
         final path = _file!.path;
         if (path != null && path.isNotEmpty) {
-          // Multipart with file by path
           res = await _server.postMultipartData(
             'forum/post/topico/${widget.idtopico}',
             fields,
@@ -57,7 +56,6 @@ class _CreatePostPageState extends State<CreatePostPage> {
             path,
           );
         } else if (_file!.bytes != null) {
-          // Multipart with in-memory bytes
           res = await _server.postMultipartDataBytes(
             'forum/post/topico/${widget.idtopico}',
             fields,
@@ -68,7 +66,6 @@ class _CreatePostPageState extends State<CreatePostPage> {
         }
       }
 
-      // If no file or previous branch didn't set res, send fields-only multipart
       res ??= await _server.postMultipartFieldsOnly(
         'forum/post/topico/${widget.idtopico}',
         fields,

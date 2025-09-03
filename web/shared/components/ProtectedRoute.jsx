@@ -1,11 +1,9 @@
-//web\frontend\shared\components\ProtectedRoute.jsx
 import React from "react";
 import { Navigate } from "react-router-dom";
 
 export default function ProtectedRoute({ children, allowedRoles }) {
   const token = sessionStorage.getItem("token");
   const user = JSON.parse(sessionStorage.getItem("user") || "{}");
-  // Normalize roles from user: supports ["admin", ...] or [{ role: "admin" }, ...]
   const rawRoles = Array.isArray(user?.roles) ? user.roles : [];
   const roles = rawRoles
     .map((r) => (typeof r === "string" ? r : r?.role || r?.nome || r))

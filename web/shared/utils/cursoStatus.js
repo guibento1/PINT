@@ -8,15 +8,11 @@ export const getCursoStatus = (cursoLike, nowDate) => {
   const c = cursoLike || {};
   const now = nowDate ? new Date(nowDate) : new Date();
 
-  // Normalize flags
+  // Normalize
   const sincrono = c?.sincrono;
-
-  // Normalize inscription window
   const inicioInsc =
     parseDate(c?.iniciodeinscricoes || c?.inicioDeInscricoes) || null;
   const fimInsc = parseDate(c?.fimdeinscricoes || c?.fimDeInscricoes) || null;
-
-  // Normalize course period (for síncrono)
   const nested = c?.cursosincrono || c?.cursoSincrono || {};
   const inicioCurso =
     parseDate(
@@ -56,7 +52,7 @@ export const getCursoStatus = (cursoLike, nowDate) => {
       }
     }
   } else if (sincrono === false) {
-    // Assíncronos: inscrições não alteram o estado; apenas o admin (disponível)
+    // Assíncronos:
     // - disponivel === true  -> Em curso
     // - disponivel === false -> Terminado (arquivado)
     // - caso contrário       -> Pendente
@@ -64,7 +60,6 @@ export const getCursoStatus = (cursoLike, nowDate) => {
     else if (disponivel === true) key = "em_curso";
     else key = "pendente";
   } else {
-    // Desconhecido: manter heurística antiga baseada nas inscrições
     if (fimInsc && now >= fimInsc) {
       key = "terminado";
     } else if (disponivel === false) {
