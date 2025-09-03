@@ -12,12 +12,14 @@ const EditarCursoSincrono = () => {
   const { id } = useParams();
   const navigate = useNavigate();
 
+  // Dados do curso
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [curso, setCurso] = useState(null);
   const [allTopicos, setAllTopicos] = useState([]);
   const [allFormadores, setAllFormadores] = useState([]);
 
+  // Form do curso
   const [formData, setFormData] = useState({
     nome: "",
     planocurricular: "",
@@ -33,10 +35,19 @@ const EditarCursoSincrono = () => {
   const [thumbnailFile, setThumbnailFile] = useState(null);
   const [currentThumbnail, setCurrentThumbnail] = useState("");
 
+  // Status de operações
   const [operationStatus, setOperationStatus] = useState(null);
   const [operationMessage, setOperationMessage] = useState("");
   const [isResultModalOpen, setIsResultModalOpen] = useState(false);
 
+  // Certificados associados ao curso
+  const [certificados, setCertificados] = useState([]);
+  const [certModalOpen, setCertModalOpen] = useState(false);
+  const [certEditing, setCertEditing] = useState(null); // certificado atual sendo editado (null para adicionar)
+  const [certForm, setCertForm] = useState({ nome: "", descricao: "" });
+  const [certModalLoading, setCertModalLoading] = useState(false);
+
+  // Helper: título/descrição do modal de resultado
   const openResultModal = () => setIsResultModalOpen(true);
   const closeResultModal = () => {
     setIsResultModalOpen(false);
@@ -55,6 +66,18 @@ const EditarCursoSincrono = () => {
     </p>
   );
 
+  // Certificados: fetch
+  const fetchCertificados = useCallback(async () => {
+    try {
+      const res = await api.get(`/curso/cursosincrono/${id}/certificados`);
+      const data = res?.data ?? [];
+      setCertificados(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error("Erro a carregar certificados:", err);
+    }
+  }, [id]);
+
+  // Dados do curso (principal) + certificados
   const fetchData = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -86,38 +109,42 @@ const EditarCursoSincrono = () => {
         ? normalizedFormadores
         : [...normalizedFormadores, { id: cfIdStr, nome: currentFormadorName }];
 
-    setFormData({
-      nome: c.nome || "",
-      planocurricular: c.planocurricular || "",
-      iniciodeinscricoes: c.iniciodeinscricoes
-        ? new Date(c.iniciodeinscricoes).toISOString().slice(0, 16)
-        : "",
-      fimdeinscricoes: c.fimdeinscricoes
-        ? new Date(c.fimdeinscricoes).toISOString().slice(0, 16)
-        : "",
-      inicio: c.inicio || "",
-      disponivel: c.disponivel ?? true,
-      fim: c.fim || "",
-      nhoras: c.nhoras?.toString() || "",
-      maxinscricoes: (c.maxinscricoes ?? c.maxincricoes ?? "").toString(),
-      topicos: (c.topicos || []).map((t) => parseInt(t.idtopico)),
-      formador: cfIdStr,
-    });
+      setFormData({
+        nome: c.nome || "",
+        planocurricular: c.planocurricular || "",
+        iniciodeinscricoes: c.iniciodeinscricoes
+          ? new Date(c.iniciodeinscricoes).toISOString().slice(0, 16)
+          : "",
+        fimdeinscricoes: c.fimdeinscricoes
+          ? new Date(c.fimdeinscricoes).toISOString().slice(0, 16)
+          : "",
+        inicio: c.inicio || "",
+        disponivel: c.disponivel ?? true,
+        fim: c.fim || "",
+        nhoras: c.nhoras?.toString() || "",
+        maxinscricoes: (c.maxinscricoes ?? c.maxincricoes ?? "").toString(),
+        topicos: (c.topicos || []).map((t) => parseInt(t.idtopico)),
+        formador: cfIdStr,
+      });
       setCurrentThumbnail(c.thumbnail || "");
       setAllTopicos(topicos);
       setAllFormadores(finalFormadores);
+
+      // Carregar certificados do curso
+      await fetchCertificados();
     } catch (err) {
       console.error("Erro a carregar dados:", err);
       setError("Falha ao carregar curso ou listas.");
     } finally {
       setLoading(false);
     }
-  }, [id]);
+  }, [id, fetchCertificados]);
 
   useEffect(() => {
     fetchData();
   }, [fetchData]);
 
+  // Manipulação do formulário do curso
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -199,6 +226,46 @@ const EditarCursoSincrono = () => {
           .slice(0, 16);
   };
 
+  // Certificados: criação/edição/exclusão
+  const handleCertSubmit = async (e) => {
+    e.preventDefault();
+    setCertModalLoading(true);
+    try {
+      if (certEditing?.idcertificado) {
+        // Editar certificado existente
+        await api.put(`/curso/certificado/${certEditing.idcertificado}`, {
+          nome: certForm.nome,
+          descricao: certForm.descricao,
+        });
+      } else {
+        // Adicionar novo certificado ao curso
+        await api.post(`/curso/cursosincrono/${id}/certificado`, {
+          nome: certForm.nome,
+          descricao: certForm.descricao,
+        });
+      }
+      await fetchCertificados();
+      setCertModalOpen(false);
+      setCertEditing(null);
+      setCertForm({ nome: "", descricao: "" });
+    } catch (err) {
+      console.error("Erro ao salvar certificado:", err);
+    } finally {
+      setCertModalLoading(false);
+    }
+  };
+
+  const deleteCertificado = async (certId) => {
+    if (!window.confirm("Tem a certeza que pretende excluir este certificado?")) return;
+    try {
+      await api.delete(`/curso/certificado/${certId}`);
+      await fetchCertificados();
+    } catch (err) {
+      console.error("Erro ao apagar certificado:", err);
+    }
+  };
+
+  // Renderização
   if (loading) {
     return (
       <div className="container mt-5">
@@ -313,7 +380,6 @@ const EditarCursoSincrono = () => {
             />
           </div>
 
-
           <div className="col-md-6">
             <label htmlFor="inicio" className="form-label">
               Início do Curso: <span className="text-danger">*</span>
@@ -328,7 +394,6 @@ const EditarCursoSincrono = () => {
               required
             />
           </div>
-
 
           <div className="col-md-6">
             <label htmlFor="fim" className="form-label">
@@ -397,9 +462,7 @@ const EditarCursoSincrono = () => {
             )}
           </div>
 
-
           <div className="col-md-6">
-
             <label htmlFor="nhoras" className="form-label">
               N horas: <span className="text-danger">*</span>
             </label>
@@ -414,7 +477,6 @@ const EditarCursoSincrono = () => {
               required
             />
           </div>
-
 
           <div className="col-md-6">
             <div className="form-check form-switch mt-3">
@@ -511,7 +573,123 @@ const EditarCursoSincrono = () => {
           </div>
         </div>
       </form>
-      {/* Modal de Resultado */}
+
+      {/* Seção: Certificados do Curso */}
+      <section className="p-4 border rounded shadow-sm mb-5">
+        <div className="d-flex align-items-center justify-content-between mb-3">
+          <h4 className="mb-0">Certificados do Curso</h4>
+          <button
+            className="btn btn-success btn-sm"
+            onClick={() => {
+              setCertEditing(null);
+              setCertForm({ nome: "", descricao: "" });
+              setCertModalOpen(true);
+            }}
+          >
+            Adicionar certificado
+          </button>
+        </div>
+
+        {certificados.length === 0 ? (
+          <div className="text-muted">Nenhum certificado encontrado para este curso.</div>
+        ) : (
+          certificados.map((cert) => (
+            <div key={cert.idcertificado} className="card mb-2">
+              <div className="card-body">
+                <h6 className="card-title mb-2">{cert.nome}</h6>
+                {cert.descricao && (
+                  <p className="card-text mb-2">{cert.descricao}</p>
+                )}
+                <div className="d-flex justify-content-end">
+                  <button
+                    className="btn btn-sm btn-primary me-2"
+                    onClick={() => {
+                      setCertEditing(cert);
+                      setCertForm({ nome: cert.nome, descricao: cert.descricao });
+                      setCertModalOpen(true);
+                    }}
+                  >
+                    Editar
+                  </button>
+                  <button
+                    className="btn btn-sm btn-danger"
+                    onClick={() => deleteCertificado(cert.idcertificado)}
+                  >
+                    Excluir
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))
+        )}
+      </section>
+
+      {/* Modal de Certificado (Adicionar / Editar) */}
+      <Modal
+        isOpen={certModalOpen}
+        onClose={() => {
+          setCertModalOpen(false);
+          setCertEditing(null);
+          setCertForm({ nome: "", descricao: "" });
+        }}
+        title={
+          certEditing && certEditing.idcertificado
+            ? "Editar Certificado"
+            : "Adicionar Certificado"
+        }
+      >
+        <form onSubmit={handleCertSubmit}>
+          <div className="mb-3">
+            <label className="form-label">Nome</label>
+            <input
+              type="text"
+              className="form-control"
+              value={certForm.nome}
+              onChange={(e) =>
+                setCertForm((p) => ({ ...p, nome: e.target.value }))
+              }
+              required
+            />
+          </div>
+          <div className="mb-3">
+            <label className="form-label">Descrição</label>
+            <textarea
+              className="form-control"
+              rows={3}
+              value={certForm.descricao}
+              onChange={(e) =>
+                setCertForm((p) => ({ ...p, descricao: e.target.value }))
+              }
+            />
+          </div>
+          <div className="d-flex justify-content-end mt-3">
+            <button
+              type="submit"
+              className="btn btn-primary me-2"
+              disabled={certModalLoading}
+            >
+              {certModalLoading
+                ? "A processar..."
+                : certEditing && certEditing.idcertificado
+                ? "Atualizar Certificado"
+                : "Adicionar Certificado"}
+            </button>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => {
+                setCertModalOpen(false);
+                setCertEditing(null);
+                setCertForm({ nome: "", descricao: "" });
+              }}
+            >
+              Fechar
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Modal de Resultado (para o curso) */}
       <Modal
         isOpen={isResultModalOpen}
         onClose={closeResultModal}

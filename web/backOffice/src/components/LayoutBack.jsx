@@ -12,11 +12,12 @@ export default function LayoutBack({ children }) {
   return (
     <div className="app-container">
       {/* Navbar se não for página não autorizada */}
-      {!isUnauthorizedPage && <NavbarBack />}
+
+      {(!isUnauthorizedPage && !location.pathname.startsWith("/certificado")) && <NavbarBack />}
 
       <main>{children}</main>
 
-      <Footer />
+      {location.pathname.startsWith("/certificado") ? null : <Footer />}
     </div>
   );
 }

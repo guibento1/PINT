@@ -92,6 +92,10 @@
     margin: 0;
   }
 
+  @page {
+    margin: 0;
+  }
+
   .certificado-container {
     padding: 0;
   }

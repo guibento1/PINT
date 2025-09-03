@@ -38,6 +38,9 @@ const CursoSincrono = () => {
   const [avaliacoesRemote, setAvaliacoesRemote] = useState(null);
   const [showAllTopicos, setShowAllTopicos] = useState(false);
 
+  const [certificados, setCertificados] = useState([]);
+  const [loadingCertificados, setLoadingCertificados] = useState(false);
+
   const maxVisibleTopics = 5;
 
   const openResultModal = () => setIsResultModalOpen(true);
@@ -75,6 +78,25 @@ const CursoSincrono = () => {
       setLoading(false);
     }
   }, [id]);
+
+  const fetchCertificados = useCallback(async () => {
+    setLoadingCertificados(true);
+    try {
+      const res = await api.get(`/curso/cursosincrono/${id}/certificados`);
+      const data = res?.data ?? [];
+      setCertificados(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error("Erro ao carregar certificados:", err);
+      setCertificados([]);
+    } finally {
+      setLoadingCertificados(false);
+    }
+  }, [id]);
+
+
+  useEffect(() => {
+    fetchCertificados();
+  }, [fetchCertificados]);
 
   // Carregar contagem de inscritos (fonte de verdade)
   const fetchInscritosCount = useCallback(async () => {
@@ -768,6 +790,7 @@ const CursoSincrono = () => {
               </p>
             </div>
 
+
             {isFormadorDoCurso ? (
               <div className="d-flex align-items-center my-3 flex-wrap gap-2">
                 <button
@@ -942,6 +965,50 @@ const CursoSincrono = () => {
                   {curso.planocurricular}
                 </p>
               </div>
+            </div>
+          </div>
+        )}
+
+
+        {certificados?.length > 0 && (
+          <div className="mt-5 card shadow-sm">
+            <div className="card-body">
+              <h2 className="h4 card-title mb-3">Certificados</h2>
+              {loadingCertificados ? (
+                <div className="text-center">
+                  <div className="spinner-border text-primary"></div>
+                </div>
+              ) : (
+                <ul className="list-group">
+                  {certificados.map((certificado) => (
+                    <li key={certificado.idcertificado} className="list-group-item">
+                      <div className="d-flex justify-content-between align-items-center">
+                        <div>
+                          <strong>{certificado.nome}</strong>
+                          {certificado.descricao && (
+                            <div className="small text-muted mt-1">
+                              {certificado.descricao}
+                            </div>
+                          )}
+                        </div>
+                        {certificado.ficheiro && (
+                          <a 
+                            href={certificado.ficheiro} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="btn btn-sm btn-outline-primary"
+                          >
+                            <i className="ri-download-line me-1"></i>Download
+                          </a>
+                        )}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {!loadingCertificados && certificados.length === 0 && (
+                <div className="alert alert-info mb-0">Nenhum certificado disponível</div>
+              )}
             </div>
           </div>
         )}

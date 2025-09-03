@@ -14,6 +14,7 @@ import ProtectedRoute from "@shared/components/ProtectedRoute";
 import LoginPage from "@shared/views/LoginPage.jsx";
 import Profile from "@shared/views/Profile.jsx";
 
+import Certificado from "@shared/views/Certificado.jsx";
 import NaoAutorizado from "./views/NaoAutorizado";
 import Home from "./views/Home";
 import GerirEstrutura from "./views/GerirEstrutura";
@@ -105,6 +106,7 @@ function App() {
         <Routes>
           <Route path="/" element={<LoginPage admin={true} />} />
           <Route path="/nao-autorizado" element={<NaoAutorizado />} />
+          <Route path="/certificado/:chave" element={<Certificado />} />
           <Route
             path="/home"
             element={

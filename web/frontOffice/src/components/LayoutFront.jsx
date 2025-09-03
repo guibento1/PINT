@@ -11,7 +11,7 @@ export default function LayoutFront({ children }) {
     <div className="app-container">
       {location.pathname.startsWith("/certificado") ? null : <NavbarFront />}
       <main>{children}</main>
-      {["/", "/home"].includes(location.pathname) && <Footer />}
+      {location.pathname.startsWith("/certificado") ? null : ["/", "/home"].includes(location.pathname) && <Footer />}
     </div>
   );
 }
