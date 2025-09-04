@@ -708,7 +708,6 @@ controllers.rmCurso = async (req, res) => {
       );
 
       await models.cursosincrono.destroy({ where: { curso: id } });
-
     } else {
       const licoes = await models.licao.findAll({
         where: {
@@ -2074,8 +2073,11 @@ controllers.updateSessao = async (req, res) => {
 
   logger.debug(`Recebida requisição para atualizar sessão com ID: ${idsessao}`);
   try {
-    let sessao = await models.licao.findByPk(idsessao);
-    let updateData = {};
+    let sessao = await models.sessao.findByPk(idsessao);
+    if (!sessao) {
+      logger.warn(`Sessão com ID ${idsessao} não encontrada para atualização.`);
+      return res.status(404).json({ error: "Sessão não encontrada." });
+    }
 
     sessao = await sessao.update({
       linksessao,
@@ -2083,10 +2085,11 @@ controllers.updateSessao = async (req, res) => {
       duracaohoras,
       plataformavideoconferencia,
     });
+
     await updateLicao(sessao.licao, { titulo, descricao });
 
     const result = await formatSessao(sessao);
-    return res.status(201).json(result);
+    return res.status(200).json(result);
   } catch (error) {
     logger.error(
       `Erro interno do servidor ao atualizar sessão. Detalhes: ${error.message}`,

@@ -15,8 +15,8 @@ const Agendar = () => {
 
   const [curso, setCurso] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [uploadingSessao, setUploadingSessao] = useState(null); 
-  const [deletingMaterialId, setDeletingMaterialId] = useState(null); 
+  const [uploadingSessao, setUploadingSessao] = useState(null);
+  const [deletingMaterialId, setDeletingMaterialId] = useState(null);
 
   // editar sessão
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -135,15 +135,10 @@ const Agendar = () => {
         plataformavideoconferencia: editPlataforma,
         linksessao: editLink,
       };
-      await tryEndpoints(
-        "put",
-        [
-          `/sessao/${editingSessao.idsessao}`,
-          `/curso/cursosincrono/${curso?.idcrono}/sessao/${editingSessao.idsessao}`,
-          `/curso/${id}/sessao/${editingSessao.idsessao}`,
-        ],
-        payload
-      );
+      const tryUrls = [`/curso/sessao/${editingSessao.idsessao}`];
+      if (editingSessao.licao)
+        tryUrls.push(`/curso/sessao/${editingSessao.licao}`);
+      await tryEndpoints("put", tryUrls, payload);
       await fetchCurso();
       setOperationStatus(0);
       setOperationMessage("Sessão atualizada.");
@@ -187,15 +182,7 @@ const Agendar = () => {
         plataformavideoconferencia: sessaoPlataforma,
         linksessao: sessaoLink,
       };
-      await tryEndpoints(
-        "post",
-        [
-          `curso/sessao/${curso.idcrono}`,
-          `/curso/cursosincrono/${curso.idcrono}/sessao`,
-          `/curso/${id}/sessao`,
-        ],
-        payload
-      );
+      await tryEndpoints("post", [`/curso/sessao/${curso.idcrono}`], payload);
       setSessaoTitulo("");
       setSessaoDescricao("");
       setSessaoDataHora("");
@@ -217,11 +204,7 @@ const Agendar = () => {
 
   const handleDeleteSessao = async (idsessao) => {
     try {
-      await tryEndpoints("delete", [
-        `/sessao/${idsessao}`,
-        `/curso/cursosincrono/${curso?.idcrono}/sessao/${idsessao}`,
-        `/curso/${id}/sessao/${idsessao}`,
-      ]);
+      await tryEndpoints("delete", [`/curso/sessao/${idsessao}`]);
       await fetchCurso();
       setOperationStatus(0);
       setOperationMessage("Sessão removida.");
@@ -245,15 +228,7 @@ const Agendar = () => {
       const info = { titulo: file.name || "Material", tipo: 1 };
       fd.append("info", JSON.stringify(info));
       fd.append("ficheiro", file);
-      await tryEndpoints(
-        "post",
-        [
-          `/sessao/${idsessao}/material`,
-          `/curso/sessao/${idsessao}/material`,
-          `/curso/cursosincrono/${curso?.idcrono}/sessao/${idsessao}/material`,
-        ],
-        fd
-      );
+      await tryEndpoints("post", [`/curso/sessao/${idsessao}/material`], fd);
       await fetchCurso();
       setOperationStatus(0);
       setOperationMessage("Material enviado.");
@@ -275,9 +250,7 @@ const Agendar = () => {
     setOperationMessage("");
     try {
       await tryEndpoints("delete", [
-        `/sessao/${idsessao}/material/${idmaterial}`,
         `/curso/sessao/${idsessao}/material/${idmaterial}`,
-        `/curso/cursosincrono/${curso?.idcrono}/sessao/${idsessao}/material/${idmaterial}`,
       ]);
       await fetchCurso();
       setOperationStatus(0);

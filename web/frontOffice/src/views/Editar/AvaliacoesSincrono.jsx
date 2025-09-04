@@ -20,6 +20,7 @@ const AvaliacoesSincrono = () => {
   const [avaliacoes, setAvaliacoes] = useState([]);
   const [newTitulo, setNewTitulo] = useState("");
   const [enunciadoFile, setEnunciadoFile] = useState(null);
+  const [enunciadoKey, setEnunciadoKey] = useState(0);
   const [inicioDisponibilidade, setInicioDisponibilidade] = useState("");
   const [inicioDeSubmissoes, setInicioDeSubmissoes] = useState("");
   const [fimDisponibilidade, setFimDisponibilidade] = useState("");
@@ -41,6 +42,7 @@ const AvaliacoesSincrono = () => {
   const [editFimDisponibilidade, setEditFimDisponibilidade] = useState("");
   const [editFimDeSubmissoes, setEditFimDeSubmissoes] = useState("");
   const [editEnunciadoFile, setEditEnunciadoFile] = useState(null);
+  const [editEnunciadoKey, setEditEnunciadoKey] = useState(0);
   const openEditModal = () => setIsEditModalOpen(true);
   const closeEditModal = () => {
     setIsEditModalOpen(false);
@@ -490,6 +492,9 @@ const AvaliacoesSincrono = () => {
       }
       setOperationStatus(0);
       setOperationMessage("Avaliação contínua criada.");
+  // reset FileUpload internal state by changing key and clearing selection
+  setEnunciadoFile(null);
+  setEnunciadoKey((k) => k + 1);
     } catch (err) {
       setOperationStatus(1);
       setOperationMessage(
@@ -955,6 +960,7 @@ const AvaliacoesSincrono = () => {
           </div>
           <div className="col-md-3">
             <FileUpload
+              key={`create-enunciado-${enunciadoKey}`}
               id="create-enunciado"
               label={
                 <>
@@ -966,10 +972,10 @@ const AvaliacoesSincrono = () => {
               size="sm"
             />
           </div>
-          <div className="col-md-3 d-flex align-items-start">
+          <div className="col-md-3 d-flex align-items-end">
             <button
               type="submit"
-              className="btn btn-sm btn-primary w-100 mt-4"
+              className="btn btn-sm btn-primary w-100"
               disabled={saving}
             >
               {saving ? "A criar..." : "Adicionar"}
