@@ -1,20 +1,21 @@
 /* Variáveis globais de tema */
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
 
+
 html,
 body {
   color: var(--text-dark);
   background-color: var(--background-light);
   margin: 0;
   padding: 0;
-  height: 100%;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
+  scroll-behavior: smooth;
 }
 
 main {
   flex: 1;
+  min-height: 100vh;
+  scroll-behavior: smooth;
+  padding-top: 40px !important;
 }
 
 :root {
@@ -315,7 +316,7 @@ footer {
   border-top-left-radius: 30px;
   border-top-right-radius: 30px;
   color: var(--text-light);
-  margin-top: auto;
+  margin-top: 4rem;
 }
 
 /* Responsividade mobile alvo ~386x824 */
@@ -360,10 +361,6 @@ footer {
     font-size: 0.95rem;
   }
 
-  /* Main spacing abaixo da navbar fixa */
-  main {
-    padding-top: 64px;
-  }
 
   /* Imagens responsivas em cartões/listas */
   img,
@@ -672,8 +669,8 @@ footer {
 }
 
 .container.mt-5 {
-  padding-top: 3rem !important; 
-  padding-bottom: 3rem !important; 
+  padding-top: 3rem !important;
+  padding-bottom: 3rem !important;
 }
 
 .h1,

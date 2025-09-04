@@ -309,15 +309,6 @@ export default function NavbarFront() {
           </div>
         </div>
       </nav>
-
-      <footer
-        className="bg-white text-center py-3"
-        style={{ borderTop: "1px solid #e5e5e5" }}
-      >
-        <div className="container">
-          <img src={logoSoftinsa} alt="Softinsa" style={{ height: "20px" }} />
-        </div>
-      </footer>
     </>
   );
 }
