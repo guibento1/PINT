@@ -35,7 +35,19 @@ export default function CriarPost({ onCancel }) {
   const selectedTopicoObj = topicos?.find(
     (t) => String(t.idtopico) === String(selectedTopicoId)
   );
-  const selectedTopicoName = selectedTopicoObj?.designacao;
+  const selectedTopicoName = (() => {
+    if (!selectedTopicoId) return undefined;
+    if (selectedTopicoObj && selectedTopicoObj.designacao)
+      return selectedTopicoObj.designacao;
+    const sub = Array.isArray(subscribedTopics)
+      ? subscribedTopics.find(
+          (t) => String(t.idtopico) === String(selectedTopicoId)
+        )
+      : null;
+    if (sub && (sub.designacao || sub.nome)) return sub.designacao || sub.nome;
+    if (topicSearch) return topicSearch;
+    return undefined;
+  })();
 
   const handleBack = () => {
     console.log("Voltar button clicked");

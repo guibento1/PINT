@@ -355,6 +355,25 @@ export default function Forums() {
     }
   };
 
+  const selectedTopicoName = (() => {
+    if (!selectedTopico) return "Todos os posts";
+    const found = Array.isArray(topicos)
+      ? topicos.find((t) => String(t.idtopico) === String(selectedTopico))
+      : null;
+    if (found && found.designacao) return found.designacao;
+    const sub = Array.isArray(subscribedTopics)
+      ? subscribedTopics.find(
+          (t) => String(t.idtopico) === String(selectedTopico)
+        )
+      : null;
+    if (sub && (sub.designacao || sub.nome)) return sub.designacao || sub.nome;
+    const byMap =
+      topicMap && topicMap.get && topicMap.get(String(selectedTopico));
+    if (byMap) return byMap;
+    if (topicSearch) return topicSearch;
+    return "Todos os posts";
+  })();
+
   return (
     <div className="d-flex">
       {/* Mobile filters toggle + inline sidebar */}
@@ -465,10 +484,7 @@ export default function Forums() {
           {/* Lista de posts */}
           <div className="card-rounded">
             <h5 className="mb-3">
-              Tópico:{" "}
-              {topicos.find(
-                (t) => String(t.idtopico) === String(selectedTopico)
-              )?.designacao || "Todos os posts"}
+              Tópico: <span>{selectedTopicoName}</span>
             </h5>
 
             {error && <div className="alert alert-danger">{error}</div>}

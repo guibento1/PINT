@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useRef, useEffect } from "react";
 import api from "@shared/services/axios";
 
 // Componente da sidebar esquerda (filtros e listas de tópicos)
@@ -46,6 +46,23 @@ const LeftSidebar = ({
       }
     } catch {}
   };
+  // Ref para o input e caret para preservar foco/posição ao digitar
+  const inputRef = useRef(null);
+  const lastCaret = useRef(null);
+
+  // Restaura foco e posição do caret após atualização do topicSearch
+  useEffect(() => {
+    const el = inputRef.current;
+    if (!el) return;
+    try {
+      el.focus();
+      if (typeof lastCaret.current === "number") {
+        el.setSelectionRange(lastCaret.current, lastCaret.current);
+      }
+    } catch (err) {
+    }
+  }, [topicSearch]);
+
   const SidebarBody = ({ paddingClass = "p-3" }) => (
     <div className={paddingClass}>
       <div className="d-flex justify-content-between align-items-center mb-2">
@@ -67,40 +84,32 @@ const LeftSidebar = ({
 
       <div className="mb-3">
         <input
+          ref={inputRef}
           className="form-control form-control-sm"
           placeholder="Pesquisar tópico..."
           value={topicSearch}
           onChange={(e) => {
-            const val = e.target.value;
             if (!readOnly) {
-              setTopicSearch(val);
-              if (val && Array.isArray(topicos) && topicos.length) {
-                const v = val.toLowerCase();
-                const match = topicos.find((t) =>
-                  String(t.designacao).toLowerCase().includes(v)
-                );
-                if (match) {
-                  setSelectedTopico(match.idtopico);
-                  (async () => {
-                    try {
-                      const tRes = await api.get(
-                        `/topico/id/${match.idtopico}`
-                      );
-                      const areas = tRes?.data?.areas || [];
-                      if (areas.length) {
-                        const areaId = areas[0]?.idarea;
-                        if (areaId) {
-                          const aRes = await api.get(`/area/id/${areaId}`);
-                          const catId = aRes?.data?.categoria;
-                          if (catId) setSelectedCategoria(String(catId));
-                          setSelectedArea(String(areaId));
-                        }
-                      }
-                    } catch {}
-                  })();
-                }
-              }
+              try {
+                lastCaret.current = e.target.selectionStart;
+              } catch (err) {}
+              setTopicSearch(e.target.value);
             }
+          }}
+          onKeyUp={(e) => {
+            try {
+              lastCaret.current = e.target.selectionStart;
+            } catch (err) {}
+          }}
+          onSelect={(e) => {
+            try {
+              lastCaret.current = e.target.selectionStart;
+            } catch (err) {}
+          }}
+          onMouseUp={(e) => {
+            try {
+              lastCaret.current = e.target.selectionStart;
+            } catch (err) {}
           }}
           disabled={readOnly}
         />
@@ -159,6 +168,25 @@ const LeftSidebar = ({
                     .includes((topicSearch || "").toLowerCase())
                 )
               : [];
+            try {
+              if (
+                selectedTopico &&
+                !list.some((x) => String(x.idtopico) === String(selectedTopico))
+              ) {
+                const foundInSource = source.find(
+                  (x) => String(x.idtopico) === String(selectedTopico)
+                );
+                const foundInSubscribed = Array.isArray(subscribedTopics)
+                  ? subscribedTopics.find(
+                      (x) => String(x.idtopico) === String(selectedTopico)
+                    )
+                  : null;
+                const toAdd = foundInSource || foundInSubscribed || null;
+                if (toAdd) list.unshift(toAdd);
+              }
+            } catch (err) {
+              // ignore
+            }
             if (!hasSearch && !selectedArea)
               return (
                 <div className="text-muted small">
@@ -225,7 +253,47 @@ const LeftSidebar = ({
                 }}
               >
                 <div style={{ maxWidth: "100%", color: "var(--text-dark)" }}>
-                  {t?.designacao || `Tópico não encontrado`}
+                  <button
+                    type="button"
+                    className={`btn btn-sm w-100 text-start ${
+                      String(selectedTopico) === String(t.idtopico)
+                        ? "btn-primary"
+                        : "btn-outline-secondary"
+                    }`}
+                    onClick={async () => {
+                      // allow selection even when the sidebar is readOnly (unsubscribe remains disabled)
+                      try {
+                        setSelectedTopico(t.idtopico);
+                        // preencher a barra de pesquisa com o nome do tópico para feedback visual
+                        if (typeof setTopicSearch === "function") {
+                          setTopicSearch(String(t.designacao || ""));
+                        }
+                        // buscar áreas do tópico e atualizar filtros
+                        const tRes = await api.get(`/topico/id/${t.idtopico}`);
+                        const resAreas = tRes?.data?.areas || [];
+                        if (resAreas.length) {
+                          const areaId = resAreas[0]?.idarea;
+                          if (areaId) {
+                            const aRes = await api.get(`/area/id/${areaId}`);
+                            const catId = aRes?.data?.categoria;
+                            if (catId) setSelectedCategoria(String(catId));
+                            setSelectedArea(String(areaId));
+                          }
+                        }
+                      } catch (err) {
+                        // silenciar erro
+                      }
+                    }}
+                    // keep button enabled so user can select followed topics even when sidebar is readOnly
+                    style={{
+                      marginBottom: 0,
+                      padding: "10px 12px",
+                      borderRadius: "6px",
+                      textAlign: "left",
+                    }}
+                  >
+                    {t?.designacao || "Tópico não encontrado"}
+                  </button>
                 </div>
                 <div>
                   <button
@@ -266,7 +334,6 @@ const LeftSidebar = ({
     </div>
   );
 
-  // Estrutura visual da sidebar
   return inline ? (
     <div className="left-sidebar-inline">
       <SidebarBody paddingClass="p-2 p-sm-3" />
