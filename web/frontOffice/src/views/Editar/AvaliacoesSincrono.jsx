@@ -414,14 +414,13 @@ const AvaliacoesSincrono = () => {
     else setNotaFinal("");
   }, [selectedFormando, getNotaByFormandoId]);
 
-
   const toIsoOrEmpty = (val) => (val ? new Date(val).toISOString() : "");
   const toInputLocal = (val) => {
     if (!val) return "";
     const d = new Date(val);
     if (isNaN(d.getTime())) return "";
     const local = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
-    return local.toISOString().slice(0, 16); 
+    return local.toISOString().slice(0, 16);
   };
 
   const handleCreateAvaliacao = async (e) => {
@@ -492,9 +491,9 @@ const AvaliacoesSincrono = () => {
       }
       setOperationStatus(0);
       setOperationMessage("Avaliação contínua criada.");
-  // reset FileUpload internal state by changing key and clearing selection
-  setEnunciadoFile(null);
-  setEnunciadoKey((k) => k + 1);
+      // reset FileUpload internal state by changing key and clearing selection
+      setEnunciadoFile(null);
+      setEnunciadoKey((k) => k + 1);
     } catch (err) {
       setOperationStatus(1);
       setOperationMessage(
@@ -746,6 +745,7 @@ const AvaliacoesSincrono = () => {
           </div>
           <div className="col-md-6">
             <FileUpload
+              key={`edit-enunciado-${editEnunciadoKey}`}
               id="edit-enunciado"
               label="Enunciado (PDF)"
               accept="application/pdf"
@@ -972,7 +972,7 @@ const AvaliacoesSincrono = () => {
               size="sm"
             />
           </div>
-          <div className="col-md-3 d-flex align-items-end">
+          <div className="col-md-3 d-flex align-items-start">
             <button
               type="submit"
               className="btn btn-sm btn-primary w-100"
