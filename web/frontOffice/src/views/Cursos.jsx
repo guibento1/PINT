@@ -21,94 +21,6 @@ export default function CursosPage() {
   const [error, setError] = useState(null);
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const needsDetail = (c) => {
-    if (!c) return false;
-    const rawSin = c?.sincrono;
-    const tipo = (c?.tipo || "").toString().toLowerCase();
-    let s = null;
-    if (typeof rawSin === "boolean") s = rawSin;
-    else if (typeof rawSin === "number") s = rawSin === 1;
-    else if (typeof rawSin === "string") {
-      const v = rawSin.toLowerCase();
-      if (v === "true" || v === "1") s = true;
-      else if (v === "false" || v === "0") s = false;
-    } else if (tipo.includes("síncrono") || tipo.includes("sincrono")) s = true;
-    else if (tipo.includes("assíncrono") || tipo.includes("assincrono"))
-      s = false;
-
-    const nestedSync = c?.cursosincrono || c?.cursoSincrono || {};
-    const nestedAsync = c?.cursoassincrono || c?.cursoAssincrono || {};
-
-    const hasCursoDates = !!(
-      c?.inicio ||
-      c?.fim ||
-      nestedSync?.inicio ||
-      nestedSync?.fim
-    );
-    const hasInscrDates = !!(
-      c?.iniciodeinscricoes ||
-      c?.fimdeinscricoes ||
-      c?.inicioDeInscricoes ||
-      c?.fimDeInscricoes ||
-      nestedAsync?.iniciodeinscricoes ||
-      nestedAsync?.fimdeinscricoes ||
-      nestedAsync?.inicioDeInscricoes ||
-      nestedAsync?.fimDeInscricoes
-    );
-    const hasDisponivel =
-      typeof (
-        c?.disponivel ??
-        nestedSync?.disponivel ??
-        nestedAsync?.disponivel
-      ) === "boolean";
-
-    if (s === true) {
-      return !hasCursoDates || !hasDisponivel;
-    } else if (s === false) {
-      return !hasInscrDates || !hasDisponivel;
-    } else {
-      return !hasCursoDates && !hasInscrDates && !hasDisponivel;
-    }
-  };
-
-  const mergeMinimalFields = (base, det) => {
-    const d = det || {};
-    const out = { ...base };
-    // Disponível
-    out.disponivel =
-      d?.disponivel ??
-      out?.disponivel ??
-      d?.cursosincrono?.disponivel ??
-      d?.cursoSincrono?.disponivel ??
-      d?.cursoassincrono?.disponivel ??
-      d?.cursoAssincrono?.disponivel;
-    // Datas inscrição (assíncrono)
-    out.iniciodeinscricoes =
-      d?.iniciodeinscricoes ??
-      d?.inicioDeInscricoes ??
-      d?.cursoassincrono?.iniciodeinscricoes ??
-      d?.cursoAssincrono?.iniciodeinscricoes ??
-      out?.iniciodeinscricoes;
-    out.fimdeinscricoes =
-      d?.fimdeinscricoes ??
-      d?.fimDeInscricoes ??
-      d?.cursoassincrono?.fimdeinscricoes ??
-      d?.cursoAssincrono?.fimdeinscricoes ??
-      out?.fimdeinscricoes;
-    // Datas curso (síncrono)
-    out.inicio =
-      d?.inicio ??
-      d?.cursosincrono?.inicio ??
-      d?.cursoSincrono?.inicio ??
-      out?.inicio;
-    out.fim =
-      d?.fim ?? d?.cursosincrono?.fim ?? d?.cursoSincrono?.fim ?? out?.fim;
-    // Tipo/sincrono
-    if (out?.sincrono == null && d?.sincrono != null) out.sincrono = d.sincrono;
-    if (!out?.tipo && d?.tipo) out.tipo = d.tipo;
-    return out;
-  };
-
   const fetchCursos = useCallback(async (currentFilters) => {
     setLoading(true);
     setError(null);
@@ -123,23 +35,7 @@ export default function CursosPage() {
         apiParams.sincrono = currentFilters.sincrono;
 
       const data = await getCursos(apiParams);
-      // Enriquecer apenas os itens potencialmente incompletos
-      const enriched = await Promise.all(
-        (Array.isArray(data) ? data : []).map(async (c) => {
-          const isEnrolled = c?.inscrito === true;
-          if (isEnrolled) return c; // não mostramos de qualquer forma
-          if (!needsDetail(c)) return c;
-          const id = c?.idcurso || c?.id;
-          if (!id) return c;
-          try {
-            const resp = await api.get(`/curso/${id}`);
-            return mergeMinimalFields(c, resp?.data);
-          } catch {
-            return c;
-          }
-        })
-      );
-      setCursos(enriched);
+      setCursos(Array.isArray(data) ? data : []);
     } catch (err) {
       setError("Erro ao carregar cursos. Tente novamente mais tarde.");
       console.error(err);

@@ -127,11 +127,17 @@ export default function GerirEstrutura() {
     }
   };
 
+
   const getEstruturaCompleta = async () => {
     try {
+      const res = await api.get(`/estrutura-completa`);
+      if (res.data && Array.isArray(res.data)) {
+        return res.data;
+      }
+    } catch (e) {
+      console.warn("Endpoint /estrutura-completa não existe, usando fallback.");
       const resCategorias = await api.get(`/categoria/list`);
       const categoriasData = resCategorias.data;
-
       const estruturaAninhada = await Promise.all(
         categoriasData.map(async (categoria) => {
           let areasComTopicos = [];
@@ -140,7 +146,6 @@ export default function GerirEstrutura() {
               `/categoria/id/${categoria.idcategoria}/list`
             );
             const areasData = resAreas.data;
-
             areasComTopicos = await Promise.all(
               areasData.map(async (area) => {
                 let topicos = [];
@@ -148,7 +153,6 @@ export default function GerirEstrutura() {
                   const resTopicos = await api.get(
                     `/area/id/${area.idarea}/list`
                   );
-
                   topicos = await Promise.all(
                     resTopicos.data.map(async (topico) => {
                       let dependencias = null;
@@ -194,9 +198,6 @@ export default function GerirEstrutura() {
         })
       );
       return estruturaAninhada;
-    } catch (fetchError) {
-      console.error("Erro ao buscar a estrutura completa:", fetchError);
-      throw fetchError;
     }
   };
 
@@ -216,7 +217,7 @@ export default function GerirEstrutura() {
     };
 
     fetchAndSetStructure();
-  }, [isResultModalOpen]); 
+  }, [isResultModalOpen]);
 
   const handleEditCategoria = (id) => {
     navigate(`/editar/categoria/${id}`);
