@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import api from "@shared/services/axios";
 import FileUpload from "@shared/components/FileUpload";
 import SubmissionManager from "@shared/components/SubmissionManager";
+import SubmissionFilePreview from "@shared/components/SubmissionFilePreview";
 import Modal from "@shared/components/Modal";
 import useUserRole from "@shared/hooks/useUserRole";
 
@@ -972,7 +973,7 @@ const AvaliacoesSincrono = () => {
               size="sm"
             />
           </div>
-          <div className="col-md-3 d-flex align-items-start">
+          <div className="col-md-3 d-flex align-items-end">
             <button
               type="submit"
               className="btn btn-sm btn-primary w-100"
@@ -1005,21 +1006,29 @@ const AvaliacoesSincrono = () => {
                       {(av?.enunciado ||
                         av?.enunciadoUrl ||
                         av?.enunciadoLink) && (
-                        <>
-                          <br />
-                          <a
-                            href={
+                        <div className="mt-2">
+                          <SubmissionFilePreview
+                            url={
                               av.enunciado ||
                               av.enunciadoUrl ||
                               av.enunciadoLink
                             }
-                            target="_blank"
-                            rel="noreferrer"
-                            className="small"
-                          >
-                            Enunciado
-                          </a>
-                        </>
+                            filename={
+                              av.enunciadoNome ||
+                              av.enunciadoFilename ||
+                              av.enunciado_file_name ||
+                              undefined
+                            }
+                            type={
+                              av.enunciadoTipo || av.enunciadoType || undefined
+                            }
+                            date={
+                              av.enunciadoData ||
+                              av.enunciadoDate ||
+                              av.updatedAt
+                            }
+                          />
+                        </div>
                       )}
                       {(() => {
                         const inicioDisp =
