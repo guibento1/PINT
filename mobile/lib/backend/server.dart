@@ -5,16 +5,7 @@ import 'shared_preferences.dart' as prefs_utils;
 import 'package:flutter/foundation.dart';
 
 class Servidor {
-  final String urlAPI =
-      (() {
-        if (kIsWeb) return 'http://localhost:3000';
-        try {
-          if (Platform.isAndroid) return 'http://10.0.2.2:3000';
-          return 'http://localhost:3000';
-        } catch (_) {
-          return 'http://localhost:3000';
-        }
-      })();
+  final String urlAPI = 'https://api.thesoftskills.xyz';
 
   Future<Map<String, dynamic>?> login(String email, String password) async {
     try {
