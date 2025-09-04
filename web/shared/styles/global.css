@@ -673,10 +673,9 @@ footer {
   color: var(--softinsa-blue);
 }
 
-/* Ajustes gerais de espaçamento */
 .container.mt-5 {
-  padding-top: 3rem !important; /* Mais padding no topo para o conteúdo principal */
-  padding-bottom: 3rem !important; /* Padding na parte inferior */
+  padding-top: 3rem !important; 
+  padding-bottom: 3rem !important; 
 }
 
 .h1,
