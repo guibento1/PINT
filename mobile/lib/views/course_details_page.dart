@@ -1774,7 +1774,7 @@ class _AvaliacoesContinuasTabDetails extends StatelessWidget {
         final enunciado =
             (av['enunciado'] ?? av['enunciadoUrl'] ?? av['enunciadoLink'])
                 ?.toString();
-        // Tentar detetar submissão do utilizador (o servidor pode embutir)
+        // Tentar detetar submissão do utilizador
         final sub =
             (av['minhasubmissao'] ?? av['minhaSubmissao'] ?? av['submissao'])
                 as dynamic;
