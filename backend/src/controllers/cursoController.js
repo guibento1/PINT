@@ -702,12 +702,13 @@ controllers.rmCurso = async (req, res) => {
 
       await Promise.all(
         sessoes.map(async (entry) => {
-          await rmLicao(entry.licao);
           await models.sessao.destroy({ where: { idsessao: entry.idsessao } });
+          await rmLicao(entry.licao);
         })
       );
 
       await models.cursosincrono.destroy({ where: { curso: id } });
+
     } else {
       const licoes = await models.licao.findAll({
         where: {
