@@ -1,4 +1,4 @@
-/* Fonte base */
+
 html, body {
   margin: 0;
   padding: 0;
@@ -14,9 +14,9 @@ body {
   color: #333;
 }
 
-/* Cabeçalho */
+
 header {
-  background-color: white; /* Azul institucional */
+  background-color: white;
   color: #004aad;
   padding: 2rem;
   text-align: center;
@@ -47,7 +47,7 @@ nav a:hover {
   text-decoration: underline;
 }
 
-/* Conteúdo principal */
+
 main {
   padding: 2rem;
   max-width: 1000px;
@@ -69,7 +69,7 @@ ul {
   padding-left: 2rem;
 }
 
-/* Galeria */
+
 #galeria {
   padding: 60px 20px;
   background-color: #f9f9f9;
@@ -103,14 +103,14 @@ ul {
   display: flex;
   flex-direction: column;
   align-items: center;
-  height: 280px; /* altura total fixa */
+  height: 280px; 
   justify-content: space-between;
 }
 
 .imagem img {
   max-width: 100%;
   max-height: 200px;
-  height: 200px; /* altura fixa */
+  height: 200px; 
   object-fit: contain;
   border-radius: 4px;
   background-color: #f0f0f0;
@@ -139,7 +139,7 @@ ul {
   font-size: 24px;
   cursor: pointer;
   box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-  display: none; /* escondido por defeito */
+  display: none; 
   transition: opacity 0.3s ease;
 }
 
@@ -148,7 +148,7 @@ ul {
 }
 
 
-/* Rodapé */
+
 footer {
   background-color: #004aad;
   color: white;
