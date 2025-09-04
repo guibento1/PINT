@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
 import { NavLink, Link, useNavigate, useLocation } from "react-router-dom";
-import logoSoftskills from "@shared/assets/images/thesoftskillsLogo.svg";
-import logoSoftinsa from "@shared/assets/images/softinsaLogo.svg";
-import NotiEmpty from "@shared/assets/images/notification-vazio.svg?react";
-import NotiEmptyDot from "@shared/assets/images/notification-vazio-ponto.svg?react";
-import NotiFull from "@shared/assets/images/notification-cheio.svg?react";
+import logoSoftskills from "@shared/assets/svgs/thesoftskillsLogo.svg";
+import logoSoftinsa from "@shared/assets/svgs/softinsaLogo.svg";
+import NotiEmpty from "@shared/assets/svgs/notification-vazio.svg?react";
+import NotiEmptyDot from "@shared/assets/svgs/notification-vazio-ponto.svg?react";
+import NotiFull from "@shared/assets/svgs/notification-cheio.svg?react";
 import api from "@shared/services/axios";
 
 export default function NavbarBack() {

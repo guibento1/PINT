@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import axios from "axios";
-import logoSoftskills from "@shared/assets/images/thesoftskillsLogo.svg";
-import logoSoftinsa from "@shared/assets/images/softinsaLogo.svg";
+import logoSoftskills from "@shared/assets/svgs/thesoftskillsLogo.svg";
+import logoSoftinsa from "@shared/assets/svgs/softinsaLogo.svg";
 import "@shared/styles/certificado.css";
 
 const Certificado = () => {
