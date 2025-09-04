@@ -74,6 +74,7 @@ Após defenidas estas variáveis passamos a configuração do resto do projeto
 ### Backend
 
 A raiz do projeto localiza-se no backend portanto vamos começar por ai.
+
 ---
 
 Na pasta backend contém os scripts necessários para criar um contentor com base de dados vazia automaticamente, basta correr o script `start` , depois para preencher DB com os objetos lógicos é necessário correr os scripts defenidos na pasta `backend/db/scripts`.
