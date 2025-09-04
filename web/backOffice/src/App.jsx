@@ -1,4 +1,3 @@
-//web\frontend\backOffice\src\App.jsx
 import React, { useEffect } from "react";
 import {
   BrowserRouter as Router,

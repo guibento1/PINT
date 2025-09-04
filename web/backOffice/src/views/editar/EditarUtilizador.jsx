@@ -76,7 +76,7 @@ const EditarUtilizador = () => {
       });
       setPreviewFoto(fetchedUserData.foto);
 
-      // ✅ Lógica para buscar certificados
+      // Lógica para buscar certificados
       const formandoRole = fetchedUserData.roles.find(
         (r) => (r.role || "").toLowerCase() === "formando"
       );
@@ -266,7 +266,7 @@ const EditarUtilizador = () => {
     setCourseToActUpon(null);
   };
 
-  // ✅ Lógica para verificar se o utilizador tem o papel de 'formando'
+  // Lógica para verificar se o utilizador tem o papel de 'formando'
   const isFormando = editData.roles.includes("formando");
 
   if (loading) {
@@ -500,7 +500,7 @@ const EditarUtilizador = () => {
               </form>
             </div>
 
-            {/* ✅ Nova seção para certificados se o utilizador for formando */}
+            {/* Nova seção para certificados se o utilizador for formando */}
             {isFormando && (
               <div className="card shadow-sm p-4 mt-4">
                 <h3 className="card-title text-center mb-4">Certificados</h3>

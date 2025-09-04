@@ -6,12 +6,10 @@ import Footer from '@shared/components/Footer';
 export default function LayoutBack({ children }) {
   const location = useLocation();
 
-  // Página não autorizada
   const isUnauthorizedPage = location.pathname === '/nao-autorizado';
 
   return (
     <div className="app-container">
-      {/* Navbar se não for página não autorizada */}
 
       {(!isUnauthorizedPage && !location.pathname.startsWith("/certificado")) && <NavbarBack />}
 

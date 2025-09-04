@@ -666,7 +666,6 @@ const DetalhesCurso = () => {
             })()}
           </p>
 
-          {/* Description under details */}
           <p className="lead mt-2">{curso?.descricao_longa || ""}</p>
 
           {curso?.categoria && (
