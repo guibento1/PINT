@@ -436,7 +436,7 @@ const EditarCursoAssincrono = () => {
         <div className="text-center">
           <button
             className="btn btn-secondary"
-            onClick={() => navigate("/backoffice/cursos")}
+            onClick={() => navigate("/cursos")}
           >
             Voltar à Gestão de Cursos
           </button>
@@ -454,7 +454,7 @@ const EditarCursoAssincrono = () => {
         <div className="text-center">
           <button
             className="btn btn-secondary"
-            onClick={() => navigate("/backoffice/cursos")}
+            onClick={() => navigate("/cursos")}
           >
             Voltar à Gestão de Cursos
           </button>

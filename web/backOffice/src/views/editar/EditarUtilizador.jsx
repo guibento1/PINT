@@ -223,7 +223,7 @@ const EditarUtilizador = () => {
   };
 
   const handleCancelEdit = () => {
-    navigate("/gerir-utilizadores");
+    navigate("/utilizadores");
   };
 
   const handleUnenrollClick = (course) => {
@@ -291,7 +291,7 @@ const EditarUtilizador = () => {
         <div className="text-center mt-3">
           <button
             className="btn btn-primary"
-            onClick={() => navigate("/gerir-utilizadores")}
+            onClick={() => navigate("/utilizadores")}
           >
             Voltar para a Gestão de Utilizadores
           </button>
